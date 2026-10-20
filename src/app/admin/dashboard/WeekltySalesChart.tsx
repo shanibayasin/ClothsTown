@@ -42,13 +42,13 @@ export default function WeeklySalesChart({
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="day" />
-          <YAxis />
-          <Tooltip />
+          <CartesianGrid stroke="#e5e5e5" strokeDasharray="3 3" />
+          <XAxis dataKey="day" stroke="#737373" />
+          <YAxis stroke="#737373" />
+          <Tooltip contentStyle={{ borderColor: "#d4d4d4", borderRadius: 8 }} />
           <Bar
             dataKey="revenue"
-            fill="#6f1d46"
+            fill="#111111"
             radius={[8, 8, 0, 0]}
           />
         </BarChart>

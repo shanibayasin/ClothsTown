@@ -100,7 +100,7 @@ export default function Header() {
         {/* Notifications Trigger */}
         <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border text-gray-500 hover:bg-gray-50 transition-all">
           <Bell size={18} />
-          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+          <span className="absolute right-2.5 top-2.5 h-2 w-2 animate-pulse rounded-full bg-black"></span>
         </button>
 
         <div className="hidden md:block h-8 w-px bg-gray-200 mx-1"></div>

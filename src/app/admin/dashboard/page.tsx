@@ -1,23 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  CalendarDays,
+  CheckCircle,
+  Clock,
+  Package,
+  ShoppingBag,
+  ShoppingCart,
+  Truck,
+  Users,
+  Wallet,
+  XCircle,
+} from "lucide-react";
 import StatsCard from "../components/StatCard";
 import SalesChart from "./SalesChart";
 import OrderStatusChart from "./OrderStatusChart";
-import WeeklySalesChart from "./WeekltySalesChart";
-import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  Wallet,
-  ShoppingBag,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Clock 
-} from "lucide-react";
+
+interface OrderProduct {
+  name: string;
+  image?: string;
+  quantity: number;
+  price: number;
+}
 
 interface Order {
   _id: string;
@@ -28,6 +38,7 @@ interface Order {
   total: number;
   status: string;
   createdAt: string;
+  products?: OrderProduct[];
 }
 
 interface ProductItem {
@@ -39,24 +50,29 @@ interface ProductItem {
   images: string[];
 }
 
-interface MonthlySales {
-  _id: { month: number };
-  revenue: number;
-  orders: number;
-}
-
-interface WeeklySales {
-  _id: { day: number };
-  revenue: number;
-  orders: number;
-}
-
-interface Activity {
+interface DailySale {
   _id: string;
+  revenue: number;
+  orders: number;
+}
+
+interface ActivityItem {
+  _id: string;
+  type: string;
+  title: string;
+  description: string;
   customerName: string;
   status: string;
   total: number;
   createdAt: string;
+}
+
+interface TopSellingProduct {
+  _id: string | null;
+  name: string;
+  image?: string;
+  totalSold: number;
+  revenue: number;
 }
 
 interface Analytics {
@@ -78,310 +94,527 @@ interface DashboardData {
   recentOrders: Order[];
   latestProducts: ProductItem[];
   lowStockProducts: ProductItem[];
-  featuredProducts: ProductItem[];
-  newArrivals: ProductItem[];
-  topSellingProducts: any[];
-  monthlySales: MonthlySales[];
-  weeklySales: WeeklySales[];
-  recentActivity: Activity[];
+  lowStockCount: number;
+  topSellingProducts: TopSellingProduct[];
+  dailySales: DailySale[];
+  recentActivity: ActivityItem[];
   analytics: Analytics | null;
 }
 
-export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData>({
-    products: 0,
-    orders: 0,
-    customers: 0,
-    revenue: 0,
-    todayRevenue: 0,
-    todayOrders: 0,
-    revenueGrowth: 0,
-    recentOrders: [],
-    latestProducts: [],
-    lowStockProducts: [],
-    featuredProducts: [],
-    newArrivals: [],
-    topSellingProducts: [],
-    monthlySales: [],
-    weeklySales: [],
-    recentActivity: [],
-    analytics: {
-      pending: 0,
-      processing: 0,
-      shipped: 0,
-      delivered: 0,
-      cancelled: 0,
-    },
-  });
-  const [loading, setLoading] = useState(true);
+const emptyAnalytics: Analytics = {
+  pending: 0,
+  processing: 0,
+  shipped: 0,
+  delivered: 0,
+  cancelled: 0,
+};
 
-  async function fetchDashboard() {
-    try {
-      const res = await fetch("/api/admin/dashboard", {
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error("Failed to pull complete metrics payload");
-      const result = await res.json();
-      setData(result);
-    } catch (err) {
-      console.error("Dashboard massive runtime extraction pipeline fault:", err);
-    } finally {
-      setLoading(false);
-    }
+const initialData: DashboardData = {
+  products: 0,
+  orders: 0,
+  customers: 0,
+  revenue: 0,
+  todayRevenue: 0,
+  todayOrders: 0,
+  revenueGrowth: 0,
+  recentOrders: [],
+  latestProducts: [],
+  lowStockProducts: [],
+  lowStockCount: 0,
+  topSellingProducts: [],
+  dailySales: [],
+  recentActivity: [],
+  analytics: emptyAnalytics,
+};
+
+function getLastSevenDays(sales: DailySale[]) {
+  const dateParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Karachi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(dateParts.map(({ type, value }) => [type, value]));
+  const cursor = new Date(
+    Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day))
+  );
+  const salesByDate = new Map(sales.map((sale) => [sale._id, sale.revenue]));
+
+  cursor.setUTCDate(cursor.getUTCDate() - 6);
+
+  return Array.from({ length: 7 }, () => {
+    const key = cursor.toISOString().slice(0, 10);
+    const date = new Intl.DateTimeFormat("en-PK", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(cursor);
+    const entry = { date, revenue: salesByDate.get(key) ?? 0 };
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    return entry;
+  });
+}
+
+function formatTimeAgo(value: string) {
+  const hours = Math.floor((Date.now() - new Date(value).getTime()) / 3_600_000);
+  if (hours < 1) return "Just now";
+  if (hours === 1) return "1 hour ago";
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}
+
+function statusIcon(status: string) {
+  switch (status.toLowerCase()) {
+    case "pending":
+      return Clock;
+    case "processing":
+      return ShoppingBag;
+    case "shipped":
+      return Truck;
+    case "delivered":
+      return CheckCircle;
+    case "cancelled":
+      return XCircle;
+    default:
+      return Activity;
   }
+}
+
+function statusClass() {
+  return "rounded-full border border-neutral-200 bg-neutral-100 px-2.5 py-1 text-[10px] font-medium capitalize text-neutral-700";
+}
+
+function PanelHeading({
+  title,
+  href,
+}: {
+  title: string;
+  href: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3.5 sm:px-5">
+      <h2 className="text-sm font-bold text-neutral-900">{title}</h2>
+      <Link
+        href={href}
+        className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-neutral-500 transition-colors hover:text-black"
+      >
+        View All
+        <ArrowRight size={13} aria-hidden="true" />
+      </Link>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData>(initialData);
+  const [loading, setLoading] = useState(true);
+  const [dateLabel, setDateLabel] = useState("");
+  const [greeting, setGreeting] = useState("Welcome back, Admin!");
 
   useEffect(() => {
-    fetchDashboard();
+    let active = true;
 
-    const interval = setInterval(fetchDashboard, 30000);
-    return () => clearInterval(interval);
+    async function fetchDashboard() {
+      try {
+        const res = await fetch("/api/admin/dashboard", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load dashboard data.");
+        const result = (await res.json()) as DashboardData;
+        if (active) {
+          const now = new Date();
+          const date = new Intl.DateTimeFormat("en-PK", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            timeZone: "Asia/Karachi",
+          }).format(now);
+          const hour = Number(
+            new Intl.DateTimeFormat("en-US", {
+              hour: "numeric",
+              hourCycle: "h23",
+              timeZone: "Asia/Karachi",
+            }).format(now)
+          );
+          setDateLabel(date);
+          setGreeting(
+            `${hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, Admin!`
+          );
+          setData({ ...initialData, ...result });
+        }
+      } catch (error) {
+        console.error("Dashboard data fetch error:", error);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 30_000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
-  const getStatusStyle = (status: string) => {
-    const s = status.toLowerCase();
-    if (s === "completed" || s === "delivered" || s === "paid") return "bg-green-100 text-green-800 font-medium";
-    if (s === "pending" || s === "processing") return "bg-yellow-100 text-yellow-800 font-medium";
-    return "bg-gray-100 text-gray-800 font-medium";
-  };
+  const salesChartData = useMemo(
+    () => getLastSevenDays(data.dailySales),
+    [data.dailySales]
+  );
+
+  const stats = [
+    {
+      title: "Total Orders",
+      value: loading ? "..." : data.orders.toLocaleString(),
+      icon: <ShoppingCart size={18} />,
+    },
+    {
+      title: "Total Revenue",
+      value: loading ? "..." : `Rs. ${data.revenue.toLocaleString()}`,
+      icon: <Wallet size={18} />,
+    },
+    {
+      title: "Total Customers",
+      value: loading ? "..." : data.customers.toLocaleString(),
+      icon: <Users size={18} />,
+    },
+    {
+      title: "Total Products",
+      value: loading ? "..." : data.products.toLocaleString(),
+      icon: <Package size={18} />,
+    },
+    {
+      title: "Low Stock Items",
+      value: loading ? "..." : data.lowStockCount.toLocaleString(),
+      icon: <AlertTriangle size={18} />,
+    },
+  ];
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Top Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-4 pb-8">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-extrabold text-[#4b1532] tracking-tight font-heading">
-            Dashboard Overview
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">
+            {greeting}
           </h1>
-          <p className="mt-1 text-sm text-text/70 font-body">
-            Welcome back, Administrator
+          <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
+            Here&apos;s what&apos;s happening with your store today.
           </p>
         </div>
-        {!loading && (
-          <div className="flex gap-4 rounded-2xl border bg-white p-4 shadow-sm text-sm font-body">
-            <div>
-              <p className="text-gray-400">Today's Revenue</p>
-              <p className="font-bold text-[#4b1532]">Rs. {data.todayRevenue.toLocaleString()}</p>
-            </div>
-            <div className="border-l pl-4">
-              <p className="text-gray-400">Today's Orders</p>
-              <p className="font-bold text-[#4b1532]">{data.todayOrders}</p>
-            </div>
-            <div className="border-l pl-4">
-              <p className="text-gray-400">MoM Growth</p>
-              <p className={`font-bold ${data.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {data.revenueGrowth >= 0 ? "+" : ""}{data.revenueGrowth}%
-              </p>
-            </div>
+        <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600 shadow-sm">
+          <CalendarDays size={16} aria-hidden="true" />
+          <span>Today</span>
+          <span className="font-semibold text-neutral-900">{dateLabel || "..."}</span>
+        </div>
+      </div>
+
+      <section aria-label="Store statistics" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {stats.map((stat) => (
+          <StatsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            color="bg-neutral-900"
+          />
+        ))}
+      </section>
+
+      <div className="grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1fr)_290px]">
+        <div className="min-w-0 space-y-4">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
+            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+              <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
+                <h2 className="text-sm font-bold text-neutral-900">Sales Overview</h2>
+                <p className="mt-1 text-[11px] text-neutral-500">
+                  Total sales for the last 7 days
+                </p>
+              </div>
+              <div className="px-2 py-3 sm:px-4">
+                {loading ? (
+                  <div className="h-[250px] animate-pulse rounded-lg bg-neutral-100 sm:h-[290px]" />
+                ) : (
+                  <SalesChart data={salesChartData} />
+                )}
+              </div>
+            </section>
+
+            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+              <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
+                <h2 className="text-sm font-bold text-neutral-900">Order Status</h2>
+                <p className="mt-1 text-[11px] text-neutral-500">
+                  Current order distribution
+                </p>
+              </div>
+              <div className="p-3 sm:p-4">
+                {loading ? (
+                  <div className="h-[210px] animate-pulse rounded-lg bg-neutral-100" />
+                ) : (
+                  <OrderStatusChart analytics={data.analytics ?? emptyAnalytics} />
+                )}
+              </div>
+            </section>
           </div>
-        )}
-      </div>
 
-      {/* Analytics Counter Grid Panels */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full items-stretch justify-items-stretch">
-        <StatsCard title="Products" value={loading ? "..." : data.products.toLocaleString()} icon={<Package size={22} />} />
-        <StatsCard title="Orders" value={loading ? "..." : data.orders.toLocaleString()} icon={<ShoppingCart size={22} />} />
-        <StatsCard title="Customers" value={loading ? "..." : data.customers.toLocaleString()} icon={<Users size={22} />} />
-        <StatsCard title="Total Revenue" value={loading ? "..." : `Rs. ${data.revenue.toLocaleString()}`} icon={<Wallet size={22} />} />
-      </div>
+          <div className="grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-[1.25fr_1fr_0.9fr]">
+            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+              <PanelHeading title="Recent Orders" href="/admin/orders" />
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] text-left text-[11px]">
+                  <thead className="bg-neutral-50 text-neutral-500">
+                    <tr>
+                      <th className="px-3 py-2.5 font-medium">Order ID</th>
+                      <th className="px-3 py-2.5 font-medium">Customer</th>
+                      <th className="px-3 py-2.5 font-medium">Total</th>
+                      <th className="px-3 py-2.5 font-medium">Status</th>
+                      <th className="px-3 py-2.5 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-8 text-center text-neutral-400">
+                          Loading orders...
+                        </td>
+                      </tr>
+                    ) : data.recentOrders.length ? (
+                      data.recentOrders.map((order) => (
+                        <tr key={order._id} className="transition-colors hover:bg-neutral-50">
+                          <td className="whitespace-nowrap px-3 py-3 font-medium text-neutral-900">
+                            #{order._id.slice(-6).toUpperCase()}
+                          </td>
+                          <td className="max-w-28 truncate px-3 py-3">{order.customerName}</td>
+                          <td className="whitespace-nowrap px-3 py-3">
+                            Rs. {(order.total ?? 0).toLocaleString()}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className={statusClass()}>{order.status}</span>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3 text-neutral-500">
+                            {new Date(order.createdAt).toLocaleDateString("en-PK", {
+                              day: "numeric",
+                              month: "short",
+                            })}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-8 text-center text-neutral-500">
+                          No orders yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-      {/* Primary Monthly Analytics Linear Progression Chart */}
-      <div className="mt-10 rounded-3xl border bg-white p-8 shadow-sm">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#4b1532] font-heading">Monthly Revenue</h2>
-          <p className="mt-2 text-sm text-gray-500 font-body">Revenue generated every month</p>
-        </div>
-        {loading ? (
-          <div className="h-64 animate-pulse rounded-2xl bg-gray-100" />
-        ) : data.monthlySales.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 font-body">No monthly distribution history found.</div>
-        ) : (
-          <SalesChart data={data.monthlySales} />
-        )}
-      </div>
+            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+              <PanelHeading title="Latest Products" href="/admin/products" />
+              <div className="divide-y divide-neutral-100">
+                {loading ? (
+                  <p className="p-5 text-center text-xs text-neutral-400">Loading products...</p>
+                ) : data.latestProducts.length ? (
+                  data.latestProducts.slice(0, 5).map((product) => (
+                    <div key={product._id} className="flex min-w-0 items-center gap-3 px-4 py-2.5">
+                      <div className="relative size-9 shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50">
+                        <Image
+                          src={product.images?.[0] || "/placeholder.png"}
+                          alt={product.name}
+                          fill
+                          sizes="36px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <span className="min-w-0 flex-1 truncate text-[11px] text-neutral-700">
+                        {product.name}
+                      </span>
+                      <span className="shrink-0 text-[10px] font-medium text-neutral-900">
+                        Rs. {(product.price ?? 0).toLocaleString()}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="p-5 text-center text-xs text-neutral-500">No products found.</p>
+                )}
+              </div>
+            </section>
 
-      {/* Secondary Graphs Layer Layout Wrapper */}
-      <div className="mt-10 grid gap-8 xl:grid-cols-2">
-        <div className="rounded-3xl border bg-white p-8 shadow-sm">
-          <h2 className="mb-6 text-2xl font-bold text-[#4b1532] font-heading">Weekly Sales</h2>
-          {loading ? (
-            <div className="h-48 animate-pulse rounded-2xl bg-gray-100" />
-          ) : (
-            <WeeklySalesChart data={data.weeklySales} />
-          )}
-        </div>
-        <div className="rounded-3xl border bg-white p-8 shadow-sm">
-          <h2 className="mb-6 text-2xl font-bold text-[#4b1532] font-heading">Orders Overview</h2>
-          {loading ? (
-            <div className="h-48 animate-pulse rounded-2xl bg-gray-100" />
-          ) : (
-            <OrderStatusChart analytics={data.analytics ?? {
-              pending: 0,
-              processing: 0,
-              shipped: 0,
-              delivered: 0,
-              cancelled: 0,
-            }} />
-          )}
-        </div>
-      </div>
+            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm lg:col-span-2 2xl:col-span-1">
+              <PanelHeading title="Low Stock Products" href="/admin/products" />
+              <div className="divide-y divide-neutral-100">
+                {loading ? (
+                  <p className="p-5 text-center text-xs text-neutral-400">Loading stock...</p>
+                ) : data.lowStockProducts.length ? (
+                  data.lowStockProducts.slice(0, 5).map((product) => (
+                    <div key={product._id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <div className="relative size-8 shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50">
+                          <Image
+                            src={product.images?.[0] || "/placeholder.png"}
+                            alt={product.name}
+                            fill
+                            sizes="32px"
+                            className="object-cover"
+                          />
+                        </div>
+                        <span className="truncate text-[11px] text-neutral-700">{product.name}</span>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-semibold text-neutral-700">
+                        {product.stock} left
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="p-5 text-center text-xs text-neutral-500">No low stock products.</p>
+                )}
+              </div>
+            </section>
+          </div>
 
-      {/* Data Management Blocks Matrix Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-10">
-        {/* Recent Orders Section */}
-        <div className="rounded-3xl border bg-white shadow-sm overflow-hidden flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b p-6">
-              <h2 className="text-2xl font-bold text-[#4b1532] font-heading">Recent Orders</h2>
-              <Link href="/admin/orders" className="text-sm font-semibold text-primary hover:underline">View All</Link>
+          <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+            <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
+              <h2 className="text-sm font-bold text-neutral-900">Recent Activity</h2>
+              <p className="mt-1 text-[11px] text-neutral-500">Latest activity on your store</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b bg-gray-50 text-gray-600 text-sm font-body">
-                    <th className="p-4 text-left font-semibold">Customer</th>
-                    <th className="p-4 text-left font-semibold">Phone</th>
-                    <th className="p-4 text-left font-semibold">Total</th>
-                    <th className="p-4 text-left font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm text-gray-700 font-body">
-                  {loading ? (
-                    <tr><td colSpan={4} className="p-8 text-center text-gray-400"><div className="space-y-2"><div className="h-4 bg-gray-100 rounded animate-pulse" /><div className="h-4 bg-gray-100 rounded animate-pulse" /></div></td></tr>
-                  ) : data.recentOrders.length === 0 ? (
-                    <tr><td colSpan={4} className="p-8 text-center text-gray-400">No orders registered.</td></tr>
-                  ) : (
-                    data.recentOrders.map((order) => (
-                      <tr key={order._id} className="hover:bg-gray-50/55 transition-colors">
-                        <td className="p-4 font-medium text-gray-900">{order.customerName}</td>
-                        <td className="p-4 text-gray-500">{order.phone}</td>
-                        <td className="p-4 font-semibold text-gray-900">Rs. {(order.total ?? 0).toLocaleString()}</td>
-                        <td className="p-4">
-                          <span className={`rounded-full px-3 py-1 text-xs capitalize ${getStatusStyle(order.status)}`}>
-                            {order.status}
+            {loading ? (
+              <p className="p-5 text-center text-xs text-neutral-400">Loading activity...</p>
+            ) : data.recentActivity.length ? (
+              <div className="grid divide-y divide-neutral-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                {data.recentActivity.slice(0, 6).map((activity) => {
+                  const Icon = statusIcon(activity.status);
+                  return (
+                    <div key={`${activity.type}-${activity._id}`} className="flex min-w-0 items-center gap-3 px-4 py-3">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
+                        <Icon size={15} aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-neutral-800">
+                          {activity.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-[10px] text-neutral-500">
+                          {activity.description}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] text-neutral-400">
+                        {formatTimeAgo(activity.createdAt)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="p-5 text-center text-xs text-neutral-500">No recent activity.</p>
+            )}
+          </section>
+        </div>
+
+        <aside className="min-w-0 space-y-4">
+          <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+            <PanelHeading title="Recent Orders" href="/admin/orders" />
+            <div className="divide-y divide-neutral-100">
+              {loading ? (
+                <p className="p-5 text-center text-xs text-neutral-400">Loading orders...</p>
+              ) : data.recentOrders.length ? (
+                data.recentOrders.slice(0, 5).map((order) => {
+                  const image = order.products?.[0]?.image;
+                  return (
+                    <Link
+                      key={order._id}
+                      href="/admin/orders"
+                      className="flex items-center gap-2.5 px-3 py-3 transition-colors hover:bg-neutral-50"
+                    >
+                      <div className="relative size-10 shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50">
+                        {image ? (
+                          <Image src={image} alt="" fill sizes="40px" className="object-cover" />
+                        ) : (
+                          <span className="flex h-full items-center justify-center text-neutral-400">
+                            <ShoppingBag size={16} aria-hidden="true" />
                           </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-semibold text-neutral-800">
+                          #{order._id.slice(-6).toUpperCase()}
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-neutral-500">
+                          Rs. {(order.total ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className={statusClass()}>{order.status}</span>
+                        <span className="text-[9px] text-neutral-400">
+                          {formatTimeAgo(order.createdAt)}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })
+              ) : (
+                <p className="p-5 text-center text-xs text-neutral-500">No orders yet.</p>
+              )}
             </div>
-          </div>
-        </div>
+          </section>
 
-        {/* Latest Products Section */}
-        <div className="rounded-3xl border bg-white shadow-sm overflow-hidden flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b p-6">
-              <h2 className="text-2xl font-bold text-[#4b1532] font-heading">Latest Products</h2>
-              <Link href="/admin/products" className="text-sm font-semibold text-primary hover:underline">View All</Link>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b bg-gray-50 text-gray-600 text-sm font-body">
-                    <th className="p-4 text-left font-semibold">Product</th>
-                    <th className="p-4 text-left font-semibold">Price</th>
-                    <th className="p-4 text-left font-semibold">Stock</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm text-gray-700 font-body">
-                  {loading ? (
-                    <tr><td colSpan={3} className="p-8 text-center text-gray-400"><div className="space-y-2"><div className="h-4 bg-gray-100 rounded animate-pulse" /><div className="h-4 bg-gray-100 rounded animate-pulse" /></div></td></tr>
-                  ) : data.latestProducts.length === 0 ? (
-                    <tr><td colSpan={3} className="p-8 text-center text-gray-400">No products found.</td></tr>
-                  ) : (
-                    data.latestProducts.map((product) => (
-                      <tr key={product._id} className="hover:bg-gray-50/55 transition-colors">
-                        <td className="flex items-center gap-4 p-4">
-                          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-gray-100">
-                            <Image src={product.images?.[0] || "/placeholder.png"} alt={product.name} fill className="object-cover" />
-                          </div>
-                          <span className="font-medium text-gray-900 line-clamp-1">{product.name}</span>
-                        </td>
-                        <td className="p-4 font-semibold text-gray-900">Rs. {(product.price ?? 0).toLocaleString()}</td>
-                        <td className="p-4 text-gray-500 font-medium">{product.stock}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Critical Operational Feeds Layer Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-10">
-        {/* Low Stock Watchlist */}
-        <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b p-6">
-            <div>
-              <h2 className="text-2xl font-bold text-[#4b1532] font-heading">Low Stock Products</h2>
-              <p className="mt-1 text-sm text-gray-500 font-body">Products that need restocking</p>
-            </div>
-            <Link href="/admin/products" className="text-sm font-semibold text-primary hover:underline">View All</Link>
-          </div>
-          <div className="divide-y divide-gray-100 max-h-102.5 overflow-y-auto">
+          <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+            <PanelHeading title="Top Selling Products" href="/admin/products" />
             {loading ? (
-              <div className="p-8"><div className="h-48 animate-pulse rounded-2xl bg-gray-50" /></div>
-            ) : data.lowStockProducts.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 font-body">No low stock products 🎉</div>
-            ) : (
-              data.lowStockProducts.map((product) => (
-                <div key={product._id} className="flex items-center justify-between p-5 hover:bg-gray-50/40 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-100">
-                      <Image src={product.images?.[0] || "/placeholder.png"} alt={product.name} fill className="object-cover" />
+              <p className="p-5 text-center text-xs text-neutral-400">Loading products...</p>
+            ) : data.topSellingProducts.length ? (
+              <div className="divide-y divide-neutral-100">
+                {data.topSellingProducts.slice(0, 5).map((product, index) => (
+                  <div key={`${product._id ?? product.name}-${index}`} className="flex items-center gap-2.5 px-3 py-2.5">
+                    <span className="w-4 shrink-0 text-[10px] font-semibold text-neutral-400">
+                      {index + 1}
+                    </span>
+                    <div className="relative size-8 shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50">
+                      {product.image ? (
+                        <Image src={product.image} alt="" fill sizes="32px" className="object-cover" />
+                      ) : (
+                        <span className="flex h-full items-center justify-center text-neutral-400">
+                          <Package size={14} aria-hidden="true" />
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 font-body line-clamp-1">{product.name}</h3>
-                      <p className="text-xs text-red-500 font-medium mt-0.5">Critical Inventory Level</p>
-                    </div>
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-neutral-700">
+                      {product.name}
+                    </span>
+                    <span className="shrink-0 text-[10px] font-medium text-neutral-500">
+                      {product.totalSold}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-red-50 px-4 py-2 text-xs font-bold text-red-700 border border-red-100">
-                    {product.stock} Left
-                  </span>
-                </div>
-              ))
+                ))}
+              </div>
+            ) : (
+              <p className="p-5 text-center text-xs text-neutral-500">No sales data yet.</p>
             )}
-          </div>
-        </div>
+          </section>
 
-        {/* Real-time System Recent Activity Log */}
-        <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="border-b p-6">
-            <h2 className="text-2xl font-bold text-[#4b1532] font-heading">Recent Activity</h2>
-            <p className="mt-1 text-sm text-gray-500 font-body">Latest activity on your store</p>
-          </div>
-          <div className="divide-y divide-gray-100 max-h-102.5 overflow-y-auto">
-            {loading ? (
-              <div className="p-8"><div className="h-48 animate-pulse rounded-2xl bg-gray-50" /></div>
-            ) : data.recentActivity.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 font-body">No activity log found.</div>
-            ) : (
-              data.recentActivity.map((activity) => (
-                <div key={activity._id} className="flex items-center gap-5 p-5 hover:bg-gray-50/40 transition-colors">
-                  <div className="shrink-0">
-                    {activity.status === "Pending" && <Clock className="text-yellow-500" size={24} />}
-                    {activity.status === "Processing" && <ShoppingBag className="text-blue-500" size={24} />}
-                    {activity.status === "Shipped" && <Truck className="text-purple-500" size={24} />}
-                    {activity.status === "Delivered" && <CheckCircle className="text-green-500" size={24} />}
-                    {activity.status === "Cancelled" && <XCircle className="text-red-500" size={24} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 font-body truncate">{activity.customerName}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5 capitalize">Order state: {activity.status}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-bold text-gray-900 font-body">Rs. {(activity.total ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{new Date(activity.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+          <section className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+            <h2 className="text-xs font-semibold text-neutral-800">Today&apos;s Summary</h2>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] text-neutral-500">Revenue</p>
+                <p className="mt-1 text-sm font-bold text-neutral-900">
+                  Rs. {loading ? "..." : data.todayRevenue.toLocaleString()}
+                </p>
+              </div>
+              <div className="border-l border-neutral-200 pl-3">
+                <p className="text-[10px] text-neutral-500">Orders</p>
+                <p className="mt-1 text-sm font-bold text-neutral-900">
+                  {loading ? "..." : data.todayOrders.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 border-t border-neutral-100 pt-3 text-[10px] text-neutral-500">
+              Monthly revenue growth{" "}
+              <span className="font-semibold text-neutral-800">
+                {loading ? "..." : `${data.revenueGrowth >= 0 ? "+" : ""}${data.revenueGrowth}%`}
+              </span>
+            </p>
+          </section>
+        </aside>
       </div>
     </div>
   );

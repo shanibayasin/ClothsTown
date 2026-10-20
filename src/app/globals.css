@@ -27,6 +27,130 @@
   display: none;
 }
 
+.admin-theme {
+  --color-primary: #111111;
+  --color-primary-dark: #000000;
+  --color-secondary: #737373;
+  --color-background: #f5f5f5;
+  --color-section: #ffffff;
+  --color-heading: #111111;
+  --color-text: #404040;
+  --color-border: #e5e5e5;
+  color: #171717;
+  background-color: #f5f5f5;
+}
+
+.admin-theme [class*="bg-red-"],
+.admin-theme [class*="bg-orange-"],
+.admin-theme [class*="bg-amber-"],
+.admin-theme [class*="bg-yellow-"],
+.admin-theme [class*="bg-lime-"],
+.admin-theme [class*="bg-green-"],
+.admin-theme [class*="bg-emerald-"],
+.admin-theme [class*="bg-teal-"],
+.admin-theme [class*="bg-cyan-"],
+.admin-theme [class*="bg-sky-"],
+.admin-theme [class*="bg-blue-"],
+.admin-theme [class*="bg-indigo-"],
+.admin-theme [class*="bg-violet-"],
+.admin-theme [class*="bg-purple-"],
+.admin-theme [class*="bg-fuchsia-"],
+.admin-theme [class*="bg-pink-"],
+.admin-theme [class*="bg-rose-"] {
+  background-color: #f4f4f5 !important;
+}
+
+.admin-theme button[class*="bg-red-"],
+.admin-theme button[class*="bg-orange-"],
+.admin-theme button[class*="bg-amber-"],
+.admin-theme button[class*="bg-yellow-"],
+.admin-theme button[class*="bg-lime-"],
+.admin-theme button[class*="bg-green-"],
+.admin-theme button[class*="bg-emerald-"],
+.admin-theme button[class*="bg-teal-"],
+.admin-theme button[class*="bg-cyan-"],
+.admin-theme button[class*="bg-sky-"],
+.admin-theme button[class*="bg-blue-"],
+.admin-theme button[class*="bg-indigo-"],
+.admin-theme button[class*="bg-violet-"],
+.admin-theme button[class*="bg-purple-"],
+.admin-theme button[class*="bg-fuchsia-"],
+.admin-theme button[class*="bg-pink-"],
+.admin-theme button[class*="bg-rose-"] {
+  background-color: #111111 !important;
+  color: #ffffff !important;
+}
+
+.admin-theme [class*="text-red-"],
+.admin-theme [class*="text-orange-"],
+.admin-theme [class*="text-amber-"],
+.admin-theme [class*="text-yellow-"],
+.admin-theme [class*="text-lime-"],
+.admin-theme [class*="text-green-"],
+.admin-theme [class*="text-emerald-"],
+.admin-theme [class*="text-teal-"],
+.admin-theme [class*="text-cyan-"],
+.admin-theme [class*="text-sky-"],
+.admin-theme [class*="text-blue-"],
+.admin-theme [class*="text-indigo-"],
+.admin-theme [class*="text-violet-"],
+.admin-theme [class*="text-purple-"],
+.admin-theme [class*="text-fuchsia-"],
+.admin-theme [class*="text-pink-"],
+.admin-theme [class*="text-rose-"],
+.admin-theme [class*="text-[#4b1532]"],
+.admin-theme [class*="text-[#6f1d46]"],
+.admin-theme [class*="text-[#6B1E4A]"] {
+  color: #262626 !important;
+}
+
+.admin-theme [class*="bg-[#6f1d46]"],
+.admin-theme [class*="bg-[#581739]"],
+.admin-theme [class*="bg-[#5d163a]"],
+.admin-theme [class*="bg-[#6B1E4A]"] {
+  background-color: #111111 !important;
+  color: #ffffff !important;
+}
+
+.admin-theme [class*="bg-[#fff"],
+.admin-theme [class*="bg-[#faf"],
+.admin-theme [class*="bg-[#ead"],
+.admin-theme [class*="bg-[#d7"] {
+  background-color: #f4f4f5 !important;
+}
+
+.admin-theme [class*="border-[#"] {
+  border-color: #d4d4d8 !important;
+}
+
+.admin-theme [class*="focus:border-[#"]:focus {
+  border-color: #111111 !important;
+}
+
+.admin-theme [class*="focus:ring-[#"] {
+  --tw-ring-color: #111111 !important;
+}
+
+.admin-theme [class*="border-red-"],
+.admin-theme [class*="border-orange-"],
+.admin-theme [class*="border-amber-"],
+.admin-theme [class*="border-yellow-"],
+.admin-theme [class*="border-lime-"],
+.admin-theme [class*="border-green-"],
+.admin-theme [class*="border-emerald-"],
+.admin-theme [class*="border-teal-"],
+.admin-theme [class*="border-cyan-"],
+.admin-theme [class*="border-sky-"],
+.admin-theme [class*="border-blue-"],
+.admin-theme [class*="border-indigo-"],
+.admin-theme [class*="border-violet-"],
+.admin-theme [class*="border-purple-"],
+.admin-theme [class*="border-fuchsia-"],
+.admin-theme [class*="border-pink-"],
+.admin-theme [class*="border-rose-"] {
+  border-color: #e4e4e7 !important;
+}
+
 /* FIXED: Tailwind v4 default reset layer standard implementation */
 @layer base {
   html,

@@ -130,6 +130,47 @@ export async function GET() {
       },
     ]);
 
+    const karachiDateParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Karachi",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).formatToParts(new Date());
+    const karachiDate = Object.fromEntries(
+      karachiDateParts.map(({ type, value }) => [type, value])
+    );
+    const startOfLastSevenDays = new Date(
+      Date.UTC(
+        Number(karachiDate.year),
+        Number(karachiDate.month) - 1,
+        Number(karachiDate.day),
+        -5
+      )
+    );
+    startOfLastSevenDays.setUTCDate(startOfLastSevenDays.getUTCDate() - 6);
+
+    const dailySales = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfLastSevenDays },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt",
+              timezone: "Asia/Karachi",
+            },
+          },
+          revenue: { $sum: "$total" },
+          orders: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
     // ============================
     // ORDER STATUS ANALYTICS
     // ============================
@@ -147,7 +188,7 @@ export async function GET() {
     const recentOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("customerName email phone city total status createdAt");
+      .select("customerName email phone city total status createdAt products");
 
     // ============================
     // LATEST PRODUCTS
@@ -183,6 +224,10 @@ export async function GET() {
       .sort({ stock: 1 })
       .limit(10)
       .select("name slug images stock price");
+    const lowStockCount = await Product.countDocuments({
+      status: true,
+      stock: { $lte: 5 },
+    });
 
     // ============================
     // TOP SELLING PRODUCTS
@@ -254,6 +299,7 @@ export async function GET() {
       // Charts
       monthlySales,
       weeklySales,
+      dailySales,
 
       // Order Status
       analytics,
@@ -266,6 +312,7 @@ export async function GET() {
       featuredProducts,
       newArrivals,
       lowStockProducts,
+      lowStockCount,
       topSellingProducts,
 
       // Activity Feed

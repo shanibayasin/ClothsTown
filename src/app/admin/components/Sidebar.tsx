@@ -49,21 +49,19 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
 
   return (
     <aside
-      className="relative flex h-full w-full flex-col justify-between border-r border-white/10 text-white shadow-2xl font-body lg:rounded-r-3xl overflow-hidden"
-      style={{ backgroundColor: "#6f1d46" }}
+      className="relative flex h-full w-full flex-col justify-between overflow-hidden border-r border-gray-200 bg-white font-body text-gray-900 shadow-sm lg:rounded-r-3xl"
     >
       <div className="w-full">
         {/* BRAND AREA */}
         <div
-          className="flex h-24 md:h-28 items-center justify-start border-b border-white/10 px-7"
-          style={{ backgroundColor: "rgba(255, 255, 255, 0.04)" }}
+          className="flex h-24 items-center justify-start border-b border-gray-200 px-7 md:h-28"
         >
           <Link 
             href="/admin" 
             onClick={closeSidebar} 
-            className="flex items-center justify-start w-full h-full"
+            className="flex h-full w-full items-center justify-start"
           >
-            <span className="text-xl font-bold tracking-wide text-white transition-transform duration-300 hover:scale-[1.04]">
+            <span className="text-xl font-bold tracking-wide text-black transition-transform duration-300 hover:scale-[1.04]">
               ClothesTown
             </span>
           </Link>
@@ -86,33 +84,25 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
                 className={`group flex items-center gap-4 rounded-xl px-5 py-3.5 text-[15px] font-semibold tracking-wide select-none cursor-pointer relative transition-all duration-300
                   ${
                     active
-                      ? "bg-white/15 text-white shadow-md"
-                      : "text-white/70 hover:bg-white/5 hover:text-white hover:translate-x-1.5"
+                      ? "bg-gray-100 text-black shadow-sm"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-black hover:translate-x-1.5"
                   }`}
               >
                 {/* ACTIVE LINK SIDE ACCENT */}
                 {active && (
                   <span
-                    className="absolute left-0 top-1/4 h-1/2 w-1 rounded-r-full"
-                    style={{
-                      backgroundColor: "#d98da5",
-                      boxShadow: "0 0 10px #d98da5",
-                    }}
+                    className="absolute left-0 top-1/4 h-1/2 w-1 rounded-r-full bg-black"
+                    aria-hidden="true"
                   />
                 )}
 
                 <Icon
                   size={22}
                   className="shrink-0 transition-all duration-300"
-                  style={{
-                    color: active ? "#d98da5" : "rgba(255, 255, 255, 0.65)",
-                  }}
+                  aria-hidden="true"
                 />
 
-                <span
-                  className="font-sans tracking-wide transition-colors duration-300"
-                  style={{ color: "#ffffff" }}
-                >
+                <span className="font-sans tracking-wide transition-colors duration-300">
                   {item.title}
                 </span>
               </Link>
@@ -122,20 +112,11 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
       </div>
 
       {/* LOGOUT BUTTON AREA */}
-      <div className="border-t border-white/10 p-4 mb-3">
+      <div className="mb-3 border-t border-gray-200 p-4">
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-4 rounded-xl px-5 py-3.5 text-[15px] font-semibold transition-all duration-300 ease-out cursor-pointer group"
-          style={{ color: "rgba(255, 255, 255, 0.75)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
-            e.currentTarget.style.color = "#ef4444";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-            e.currentTarget.style.color = "rgba(255, 255, 255, 0.75)";
-          }}
+          className="group flex w-full cursor-pointer items-center gap-4 rounded-xl px-5 py-3.5 text-[15px] font-semibold text-gray-600 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-black"
         >
           <LogOut size={22} className="shrink-0 transition-all duration-300" />
           <span className="font-sans tracking-wide">Logout</span>
