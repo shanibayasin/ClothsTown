@@ -1,0 +1,105 @@
+import Link from "next/link";
+import Image from "next/image";
+import { connectDB } from "@/lib/mongodb";
+import Collection from "@/models/Collection";
+
+export const dynamic = "force-dynamic";
+
+export default async function CollectionsPage() {
+  try {
+    await connectDB();
+  } catch {
+    return (
+      <main className="min-h-screen bg-[#faf7f8]">
+        <section className="mx-auto max-w-7xl px-6 py-20 text-center">
+          <h1 className="text-4xl font-bold text-[#6f1d46]">
+            Collections temporarily unavailable
+          </h1>
+          <p className="mt-4 text-gray-500">
+            Please try again shortly while the database connection is restored.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  const collections = await Collection.find({
+    status: true,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return (
+    <main className="min-h-screen bg-[#faf7f8]">
+      {/* Hero */}
+      <section className="border-b bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-20 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+            Veloraé
+          </p>
+
+          <h1 className="mt-5 text-5xl font-bold text-gray-900">
+            Our Collections
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600">
+            Explore our luxury abaya collections carefully designed for modern,
+            elegant and modest fashion.
+          </p>
+        </div>
+      </section>
+
+      {/* Collections */}
+      <section className="mx-auto max-w-7xl px-6 py-16">
+        {collections.length === 0 ? (
+          <div className="rounded-3xl border bg-white py-20 text-center">
+            <h2 className="text-2xl font-semibold">
+              No Collections Found
+            </h2>
+
+            <p className="mt-3 text-gray-500">
+              Please add collections from Admin Panel.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {collections.map((collection: any) => (
+              <Link
+                key={collection._id}
+                href={`/collections/${collection.slug}`}
+                className="group overflow-hidden rounded-3xl bg-white shadow-sm transition hover:-translate-y-2 hover:shadow-xl"
+              >
+                <div className="relative h-80 overflow-hidden bg-gray-100">
+                  <Image
+                    src={
+                      collection.image ||
+                      "/images/placeholder-collection.jpg"
+                    }
+                    alt={collection.title}
+                    fill
+                    className="object-cover transition duration-500 group-hover:scale-110"
+                  />
+                </div>
+
+                <div className="p-7">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {collection.title}
+                  </h2>
+
+                  <p className="mt-3 line-clamp-3 text-gray-600">
+                    {collection.description}
+                  </p>
+
+                  <div className="mt-8 inline-flex items-center gap-2 font-semibold text-primary">
+                    Explore Collection
+                    <span>→</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
