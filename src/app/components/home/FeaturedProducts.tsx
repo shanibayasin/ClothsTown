@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, ShoppingCart, Star } from "lucide-react";
 import { motion } from "framer-motion";
+import { useCart } from "@/context/CartContext";
 import { readJsonResponse } from "@/lib/api";
 
 type Product = {
@@ -13,23 +14,23 @@ type Product = {
   slug: string;
   images: string[];
   price: number;
+  discountPrice?: number;
+  newArrival?: boolean;
 };
 
 export default function FeaturedSection() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     async function loadProducts() {
       try {
-        setLoading(true);
-        const res = await fetch("/api/products/featured", {
-          cache: "no-store",
-        });
+        const res = await fetch("/api/products/featured", { cache: "no-store" });
         const data = await readJsonResponse<Product[]>(res, []);
         setProducts(data);
       } catch (error) {
-        console.error("Featured components fetch exception log:", error);
+        console.error("Featured products fetch error:", error);
       } finally {
         setLoading(false);
       }
@@ -39,104 +40,124 @@ export default function FeaturedSection() {
   }, []);
 
   return (
-    <section className="bg-[#fdf8f8]/40 py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        
-        {/* Top Header Row Options Panel */}
-        <div className="mb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-          <div>
-            <span className="text-xs uppercase tracking-[0.3em] font-bold text-primary bg-primary/5 px-4 py-1.5 rounded-full">
-              Premium Picks
-            </span>
-            <h2 className="mt-5 font-heading text-4xl sm:text-5xl text-[#2B1A22] tracking-tight">
-              Featured Collection
-            </h2>
-            <p className="mt-4 max-w-xl text-base text-gray-500 leading-relaxed">
-              Discover our handpicked luxury pieces chosen for elegance,
-              craftsmanship and timeless style.
-            </p>
-          </div>
-
+    <section className="bg-white py-6 sm:py-8">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12">
+        <div className="mb-5 flex items-center justify-between sm:mb-6">
+          <h2 className="text-[17px] font-bold tracking-tight text-[#102d40] sm:text-xl">
+            Featured Products
+          </h2>
           <Link
-            href="/collections"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary bg-white shadow-sm transition duration-300 hover:bg-primary hover:text-white self-start md:self-auto hover:scale-105"
+            href="/featured"
+            className="group inline-flex items-center gap-1 text-[10px] font-medium text-[#536875] transition hover:text-[#102d40] sm:text-xs"
           >
             View All
-            <ArrowRight size={16} />
+            <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
 
-        {/* Dynamic Items Content Grid Layer */}
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
-          {loading ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-24 gap-3 bg-white rounded-[30px] border border-slate-100 shadow-sm">
-              <Loader2 className="animate-spin text-primary" size={32} />
-              <p className="text-sm font-medium text-slate-500 tracking-wide">Hydrating featured collections...</p>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="col-span-full rounded-[30px] border border-dashed border-[#d8b7c7] bg-[#FCF8F6] px-6 py-16 text-center shadow-inner animate-in fade-in duration-300">
-              <h3 className="text-xl font-bold text-[#2B1A22]">
-                No Featured Products Live
-              </h3>
-              <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
-                Our customized luxury seasonal selection updates are currently processing. Please check back shortly.
-              </p>
-            </div>
-          ) : (
-            products.map((product, index) => (
-              <motion.div
-                key={product._id}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{
-                  duration: 0.6,
-                  delay: index * 0.08,
-                  ease: "easeOut"
-                }}
-              >
-                <div className="group overflow-hidden rounded-[30px] bg-white shadow-md border border-slate-50/60 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl flex flex-col h-full">
-                  
-                  {/* Visual Image Thumbnail Holder Container */}
-                  <div className="relative h-100 w-full overflow-hidden bg-slate-50">
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="animate-pulse overflow-hidden rounded-lg border border-[#e7edf1] p-2.5 sm:p-3">
+                <div className="aspect-square rounded-md bg-gray-100" />
+                <div className="mt-3 h-3 w-3/4 rounded bg-gray-100" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-gray-100" />
+                <div className="mt-3 h-8 rounded-md bg-gray-100" />
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <p className="py-10 text-center text-sm text-gray-500">
+            No featured products available right now.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+            {products.slice(0, 5).map((product, index) => {
+              const discountPrice = product.discountPrice ?? 0;
+              const onSale =
+                discountPrice > 0 && discountPrice < product.price;
+              const currentPrice = onSale ? discountPrice : product.price;
+              const image = product.images?.[0] || "/placeholder.png";
+
+              return (
+                <motion.article
+                  key={product._id}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.25, delay: index * 0.04 }}
+                  className="group min-w-0 overflow-hidden rounded-lg border border-[#e7edf1] bg-white shadow-[0_1px_3px_rgba(16,45,64,0.04)] transition-shadow hover:shadow-[0_4px_14px_rgba(16,45,64,0.09)]"
+                >
+                  <Link
+                    href={`/product/${product.slug}`}
+                    className="relative block aspect-square overflow-hidden bg-[#f3f4f5]"
+                  >
                     <Image
-                      src={product.images?.[0] || "/images/placeholder-product.jpg"}
+                      src={image}
                       alt={product.name}
                       fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                      className="object-cover transition duration-700 group-hover:scale-105"
+                      sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 20vw"
+                      className="object-contain p-2 transition-transform duration-300 group-hover:scale-[1.04] sm:p-3"
                     />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/30 via-transparent to-transparent opacity-80" />
-                    <div className="absolute left-5 top-5 rounded-full bg-primary px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-md">
-                      Featured
-                    </div>
-                  </div>
+                    {(onSale || product.newArrival) && (
+                      <span
+                        className={`absolute left-2 top-2 rounded-md px-2 py-1 text-[9px] font-bold leading-none text-white sm:left-3 sm:top-3 sm:text-[10px] ${
+                          onSale ? "bg-[#df2638]" : "bg-[#27975a]"
+                        }`}
+                      >
+                        {onSale ? "Sale" : "New"}
+                      </span>
+                    )}
+                  </Link>
 
-                  {/* Descriptions details layout footer */}
-                  <div className="p-6 flex flex-col grow justify-between">
-                    <div>
-                      <h3 className="font-heading text-xl text-[#2B1A22] line-clamp-1 group-hover:text-primary transition">
-                        {product.name}
-                      </h3>
-                      <p className="mt-3 text-xl font-black text-primary">
-                        Rs. {product.price ? product.price.toLocaleString() : "0"}
-                      </p>
-                    </div>
-
+                  <div className="p-2.5 sm:p-3">
                     <Link
                       href={`/product/${product.slug}`}
-                      className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-semibold text-white shadow-md transition duration-300 hover:bg-[#561537] hover:shadow-xl group-hover:scale-[1.02]"
+                      className="block truncate text-[11px] font-semibold text-[#263238] hover:text-primary sm:text-[13px]"
                     >
-                      View Product
-                      <ArrowRight size={16} />
+                      {product.name}
                     </Link>
+                    <div className="mt-1 flex min-h-5 flex-wrap items-baseline gap-x-2 text-[11px] sm:text-[13px]">
+                      <span className={`font-bold ${onSale ? "text-[#df2638]" : "text-[#172a33]"}`}>
+                        Rs. {currentPrice.toLocaleString()}
+                      </span>
+                      {onSale && (
+                        <span className="text-[9px] text-gray-400 line-through sm:text-[10px]">
+                          Rs. {product.price.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      aria-hidden="true"
+                      className="mt-1 flex gap-px text-[#f3aa21]"
+                    >
+                      {Array.from({ length: 5 }, (_, star) => (
+                        <Star key={star} size={13} fill="currentColor" strokeWidth={0} />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addToCart({
+                          _id: product._id,
+                          name: product.name,
+                          slug: product.slug,
+                          image,
+                          price: currentPrice,
+                          quantity: 1,
+                        })
+                      }
+                      className="mt-3 flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-[#102d40] px-2 text-[10px] font-semibold text-white transition hover:bg-primary sm:h-[34px] sm:text-[11px]"
+                    >
+                      <ShoppingCart size={14} />
+                      Add to Cart
+                    </button>
                   </div>
-
-                </div>
-              </motion.div>
-            ))
-          )}
-        </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -12,123 +12,105 @@ interface Category {
   name: string;
   slug: string;
   image: string;
+  status: boolean;
 }
 
 export default function CategoriesSection() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch("/api/categories", {
+          cache: "no-store",
+        });
+        const data = await readJsonResponse<Category[]>(res, []);
+        setCategories(data.filter((category) => category.status).slice(0, 6));
+      } catch (error) {
+        console.error("Categories fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     fetchCategories();
   }, []);
 
-  async function fetchCategories() {
-    try {
-      const res = await fetch("/api/categories", {
-        cache: "no-store",
-      });
-      const data = await readJsonResponse<any[]>(res, []);
-      // Filters active entries systematically
-      setCategories(data.filter((item: any) => item.status));
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
   return (
-    <section className="bg-[#FCF8F6] py-24">
-      <div className="mx-auto max-w-7xl px-6">
-
-        {/* Heading Section with Right-Aligned View All Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6"
-        >
-          <div>
-            <span className="text-sm uppercase tracking-[0.3em] font-bold text-primary bg-primary/5 px-4 py-1.5 rounded-full">
-              Shop By Category
-            </span>
-            <h2 className="mt-5 font-heading text-4xl sm:text-5xl text-[#2B1A22] tracking-tight">
-              Discover Our Categories
-            </h2>
-            <p className="mt-4 max-w-2xl text-base text-gray-500">
-              Explore our premium modest fashion categories crafted with timeless elegance.
-            </p>
-          </div>
-
+    <section className="bg-white py-6 sm:py-8">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12">
+        <div className="mb-5 flex items-center justify-between sm:mb-6">
+          <h2 className="text-[17px] font-bold tracking-tight text-[#102d40] sm:text-xl">
+            Shop by Category
+          </h2>
           <Link
             href="/categories"
-            className="group inline-flex items-center gap-2 font-semibold text-primary hover:text-[#561537] transition duration-200 shrink-0 text-sm tracking-wider uppercase"
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-[#536875] transition-colors hover:text-[#102d40] sm:text-xs"
           >
-            View All Categories 
-            <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+            View All
+            <ArrowRight size={13} aria-hidden="true" />
           </Link>
-        </motion.div>
-
-        {/* Categories Responsive 4-Column Grid */}
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Displays only the top 4 featured categories on homepage view */}
-          {categories.slice(0, 4).map((category, index) => (
-            <motion.div
-              key={category._id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.1,
-              }}
-            >
-              <Link
-                href={`/category/${category._id}`}
-                className="group block overflow-hidden rounded-[30px] bg-white shadow-md transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl border border-slate-100"
-              >
-                {/* Optimized Image Layer with Layout Constraints */}
-                <div className="relative h-105 overflow-hidden bg-[#FCF8F6]">
-                  <Image
-                    src={
-                      category.image && category.image.includes("res.cloudinary.com")
-                        ? category.image
-                        : "/placeholder.png"
-                    }
-                    alt={category.name}
-                    fill
-                    // Fixes layout rendering bundle constraints
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover transition duration-700 group-hover:scale-110"
-                  />
-
-                  {/* Dark Radial Shaded Overlay */}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-95" />
-
-                  {/* Absolute Category Title */}
-                  <div className="absolute bottom-6 left-6 right-6">
-                    <h3 className="font-heading text-2xl sm:text-3xl text-white tracking-wide">
-                      {category.name}
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Footer Action Strip */}
-                <div className="flex items-center justify-between p-6 bg-white">
-                  <div>
-                    {/* 🌟 Updated text to match category context mapping */}
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 group-hover:text-primary transition-colors duration-300">
-                      View Category
-                    </p>
-                  </div>
-
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition-all duration-300 group-hover:bg-[#4f1233] shadow-sm">
-                    <ArrowRight size={16} />
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
         </div>
-
+        {loading ? (
+          <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:-mx-8 sm:px-8 lg:mx-auto lg:max-w-[1150px] lg:overflow-visible lg:px-0">
+            <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-6 lg:gap-3">
+              {Array.from({ length: 6 }, (_, index) => (
+                <div key={index} className="flex w-[104px] shrink-0 animate-pulse flex-col items-center sm:w-[120px] lg:w-auto">
+                  <div className="size-[76px] rounded-full bg-gray-100 min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]" />
+                  <div className="mt-3 h-3 w-4/5 rounded bg-gray-100" />
+                  <div className="mt-2 h-2.5 w-14 rounded bg-gray-100" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:-mx-8 sm:px-8 lg:mx-auto lg:max-w-[1150px] lg:overflow-visible lg:px-0">
+            <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-6 lg:gap-3">
+              {categories.map((category, index) => (
+                <motion.div
+                  key={category._id}
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.2, delay: index * 0.04 }}
+                  className="w-max min-w-[104px] shrink-0 sm:min-w-[120px] lg:w-auto lg:min-w-0"
+                >
+                  <Link
+                    href={`/category/${category._id}`}
+                    className="group flex w-full flex-col items-center text-center text-[#102d40]"
+                  >
+                    <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-full bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">
+                      {category.image ? (
+                        <Image
+                          src={category.image}
+                          alt={category.name}
+                          fill
+                          sizes="(max-width: 379px) 76px, (max-width: 639px) 84px, (max-width: 1023px) 104px, 128px"
+                          className="object-contain p-2 transition-transform duration-300 group-hover:scale-105 sm:p-2.5"
+                        />
+                      ) : (
+                        <span className="flex h-full items-center justify-center px-2 text-[10px] text-gray-400">
+                          {category.name}
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-2 whitespace-nowrap text-[10px] font-semibold leading-4 sm:text-xs">
+                      {category.name}
+                    </span>
+                    <span className="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-[9px] text-[#536875] transition-colors group-hover:text-[#102d40] sm:text-[10px]">
+                      Shop Now
+                      <ArrowRight
+                        size={11}
+                        className="transition-transform group-hover:translate-x-0.5"
+                      />
+                    </span>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

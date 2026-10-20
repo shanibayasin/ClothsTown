@@ -226,7 +226,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
               name="subtitle"
               value={form.subtitle}
               onChange={handleChange}
-              placeholder="e.g., Premium Luxury Abayas"
+              placeholder="e.g., Winter Essentials"
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d46]/20 focus:border-[#6f1d46] transition-all"
               required
             />

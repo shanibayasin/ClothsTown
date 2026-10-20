@@ -54,6 +54,7 @@ export default function ShopPage() {
   const [selectedColor, setSelectedColor] = useState("");
   const [priceRange, setPriceRange] = useState(100000);
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [saleOnly, setSaleOnly] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,7 +77,7 @@ export default function ShopPage() {
   // Reset pagination back to page 1 whenever filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedCategory, selectedCollection, selectedSize, selectedColor, priceRange, inStockOnly, sort]);
+  }, [search, selectedCategory, selectedCollection, selectedSize, selectedColor, priceRange, inStockOnly, saleOnly, sort]);
 
   async function loadProducts() {
     const res = await fetch("/api/products");
@@ -88,6 +89,18 @@ export default function ShopPage() {
     const res = await fetch("/api/categories");
     const data = await readJsonResponse<Category[]>(res, []);
     setCategories(data);
+
+    const params = new URLSearchParams(window.location.search);
+    setSearch(params.get("search") ?? "");
+    setSaleOnly(params.get("sale") === "true");
+
+    const requestedCategory = params.get("category")?.toLowerCase();
+    if (requestedCategory) {
+      const category = data.find(
+        (item) => item.name.toLowerCase() === requestedCategory
+      );
+      if (category) setSelectedCategory(category._id);
+    }
   }
 
   async function loadCollections() {
@@ -102,6 +115,15 @@ export default function ShopPage() {
     if (search) {
       data = data.filter((item) =>
         item.name.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    if (saleOnly) {
+      data = data.filter(
+        (item) =>
+          typeof item.discountPrice === "number" &&
+          item.discountPrice > 0 &&
+          item.discountPrice < item.price
       );
     }
 
@@ -154,6 +176,7 @@ export default function ShopPage() {
     selectedColor,
     priceRange,
     inStockOnly,
+    saleOnly,
     sort,
   ]);
 
@@ -357,6 +380,7 @@ export default function ShopPage() {
               setSelectedColor("");
               setPriceRange(100000);
               setInStockOnly(false);
+              setSaleOnly(false);
               setSort("latest");
               setCurrentPage(1);
             }}

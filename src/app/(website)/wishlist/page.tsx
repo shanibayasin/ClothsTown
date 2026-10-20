@@ -37,7 +37,7 @@ export default function WishlistPage() {
           </h1>
 
           <p className="mt-3 text-gray-500">
-            Save your favorite abayas here.
+            Save your favorite styles here.
           </p>
 
           <Link

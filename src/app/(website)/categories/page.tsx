@@ -30,7 +30,7 @@ export default async function CategoriesPage() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-2xl text-gray-500">
-            Explore all our premium modest fashion categories crafted with timeless elegance.
+            Explore clothing and accessories for every style, season, and occasion.
           </p>
 
         </div>

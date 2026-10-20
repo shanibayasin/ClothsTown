@@ -20,7 +20,7 @@ export default async function NewArrivalsPage() {
         <div className="mx-auto max-w-7xl px-6 py-20 text-center">
 
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#6f1d46]">
-            Veloraé
+            ClothesTown
           </p>
 
           <h1 className="mt-5 text-5xl font-bold text-gray-900">
@@ -28,8 +28,8 @@ export default async function NewArrivalsPage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600">
-            Discover our latest luxury abayas designed with elegance,
-            premium fabrics and timeless modest fashion.
+            Discover the latest additions to our collection, selected for
+            their comfort, quality, and contemporary style.
           </p>
 
         </div>

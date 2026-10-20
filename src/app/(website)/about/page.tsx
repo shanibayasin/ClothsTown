@@ -10,7 +10,7 @@ export default function AboutPage() {
 
         <Image
           src="/images/about-banner.jpg"
-          alt="About Veloraé"
+          alt="About ClothesTown"
           fill
           priority
           className="object-cover"
@@ -23,7 +23,7 @@ export default function AboutPage() {
           <div className="text-center text-white">
 
             <h1 className="text-5xl font-bold md:text-7xl">
-              About Veloraé
+              About ClothesTown
             </h1>
 
             <p className="mt-6 text-lg md:text-xl">
@@ -49,10 +49,10 @@ export default function AboutPage() {
             </h2>
 
             <p className="mt-8 leading-8 text-gray-600">
-              Veloraé was created with a passion for timeless
-              fashion and elegant modest wear. Every collection
-              reflects luxury, comfort, and confidence for modern
-              women who value premium craftsmanship.
+              ClothesTown was created with a passion for timeless
+              fashion and thoughtfully designed everyday clothing. Every
+              collection brings comfort, quality, and confidence to modern
+              wardrobes.
             </p>
 
             <p className="mt-6 leading-8 text-gray-600">
@@ -93,8 +93,8 @@ export default function AboutPage() {
               </h3>
 
               <p className="mt-5 leading-8 text-gray-600">
-                To provide premium modest fashion that combines
-                elegance, comfort and quality for every woman.
+                To provide quality clothing that combines
+                style, comfort, and lasting value for everyone.
               </p>
 
             </div>
@@ -139,7 +139,7 @@ export default function AboutPage() {
         <div className="text-center">
 
           <h2 className="text-4xl font-bold text-primary">
-            Why Choose Veloraé
+            Why Choose ClothesTown
           </h2>
 
         </div>

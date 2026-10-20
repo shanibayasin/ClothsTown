@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShoppingCart, Star } from "lucide-react";
 import { motion } from "framer-motion";
+import { useCart } from "@/context/CartContext";
 import { readJsonResponse } from "@/lib/api";
 
 type Product = {
@@ -13,33 +14,29 @@ type Product = {
   slug: string;
   images: string[];
   price: number;
+  discountPrice?: number;
   newArrival: boolean;
   status: boolean;
 };
 
 export default function NewArrivals() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     async function loadProducts() {
       try {
         const res = await fetch("/api/products", { cache: "no-store" });
         const data = await readJsonResponse<Product[] | { products: Product[] }>(res, []);
-
-        const productsData = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.products)
-            ? data.products
-            : [];
-
-        const arrivals = productsData.filter(
-          (item: Product) => item.newArrival && item.status
+        const productsData = Array.isArray(data) ? data : data.products ?? [];
+        setProducts(
+          productsData.filter((product) => product.newArrival && product.status)
         );
-
-        setProducts(arrivals);
       } catch (error) {
         console.error("Failed to load new arrivals:", error);
-        setProducts([]);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -47,112 +44,127 @@ export default function NewArrivals() {
   }, []);
 
   return (
-    <section className="bg-[#FCF8F6] py-24">
-      <div className="mx-auto max-w-7xl px-6">
-
-        {/* Heading */}
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-16 text-center"
-        >
-          <span className="text-sm uppercase tracking-[0.3em] text-[#6F1D46]">
-            Just Landed
-          </span>
-
-          <h2 className="mt-5 font-heading text-5xl text-[#2B1A22]">
+    <section className="bg-white py-7 sm:py-9">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold tracking-tight text-[#172a33] sm:text-xl">
             New Arrivals
           </h2>
-
-          <p className="mx-auto mt-5 max-w-2xl text-gray-500">
-            Discover the latest additions to our luxury modest fashion
-            collection.
-          </p>
-        </motion.div>
-
-        {/* Products */}
-
-        <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-
-          {products.length === 0 ? (
-            <div className="col-span-full rounded-3xl border border-dashed border-[#d8b7c7] bg-white/70 px-6 py-10 text-center text-gray-600 sm:py-14">
-              No new arrivals available right now.
-            </div>
-          ) : (
-            products.map((product, index) => (
-
-            <motion.div
-              key={product._id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.1,
-              }}
-            >
-              <div className="group overflow-hidden rounded-4xl bg-white shadow-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl">
-
-                {/* Image */}
-
-                <div className="relative h-70 overflow-hidden sm:h-105">
-
-                  <Image
-                    src={
-                      product.images?.[0] ||
-                      "/images/placeholder-product.jpg"
-                    }
-                    alt={product.name}
-                    fill
-                    className="object-cover transition duration-700 group-hover:scale-110"
-                  />
-
-                  {/* Overlay */}
-
-                  <div className="absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-transparent" />
-
-                  {/* Badge */}
-
-                  <div className="absolute left-5 top-5 rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white">
-                    New Arrival
-                  </div>
-
-                </div>
-
-                {/* Content */}
-
-                <div className="p-6">
-
-                  <h3 className="font-heading text-2xl text-[#2B1A22]">
-                    {product.name}
-                  </h3>
-
-                  <p className="mt-4 text-2xl font-bold text-[#6F1D46]">
-                    Rs. {product.price}
-                  </p>
-
-                  <Link
-                    href={`/product/${product.slug}`}
-                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 font-medium text-white transition-all duration-300 hover:bg-[#4E1232]"
-                  >
-                    View Product
-                    <ArrowRight size={18} />
-                  </Link>
-
-                </div>
-
-              </div>
-
-            </motion.div>
-
-            ))
-          )}
-
+          <Link
+            href="/new-arrivals"
+            className="group inline-flex items-center gap-1 text-[11px] font-semibold text-[#172a33] transition hover:text-primary sm:text-xs"
+          >
+            View All
+            <ArrowRight
+              size={13}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
         </div>
 
+        {loading ? (
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="aspect-[1.2] rounded-sm bg-gray-100" />
+                <div className="mt-2 h-3 w-3/4 rounded bg-gray-100" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-gray-100" />
+                <div className="mt-2 h-7 rounded-sm bg-gray-100" />
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <p className="py-10 text-center text-sm text-gray-500">
+            No new arrivals available right now.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
+            {products.slice(0, 5).map((product, index) => {
+              const discountPrice = product.discountPrice ?? 0;
+              const onSale =
+                discountPrice > 0 && discountPrice < product.price;
+              const currentPrice = onSale ? discountPrice : product.price;
+              const image = product.images?.[0] || "/placeholder.png";
+
+              return (
+                <motion.article
+                  key={product._id}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.25, delay: index * 0.04 }}
+                  className="group min-w-0 overflow-hidden rounded-sm bg-white"
+                >
+                  <Link
+                    href={`/product/${product.slug}`}
+                    className="relative block aspect-[1.2] overflow-hidden bg-[#f3f3f3]"
+                  >
+                    <Image
+                      src={image}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 20vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                    <span
+                      className={`absolute left-1.5 top-1.5 rounded-sm px-1.5 py-0.5 text-[8px] font-bold leading-none text-white ${
+                        onSale ? "bg-[#df2638]" : "bg-[#27975a]"
+                      }`}
+                    >
+                      {onSale ? "Sale" : "New"}
+                    </span>
+                  </Link>
+
+                  <div className="px-1.5 pb-1.5 pt-1.5 sm:px-2">
+                    <Link
+                      href={`/product/${product.slug}`}
+                      className="block truncate text-[10px] font-semibold text-[#263238] hover:text-primary sm:text-[11px]"
+                    >
+                      {product.name}
+                    </Link>
+                    <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1 text-[9px] sm:text-[10px]">
+                      <span className="font-bold text-[#c52232]">
+                        Rs. {currentPrice.toLocaleString()}
+                      </span>
+                      {onSale && (
+                        <span className="text-[8px] text-gray-400 line-through">
+                          Rs. {product.price.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <div aria-hidden="true" className="mt-0.5 flex gap-px text-[#f3aa21]">
+                      {Array.from({ length: 5 }, (_, star) => (
+                        <Star
+                          key={star}
+                          size={9}
+                          fill="currentColor"
+                          strokeWidth={0}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addToCart({
+                          _id: product._id,
+                          name: product.name,
+                          slug: product.slug,
+                          image,
+                          price: currentPrice,
+                          quantity: 1,
+                        })
+                      }
+                      className="mt-1.5 flex h-7 w-full items-center justify-center gap-1 rounded-sm bg-[#122630] px-1 text-[9px] font-semibold text-white transition hover:bg-primary sm:text-[10px]"
+                    >
+                      <ShoppingCart size={11} />
+                      Add to Cart
+                    </button>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

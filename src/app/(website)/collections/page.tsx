@@ -35,7 +35,7 @@ export default async function CollectionsPage() {
       <section className="border-b bg-white">
         <div className="mx-auto max-w-7xl px-6 py-20 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
-            Veloraé
+            ClothesTown
           </p>
 
           <h1 className="mt-5 text-5xl font-bold text-gray-900">
@@ -43,8 +43,8 @@ export default async function CollectionsPage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600">
-            Explore our luxury abaya collections carefully designed for modern,
-            elegant and modest fashion.
+            Explore seasonal collections of thoughtfully designed clothing,
+            made for comfort, quality, and everyday style.
           </p>
         </div>
       </section>

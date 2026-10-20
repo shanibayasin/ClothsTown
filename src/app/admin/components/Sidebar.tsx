@@ -53,7 +53,7 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
       style={{ backgroundColor: "#6f1d46" }}
     >
       <div className="w-full">
-        {/* LOGO AREA */}
+        {/* BRAND AREA */}
         <div
           className="flex h-24 md:h-28 items-center justify-start border-b border-white/10 px-7"
           style={{ backgroundColor: "rgba(255, 255, 255, 0.04)" }}
@@ -63,11 +63,9 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
             onClick={closeSidebar} 
             className="flex items-center justify-start w-full h-full"
           >
-            <img
-              src="/logo.png"
-              alt="VELORAE LOGO"
-              className="h-12 md:h-14 w-auto max-w-full object-contain transition-all duration-500 hover:scale-[1.04]"
-            />
+            <span className="text-xl font-bold tracking-wide text-white transition-transform duration-300 hover:scale-[1.04]">
+              ClothesTown
+            </span>
           </Link>
         </div>
 

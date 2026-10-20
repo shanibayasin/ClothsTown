@@ -11,7 +11,7 @@ export async function GET() {
       status: true,
     })
       .sort({ createdAt: -1 })
-      .limit(4)
+      .limit(5)
       .lean();
 
     return NextResponse.json(products);

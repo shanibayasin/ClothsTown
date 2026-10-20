@@ -19,6 +19,14 @@
   --color-danger: #ef4444;
 }
 
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* FIXED: Tailwind v4 default reset layer standard implementation */
 @layer base {
   html,

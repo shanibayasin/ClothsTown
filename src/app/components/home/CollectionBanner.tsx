@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
 
 interface Collection {
@@ -18,103 +19,163 @@ interface Collection {
   status: boolean;
 }
 
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  image: string;
+  status: boolean;
+}
+
+interface PromoCard {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  href: string;
+  isMen: boolean;
+}
+
 export default function CollectionBanner() {
-  const [collection, setCollection] = useState<Collection | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cards, setCards] = useState<PromoCard[]>([]);
 
   useEffect(() => {
-    fetchCollection();
+    async function fetchCollections() {
+      try {
+        const [collectionsRes, categoriesRes] = await Promise.all([
+          fetch("/api/collections", { cache: "no-store" }),
+          fetch("/api/categories", { cache: "no-store" }),
+        ]);
+        const [collections, categories] = await Promise.all([
+          readJsonResponse<Collection[]>(collectionsRes, []),
+          readJsonResponse<Category[]>(categoriesRes, []),
+        ]);
+        const activeCollections = collections.filter((item) => item.status);
+        const womenCollection = activeCollections.find((item) =>
+          /\b(?:women'?s?|female)\b/i.test(`${item.title} ${item.slug}`)
+        );
+        const menCollection = activeCollections.find((item) =>
+          /\b(?:men'?s?|male)\b/i.test(`${item.title} ${item.slug}`)
+        ) || activeCollections.find((item) => item !== womenCollection) ||
+          (!womenCollection ? activeCollections[0] : undefined);
+        const womenCategory = categories.find((item) =>
+          item.status && /\b(?:women'?s?|female|ladies)\b/i.test(`${item.name} ${item.slug}`)
+        );
+        const nextCards: PromoCard[] = [];
+
+        if (menCollection) {
+          nextCards.push({
+            id: menCollection._id,
+            title: "Men's Winter Collection",
+            subtitle: "Up to 40% Off",
+            image: menCollection.image,
+            href: `/collections/${menCollection.slug}`,
+            isMen: true,
+          });
+        }
+
+        if (womenCollection) {
+          nextCards.push({
+            id: womenCollection._id,
+            title: "Women's Fashion",
+            subtitle: "Trendy Styles for You",
+            image: womenCollection.image,
+            href: `/collections/${womenCollection.slug}`,
+            isMen: false,
+          });
+        } else if (womenCategory) {
+          nextCards.push({
+            id: womenCategory._id,
+            title: "Women's Fashion",
+            subtitle: "Trendy Styles for You",
+            image: womenCategory.image,
+            href: `/category/${womenCategory._id}`,
+            isMen: false,
+          });
+        } else {
+          nextCards.push({
+            id: "women-shop",
+            title: "Women's Fashion",
+            subtitle: "Trendy Styles for You",
+            image: "",
+            href: "/shop",
+            isMen: false,
+          });
+        }
+
+        setCards(nextCards);
+      } catch (error) {
+        console.error("Collection banners fetch error:", error);
+      }
+    }
+
+    fetchCollections();
   }, []);
 
-  async function fetchCollection() {
-    try {
-      const res = await fetch("/api/collections", {
-        cache: "no-store",
-      });
-
-      const data = await readJsonResponse<Collection[]>(res, []);
-
-      const active = data.find(
-        (item: Collection) => item.status === true
-      );
-
-      setCollection(active || null);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (loading) return null;
-  if (!collection) return null;
+  if (!cards.length) return null;
 
   return (
-    <section className="relative w-full flex justify-center items-center bg-background py-16 lg:py-24 font-body overflow-hidden">
-      {/* Brand Radial Background Ambiance */}
-      <div className="absolute -left-20 top-1/4 h-96 w-96 rounded-full bg-section opacity-70 blur-3xl pointer-events-none" />
-      <div className="absolute -right-20 bottom-0 h-96 w-96 rounded-full bg-border/20 opacity-50 blur-3xl pointer-events-none" />
-
-      {/* Main Layout Container */}
-      <div className="w-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 box-border flex justify-center">
-        
-        {/* Changed layout orientation so everything lines up perfectly under each other or in a balanced row */}
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-20 w-full max-w-5xl">
-          
-          {/* Left Content Column - FIXED: Added items-center and text-center */}
-          <div className="w-full lg:w-[50%] flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 order-2 lg:order-1">
-            <div className="flex flex-col items-center lg:items-start space-y-2">
-              <p className="text-xs font-bold uppercase tracking-[5px] text-secondary">
-                {collection.subtitle}
-              </p>
-              <div className="h-0.5 w-12 bg-primary/40 rounded-full" />
-            </div>
-
-            {/* FIXED HEADING: Centered cleanly */}
-            <h2 className="font-heading text-4xl font-bold tracking-tight text-[#4b1532] sm:text-5xl leading-[1.2] w-full wrap-break-word">
-              {collection.title}
-            </h2>
-
-            <p className="text-base leading-relaxed text-text max-w-xl mx-auto lg:mx-0">
-              {collection.description}
-            </p>
-
-            {/* Centered CTA Button */}
-            <div className="pt-2">
+    <section className="bg-white px-4 py-5 sm:px-8 sm:py-7 lg:px-12">
+      <div className="mx-auto grid max-w-[1150px] gap-4 lg:grid-cols-2 lg:gap-8">
+        {cards.map((card, index) => {
+          return (
+            <motion.div
+              key={card.id}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.25, delay: index * 0.06 }}
+            >
               <Link
-                href={`/collections/${collection.slug}`}
-                className="group inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 text-xs font-semibold tracking-wider text-white shadow-lg transition-all duration-300 hover:bg-[#4b1532] hover:shadow-xl hover:-translate-y-0.5"
+                href={card.href}
+                className={`group relative flex min-h-[174px] items-center overflow-hidden rounded-lg lg:aspect-[2.45/1] lg:min-h-0 ${
+                  card.isMen ? "bg-[#dbe8ef]" : "bg-[#f2e4d8]"
+                }`}
               >
-                <span>{collection.buttonText || "Explore Collection"}</span>
-                <ArrowRight 
-                  size={14} 
-                  className="transition-transform duration-300 transform group-hover:translate-x-1.5" 
-                  style={{ color: "#ffffff" }}
+                {card.image && (
+                  <Image
+                    src={card.image}
+                    alt={card.title}
+                    fill
+                    sizes="(max-width: 639px) 100vw, 50vw"
+                    className="object-cover object-[76%_center] transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                )}
+                <div
+                  className={`absolute inset-0 ${
+                    card.isMen
+                      ? "bg-linear-to-r from-[#102633]/95 from-0% via-[#102633]/85 via-43% via-[#102633]/30 via-63% to-transparent to-80%"
+                      : "bg-linear-to-r from-[#f5e9dd]/95 from-0% via-[#f5e9dd]/90 via-43% via-[#f5e9dd]/35 via-63% to-transparent to-80%"
+                  }`}
                 />
+                <div
+                  className={`relative z-10 w-[64%] px-5 py-6 sm:px-7 lg:px-9 ${
+                    card.isMen ? "text-white" : "text-[#172a33]"
+                  }`}
+                >
+                  <h2 className="max-w-[300px] text-[17px] font-bold leading-tight sm:text-[19px] lg:text-[23px]">
+                    {card.title}
+                  </h2>
+                  {card.subtitle && (
+                    <p className="mt-1 max-w-[300px] text-[16px] font-semibold leading-tight sm:text-[18px] lg:text-[23px]">
+                      {card.subtitle}
+                    </p>
+                  )}
+                  <span
+                    className={`mt-4 inline-flex h-10 min-w-[132px] items-center justify-between gap-2 rounded-lg px-5 text-[10px] font-semibold transition-colors sm:mt-5 sm:text-[11px] lg:h-11 lg:min-w-[148px] lg:px-6 ${
+                      card.isMen
+                        ? "bg-white text-[#172a33] group-hover:bg-[#f3f4f5]"
+                        : "bg-[#102d40] text-white group-hover:bg-primary"
+                    }`}
+                  >
+                    Shop Now
+                    <ArrowRight size={14} />
+                  </span>
+                </div>
               </Link>
-            </div>
-          </div>
-
-          {/* Right Image Column */}
-          <div className="w-full lg:w-[50%] flex justify-center lg:justify-end order-1 lg:order-2">
-            <div className="group relative h-80 sm:h-112.5 lg:h-125 w-full max-w-112.5 overflow-hidden rounded-4xl border border-border/30 bg-section shadow-[0_20px_50px_rgba(111,29,70,0.06)]">
-              
-              <div className="absolute inset-4 z-10 rounded-3xl border border-white/20 pointer-events-none" />
-
-              <Image
-                src={collection.image}
-                alt={collection.title}
-                fill
-                priority
-                sizes="(max-w-1024px) 100vw, 50vw"
-                className="object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-105"
-              />
-              
-              <div className="absolute inset-0 bg-linear-to-t from-[#4b1532]/10 via-transparent to-transparent opacity-60 pointer-events-none" />
-            </div>
-          </div>
-
-        </div>
+            </motion.div>
+          );
+        })}
       </div>
     </section>
   );

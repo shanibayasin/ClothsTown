@@ -1,15 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Menu,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   User,
   X,
   ChevronDown,
+  Search,
+  Snowflake,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useCart } from "@/context/CartContext";
@@ -33,7 +34,7 @@ export default function Navbar() {
   const [showCollectionMenu, setShowCollectionMenu] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [currentYear, setCurrentYear] = useState(2026);
+  const currentYear = new Date().getFullYear();
   
   const [collections, setCollections] = useState<Collection[]>([]);
 
@@ -57,7 +58,6 @@ export default function Navbar() {
       }
     }
 
-    setCurrentYear(new Date().getFullYear());
     loadCollections();
     window.addEventListener("scroll", handleScroll);
 
@@ -75,145 +75,167 @@ export default function Navbar() {
     };
   }, []);
 
-  const links = useMemo(() => [
-    { name: "Shop", href: "/shop" },
-    { name: "Collections", href: "/collections" },
-    { name: "New Arrivals", href: "/new-arrivals" },
-    { name: "Featured", href: "/featured" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
-  ], []);
+  const links = useMemo(
+    () => [
+      { name: "Home", href: "/" },
+      { name: "Men", href: "/shop?category=Men", hasChevron: true },
+      { name: "Women", href: "/shop?category=Women", hasChevron: true },
+      { name: "Accessories", href: "/shop?category=Accessories", hasChevron: true },
+      { name: "Winter Collection", href: "/collections", collectionMenu: true },
+      { name: "New Arrivals", href: "/new-arrivals" },
+      { name: "Sale", href: "/shop?sale=true" },
+    ],
+    []
+  );
 
   return (
     <>
-      {/* Announcement Bar */}
-      <div className="bg-primary py-2 text-center text-xs font-medium tracking-[0.18em] text-white uppercase">
-        ✨ Free Shipping on Orders Over Rs. 5000
-      </div>
-
-      {/* Main Sticky Header */}
       <header
-        className={`sticky top-0 z-100 transition-all duration-500 ${
+        className={`sticky top-0 z-100 border-b border-gray-200 transition-all duration-300 ${
           scrolled
-            ? "border-b bg-white/95 shadow-lg backdrop-blur-xl"
+            ? "bg-white/95 shadow-md backdrop-blur-xl"
             : "bg-white"
         }`}
       >
-        <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-5 lg:px-8">
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(true)}
-            aria-label="Open navigation menu"
-            className="rounded-lg p-2 transition hover:bg-gray-100 lg:hidden"
-          >
-            <Menu size={26} />
-          </button>
+        <div className="mx-auto grid h-[58px] max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:h-[68px] sm:px-6 md:h-[82px] md:grid-cols-[minmax(220px,0.85fr)_minmax(180px,1.45fr)_minmax(190px,0.6fr)] md:gap-5 lg:h-[98px] lg:gap-8 lg:px-8">
+          <div className="flex min-w-0 items-center">
+            <Link href="/" aria-label="ClothesTown home" className="flex min-w-0 items-center gap-2 text-[#102633] sm:gap-3">
+              <svg aria-hidden="true" viewBox="0 0 72 56" className="h-7 w-9 shrink-0 sm:h-11 sm:w-14 lg:h-14 lg:w-[70px]" fill="none">
+                <path d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="truncate whitespace-nowrap text-[14px] font-bold tracking-tight sm:text-xl lg:text-[30px]">
+                ClothesTown<span className="text-[11px] font-medium text-[#9aa5ad] sm:text-sm lg:text-[26px]">.com</span>
+              </span>
+            </Link>
+          </div>
 
-          {/* Luxury Logo Branding */}
-          <Link href="/" className="shrink-0">
-            <Image
-              src="/logo.png"
-              alt="Veloraé Logo"
-              width={240}
-              height={70}
-              priority
-              className="h-16 w-auto transition duration-300 hover:scale-105 lg:h-20"
+          <form action="/shop" method="get" role="search" className="hidden min-w-0 max-w-[660px] flex-1 md:flex">
+            <label htmlFor="header-product-search" className="sr-only">Search products</label>
+            <input
+              id="header-product-search"
+              type="search"
+              name="search"
+              placeholder="Search for jackets, hoodies, sweaters, and more..."
+              className="h-10 min-w-0 flex-1 rounded-l-[18px] border border-r-0 border-[#d9e0e5] bg-[#f7f8fa] px-4 text-sm text-[#243643] outline-none transition focus:border-[#9eabb3] focus:bg-white lg:h-14 lg:rounded-l-[20px] lg:px-5"
             />
-          </Link>
+            <button
+              type="submit"
+              aria-label="Search products"
+              className="flex h-10 w-12 items-center justify-center rounded-r-[18px] bg-[#102633] text-white transition hover:bg-primary lg:h-14 lg:w-[68px] lg:rounded-r-[20px]"
+            >
+              <Search size={21} />
+            </button>
+          </form>
 
-          {/* Desktop Links Mapping Layer */}
-          <nav className="hidden items-center gap-9 lg:flex">
+          <div className="flex shrink-0 items-center">
+            <div
+              className="relative hidden border-l border-[#dfe4e8] sm:block md:border-l-0"
+              onMouseEnter={() => setShowAccountMenu(true)}
+              onMouseLeave={() => setShowAccountMenu(false)}
+            >
+              <button
+                onClick={() => setShowAccountMenu((prev) => !prev)}
+                aria-expanded={showAccountMenu}
+                className="flex h-10 min-w-9 flex-col items-center justify-center gap-0.5 px-1.5 text-[#102633] transition hover:text-primary sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"
+              >
+                <User size={20} strokeWidth={1.8} className="lg:size-[26px]" />
+                <span className="hidden text-xs leading-none sm:block lg:text-[14px]">Account</span>
+              </button>
+              {showAccountMenu && (
+                <div className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
+                  <Link href="/admin" onClick={() => setShowAccountMenu(false)} className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary">
+                    Login
+                  </Link>
+                  <Link href="/register" onClick={() => setShowAccountMenu(false)} className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary">
+                    Create Account
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <Link href="/wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`} className="flex h-9 min-w-8 flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] px-1 text-[#102633] transition hover:text-primary sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]">
+              <span className="relative">
+                <Heart size={18} strokeWidth={1.8} className="sm:size-5 lg:size-[26px]" />
+                {wishlistCount > 0 && <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">{wishlistCount}</span>}
+              </span>
+              <span className="hidden text-xs leading-none sm:block lg:text-[14px]">Wishlist</span>
+            </Link>
+
+            <Link href="/cart" aria-label={`Cart${totalCartItems ? `, ${totalCartItems} items` : ""}`} className="flex h-9 min-w-8 flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] px-1 text-[#102633] transition hover:text-primary sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]">
+              <span className="relative">
+                <ShoppingCart size={18} strokeWidth={1.8} className="sm:size-5 lg:size-[26px]" />
+                <span className="absolute -right-2.5 -top-2.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{totalCartItems}</span>
+              </span>
+              <span className="hidden text-xs leading-none sm:block lg:text-[14px]">Cart</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={isOpen}
+              className="ml-1 flex size-9 shrink-0 items-center justify-center rounded-md text-[#102633] transition hover:bg-gray-100 md:hidden"
+            >
+              <Menu size={22} />
+            </button>
+          </div>
+        </div>
+
+        <form action="/shop" method="get" role="search" className="flex border-t border-gray-100 px-4 py-2 md:hidden">
+          <label htmlFor="mobile-product-search" className="sr-only">Search products</label>
+          <input
+            id="mobile-product-search"
+            type="search"
+            name="search"
+            placeholder="Search products..."
+            className="h-9 min-w-0 flex-1 rounded-l-full border border-r-0 border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-gray-400 focus:bg-white"
+          />
+          <button type="submit" aria-label="Search products" className="flex h-9 w-10 items-center justify-center rounded-r-full bg-[#14242b] text-white">
+            <Search size={16} />
+          </button>
+        </form>
+
+        <nav aria-label="Main navigation" className="hidden border-t border-gray-100 md:block">
+          <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-start gap-8 overflow-visible px-6 lg:h-[67px] lg:gap-14 lg:px-10">
             {links.map((link) => {
-              const active =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname === link.href || pathname.startsWith(link.href + "/");
+              const active = link.href === "/"
+                ? pathname === "/"
+                : pathname === link.href || pathname.startsWith(link.href.split("?")[0] + "/");
 
-              if (link.name === "Collections") {
+              if (link.collectionMenu) {
                 return (
                   <div
                     key={link.name}
-                    className="relative py-4"
+                    className="relative flex h-full items-center"
                     onMouseEnter={() => setShowCollectionMenu(true)}
                     onMouseLeave={() => setShowCollectionMenu(false)}
                   >
                     <button
+                      type="button"
+                      aria-expanded={showCollectionMenu}
                       onClick={() => setShowCollectionMenu((prev) => !prev)}
-                      className={`flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.15em] transition-colors duration-300 ${
-                        active ? "text-primary" : "text-gray-700 hover:text-primary"
-                      }`}
+                      className={`flex h-full items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[16px] ${active ? "text-primary" : "text-[#172a33] hover:text-primary"}`}
                     >
-                      Collections
-                      <ChevronDown
-                        size={16}
-                        className={`transition-transform duration-200 ${
-                          showCollectionMenu ? "rotate-180 text-primary" : "text-gray-400"
-                        }`}
-                      />
+                      {link.name}
+                      <Snowflake size={16} className="text-[#3b82f6]" />
                     </button>
-
-                    {/* Integrated Dropdown Container */}
                     {showCollectionMenu && (
-                      <div className="absolute left-1/2 z-50 mt-5 w-162.5 -translate-x-1/2 overflow-hidden rounded-3xl border border-[#f0dce5] bg-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 grid grid-cols-12">
-                        <div className="p-6 col-span-7 flex flex-col justify-between">
-                          <div>
-                            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-                              Collections
-                            </p>
-
-                            <div className="space-y-1 max-h-70 overflow-y-auto pr-1">
-                              {collections.map((item) => (
-                                <Link
-                                  key={item._id}
-                                  href={`/collections/${item.slug}`}
-                                  onClick={() => setShowCollectionMenu(false)}
-                                  className="block rounded-xl px-4 py-2.5 transition hover:bg-[#faf5f7] group"
-                                >
-                                  <h4 className="font-semibold text-gray-900 group-hover:text-primary transition-colors text-sm">
-                                    {item.title}
-                                  </h4>
-                                  <p className="mt-0.5 text-xs text-gray-500">
-                                    Explore Collection
-                                  </p>
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-
-                          <Link
-                            href="/collections"
-                            onClick={() => setShowCollectionMenu(false)}
-                            className="mt-4 inline-block font-semibold text-primary hover:translate-x-1 transition-transform text-sm"
-                          >
-                            View All →
-                          </Link>
-                        </div>
-
-                        <div className="relative bg-[#faf5f7] p-8 col-span-5 flex flex-col justify-end min-h-85">
-                          <Image
-                            src="/images/menu-banner.jpg"
-                            alt="Luxury Collection"
-                            fill
-                            className="object-cover"
-                            priority
-                          />
-                          <div className="absolute inset-0 bg-black/35"></div>
-                          <div className="relative z-10 flex flex-col justify-end h-full">
-                            <p className="text-xs uppercase tracking-[0.2em] text-white/90">
-                              Featured
-                            </p>
-                            <h3 className="mt-1 text-2xl font-bold text-white leading-tight">
-                              Luxury Abayas
-                            </h3>
+                      <div className="absolute left-0 top-full z-50 w-72 rounded-b-xl border border-gray-200 bg-white p-3 shadow-xl">
+                        <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Shop collections</p>
+                        <div className="max-h-64 overflow-y-auto">
+                          {collections.map((item) => (
                             <Link
-                              href="/collections"
+                              key={item._id}
+                              href={`/collections/${item.slug}`}
                               onClick={() => setShowCollectionMenu(false)}
-                              className="mt-4 inline-flex w-fit rounded-full bg-white px-5 py-2 text-xs font-semibold text-primary hover:bg-gray-50 shadow-md transition-all duration-300 hover:scale-105"
+                              className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 hover:text-primary"
                             >
-                              Shop Now
+                              {item.title}
                             </Link>
-                          </div>
+                          ))}
                         </div>
+                        <Link href="/collections" onClick={() => setShowCollectionMenu(false)} className="mt-2 block border-t border-gray-100 px-3 pt-3 text-sm font-semibold text-primary">
+                          View all collections
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -224,94 +246,16 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`group relative text-sm font-semibold uppercase tracking-[0.15em] transition duration-300 ${
-                    active 
-                      ? "text-primary font-semibold" 
-                      : "text-[#2B1A22] hover:text-primary"
-                  }`}
+                  className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[16px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
                 >
                   {link.name}
-                  <span
-                    className={`absolute -bottom-2 left-0 h-0.5 bg-primary transition-all duration-300 ${
-                      active ? "w-full" : "w-0 group-hover:w-full"
-                    }`}
-                  />
+                  {"hasChevron" in link && link.hasChevron && <ChevronDown size={14} strokeWidth={2.2} />}
+                  {active && <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[#102633] lg:bottom-[7px]" />}
                 </Link>
               );
             })}
-          </nav>
-
-          {/* Right Controls Actions Panel */}
-          <div className="flex items-center gap-3 lg:gap-4">
-            <Link
-              href="/wishlist"
-              aria-label="View wishlist"
-              className="relative rounded-full p-2 transition hover:bg-gray-100 hover:text-primary"
-            >
-              <Heart size={20} />
-              {wishlistCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                  {wishlistCount}
-                </span>
-              )}
-            </Link>
-
-            <Link
-              href="/cart"
-              aria-label="View shopping bag"
-              className="relative rounded-full p-2 transition hover:bg-gray-100 hover:text-primary"
-            >
-              <ShoppingBag size={20} />
-              {totalCartItems > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white scale-105 transition-transform duration-200">
-                  {totalCartItems}
-                </span>
-              )}
-            </Link>
-
-            <div
-              className="relative"
-              onMouseEnter={() => setShowAccountMenu(true)}
-              onMouseLeave={() => setShowAccountMenu(false)}
-            >
-              <button
-                onClick={() => setShowAccountMenu((prev) => !prev)}
-                className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary"
-              >
-                <User size={18} />
-                <span className="hidden sm:inline">Account</span>
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${
-                    showAccountMenu ? "rotate-180 text-primary" : "text-gray-400"
-                  }`}
-                />
-              </button>
-
-              {showAccountMenu && (
-                <div className="absolute right-0 z-50 mt-3 w-44 rounded-2xl border border-[#f0dce5] bg-white p-3 shadow-xl">
-                  <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-primary">
-                    Guest Dropdown
-                  </p>
-                  <Link
-                    href="/login"
-                    onClick={() => setShowAccountMenu(false)}
-                    className="mb-2 block rounded-xl px-2 py-2 text-sm font-medium text-gray-700 transition hover:bg-[#faf5f7] hover:text-primary"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    href="/register"
-                    onClick={() => setShowAccountMenu(false)}
-                    className="block rounded-xl px-2 py-2 text-sm font-medium text-gray-700 transition hover:bg-[#faf5f7] hover:text-primary"
-                  >
-                    Create Account
-                  </Link>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
+        </nav>
       </header>
 
       {/* Mobile Drawer Panel */}
@@ -326,13 +270,9 @@ export default function Navbar() {
           >
             <div>
               <div className="flex items-center justify-between border-b px-6 py-5">
-                <Image
-                  src="/logo.png"
-                  alt="Veloraé"
-                  width={170}
-                  height={50}
-                  className="h-12 w-auto"
-                />
+                <Link href="/" onClick={() => setIsOpen(false)} className="text-xl font-bold tracking-wide text-primary">
+                  ClothesTown
+                </Link>
                 <button
                   onClick={() => setIsOpen(false)}
                   aria-label="Close navigation menu"
@@ -381,7 +321,7 @@ export default function Navbar() {
                     onClick={() => setIsOpen(false)}
                     className="flex items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium text-gray-700 transition hover:bg-primary hover:text-white"
                   >
-                    <ShoppingBag size={18} />
+                    <ShoppingCart size={18} />
                     Cart ({totalCartItems})
                   </Link>
                 </div>
@@ -391,11 +331,11 @@ export default function Navbar() {
               <div className="mt-10 px-6">
                 <div className="rounded-2xl border border-[#f0dce5] bg-[#faf5f7] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-                    Guest Dropdown
+                    My Account
                   </p>
                   <div className="mt-3 space-y-2">
                     <Link
-                      href="/login"
+                      href="/admin"
                       onClick={() => setIsOpen(false)}
                       className="block rounded-xl bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:text-primary"
                     >
@@ -418,7 +358,7 @@ export default function Navbar() {
                 Luxury Fashion for Modern Women
               </p>
               <p className="mt-2 text-center text-xs text-gray-400">
-                © {currentYear} Veloraé
+                © {currentYear} ClothesTown
               </p>
             </div>
           </div>

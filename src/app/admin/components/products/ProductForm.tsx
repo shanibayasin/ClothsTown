@@ -309,7 +309,7 @@ export default function ProductForm({
                     sku: form.sku || createSKU(value),
                   });
                 }}
-                placeholder="e.g., Silk Embellished Abaya"
+                placeholder="e.g., Classic Winter Coat"
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-primary focus:outline-none"
               />
             </div>
@@ -320,7 +320,7 @@ export default function ProductForm({
                 name="slug"
                 value={form.slug}
                 onChange={handleChange}
-                placeholder="silk-embellished-abaya"
+                placeholder="classic-winter-coat"
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:outline-none"
                 readOnly
               />

@@ -1,22 +1,22 @@
 export const newArrivals = [
   {
     _id: "1",
-    name: "Luxury Pearl Abaya",
-    slug: "luxury-pearl-abaya",
+    name: "Classic Winter Coat",
+    slug: "classic-winter-coat",
     price: 8999,
     image: "/images/products/product-1.jpg",
   },
   {
     _id: "2",
-    name: "Premium Black Abaya",
-    slug: "premium-black-abaya",
+    name: "Everyday Puffer Jacket",
+    slug: "everyday-puffer-jacket",
     price: 9499,
     image: "/images/products/product-2.jpg",
   },
   {
     _id: "3",
-    name: "Modern Open Abaya",
-    slug: "modern-open-abaya",
+    name: "Modern Knit Sweater",
+    slug: "modern-knit-sweater",
     price: 7999,
     image: "/images/products/product-3.jpg",
   },
