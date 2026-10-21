@@ -3,18 +3,17 @@ import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_MAX_AGE,
   createAdminSessionToken,
+  isAdminAuthConfigured,
   verifyAdminCredentials,
 } from "@/lib/admin-auth";
 
 export async function POST(request: Request) {
-  if (
-    !process.env.ADMIN_EMAIL ||
-    !process.env.ADMIN_PASSWORD ||
-    !process.env.ADMIN_SESSION_SECRET ||
-    process.env.ADMIN_SESSION_SECRET.length < 32
-  ) {
+  if (!isAdminAuthConfigured()) {
     return NextResponse.json(
-      { message: "Admin login has not been configured on this server." },
+      {
+        message:
+          "Admin login is not configured for this deployment. Set ADMIN_EMAIL, ADMIN_PASSWORD, and ADMIN_SESSION_SECRET (at least 32 characters) in the hosting environment, then redeploy.",
+      },
       { status: 503 }
     );
   }

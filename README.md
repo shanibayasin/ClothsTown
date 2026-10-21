@@ -23,6 +23,21 @@ Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` in your local
 with at least 32 characters. Keep `.env` private and out of Git. The example
 variable names are in `.env.example`.
 
+### Vercel deployment
+
+Local `.env` values are not copied to Vercel. In the Vercel project, open
+**Settings → Environment Variables** and add:
+
+- `ADMIN_EMAIL`: the admin sign-in email
+- `ADMIN_PASSWORD`: a strong, unique admin password
+- `ADMIN_SESSION_SECRET`: a random secret with at least 32 characters
+
+Enable the environments where you will sign in (Production for the live site;
+Preview as well if you use preview deployment URLs), save the variables, then
+redeploy the deployment. To generate a session secret locally with Node.js, run
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+Keep the generated value private and never commit it or send it in chat.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

@@ -22,6 +22,10 @@ function getAuthConfig() {
   return { email, password, secret };
 }
 
+export function isAdminAuthConfigured() {
+  return getAuthConfig() !== null;
+}
+
 function constantTimeEqual(left: string, right: string) {
   const leftDigest = createHash("sha256").update(left).digest();
   const rightDigest = createHash("sha256").update(right).digest();
