@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import slugify from "slugify";
 import { X, Upload, Loader2, FolderPlus, Edit3 } from "lucide-react";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface Collection {
   _id?: string;
@@ -85,12 +86,13 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
     formData.append("file", file);
 
     try {
-      const res = await fetch("/api/upload", {
+      const res = await adminFetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (res.status === 401) return;
+      if (!res.ok) throw new Error(`Upload failed (${res.status}).`);
 
       const data = await res.json();
       

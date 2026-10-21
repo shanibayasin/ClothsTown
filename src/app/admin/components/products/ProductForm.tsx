@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface Category {
   _id: string;
@@ -198,14 +199,15 @@ export default function ProductForm({
         const formData = new FormData();
         formData.append("file", file);
 
-        const res = await fetch("/api/upload", {
+        const res = await adminFetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
         const data = await res.json();
         if (!res.ok) {
-          alert(data.message || "Upload failed");
+          if (res.status === 401) return;
+          alert(data.message || `Upload failed (${res.status}).`);
           continue;
         }
         uploaded.push(data.url);

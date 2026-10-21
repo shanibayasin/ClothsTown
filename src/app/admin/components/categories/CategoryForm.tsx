@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface Category {
   _id: string;
@@ -65,11 +66,12 @@ export default function CategoryForm({
       const fd = new FormData();
       fd.append("file", file);
 
-      const res = await fetch("/api/upload", {
+      const res = await adminFetch("/api/upload", {
         method: "POST",
         body: fd,
       });
 
+      if (res.status === 401) return;
       if (!res.ok) throw new Error(`Image upload failed (${res.status}).`);
 
       const text = await res.text();

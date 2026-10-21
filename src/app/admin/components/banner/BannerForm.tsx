@@ -9,6 +9,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface Banner {
   _id?: string;
@@ -82,12 +83,13 @@ export default function BannerForm({
     formData.append("file", file);
 
     try {
-      const res = await fetch("/api/upload", {
+      const res = await adminFetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Image upload failed");
+      if (res.status === 401) return;
+      if (!res.ok) throw new Error(`Image upload failed (${res.status}).`);
       const data = await res.json();
 
       setForm((prev) => ({
