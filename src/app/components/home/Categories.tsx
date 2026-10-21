@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
+import CategoryImage from "@/app/components/category/CategoryImage";
 
 interface Category {
   _id: string;
@@ -80,20 +80,14 @@ export default function CategoriesSection() {
                     href={`/category/${category._id}`}
                     className="group flex w-full flex-col items-center text-center text-[#102d40]"
                   >
-                    <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-full bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">
-                      {category.image ? (
-                        <Image
-                          src={category.image}
-                          alt={category.name}
-                          fill
-                          sizes="(max-width: 379px) 76px, (max-width: 639px) 84px, (max-width: 1023px) 104px, 128px"
-                          className="object-contain p-2 transition-transform duration-300 group-hover:scale-105 sm:p-2.5"
-                        />
-                      ) : (
-                        <span className="flex h-full items-center justify-center px-2 text-[10px] text-gray-400">
-                          {category.name}
-                        </span>
-                      )}
+                    <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-xl bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">
+                      <CategoryImage
+                        src={category.image}
+                        alt={category.name}
+                        sizes="(max-width: 379px) 76px, (max-width: 639px) 84px, (max-width: 1023px) 104px, 128px"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        fallbackClassName="text-[10px] text-gray-500"
+                      />
                     </span>
                     <span className="mt-2 whitespace-nowrap text-[10px] font-semibold leading-4 sm:text-xs">
                       {category.name}

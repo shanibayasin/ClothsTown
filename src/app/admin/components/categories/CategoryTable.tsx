@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { Pencil, Trash2, Search } from "lucide-react";
+import CategoryImage from "@/app/components/category/CategoryImage";
 
 interface Category {
   _id: string;
@@ -222,15 +222,12 @@ export default function CategoryTable({
 
                     <div className="relative h-16 w-16 overflow-hidden rounded-lg border">
 
-                      <Image
-                        src={
-                          item.image && item.image.includes("res.cloudinary.com")
-                            ? item.image
-                            : "/placeholder.png"
-                        }
+                      <CategoryImage
+                        src={item.image}
                         alt={item.name}
-                        fill
+                        sizes="64px"
                         className="object-cover"
+                        fallbackClassName="text-[9px] text-gray-500"
                       />
 
                     </div>

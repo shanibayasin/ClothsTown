@@ -220,7 +220,8 @@ export default function CategoryForm({
               alt="Preview"
               width={140}
               height={140}
-              className="rounded-lg border object-cover"
+              unoptimized
+              className="aspect-square rounded-lg border object-cover"
             />
 
           </div>

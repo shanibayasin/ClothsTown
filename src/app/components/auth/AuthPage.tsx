@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Eye,
@@ -168,11 +169,13 @@ function MountainBackdrop() {
 }
 
 export default function AuthPage({ mode }: { mode: AuthMode }) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isLogin = mode === "login";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
@@ -181,11 +184,41 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
       return;
     }
 
-    setMessage(
-      isLogin
-        ? "Sign in is not available yet. Authentication has not been configured."
-        : "Account registration is not available yet. Authentication has not been configured."
-    );
+    if (!isLogin) {
+      setMessage(
+        "Account registration is not available yet. Authentication has not been configured."
+      );
+      return;
+    }
+
+    setMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.get("email"),
+          password: formData.get("password"),
+        }),
+      });
+      const result = (await response.json()) as { message?: string };
+
+      if (!response.ok) {
+        setMessage(result.message ?? "Sign in failed. Please try again.");
+        return;
+      }
+
+      router.replace("/admin");
+      router.refresh();
+    } catch (error) {
+      console.error("Admin sign-in request failed:", error);
+      setMessage("Could not reach the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleForgotPassword() {
@@ -257,11 +290,11 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
             </div>
 
             <h2 className="text-[21px] font-bold leading-tight text-[#173246] sm:text-[22px]">
-              {isLogin ? "Welcome Back" : "Create Your Account"}
+              {isLogin ? "Admin Sign In" : "Create Your Account"}
             </h2>
             <p className="mt-1 text-[13px] text-[#7892a8] sm:text-sm">
               {isLogin
-                ? "Sign in to your account to continue"
+                ? "Sign in to manage your ClothesTown store"
                 : "Join ClothesTown and find your style"}
             </p>
 
@@ -295,6 +328,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                     name="email"
                     autoComplete="email"
                     required
+                    maxLength={254}
                     placeholder="you@example.com"
                     className="h-[40px] w-full rounded-md border border-[#d9e5ee] bg-white pl-10 pr-3 text-[12px] font-normal text-[#20394b] outline-none placeholder:text-[#94afc3] focus:border-[#2879cf] focus:ring-2 focus:ring-[#2879cf]/10"
                   />
@@ -314,7 +348,8 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                     name="password"
                     autoComplete={isLogin ? "current-password" : "new-password"}
                     required
-                    minLength={8}
+                    minLength={isLogin ? undefined : 8}
+                    maxLength={1024}
                     placeholder={isLogin ? "Enter your password" : "Create a password"}
                     className="h-[40px] w-full rounded-md border border-[#d9e5ee] bg-white pl-10 pr-10 text-[12px] font-normal text-[#20394b] outline-none placeholder:text-[#94afc3] focus:border-[#2879cf] focus:ring-2 focus:ring-[#2879cf]/10"
                   />
@@ -366,9 +401,14 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
 
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="flex h-[44px] w-full items-center justify-center gap-2 rounded-md bg-[#092b40] text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#124561] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0874f9]"
               >
-                {isLogin ? "Sign In" : "Create Account"}
+                {isSubmitting
+                  ? "Signing In…"
+                  : isLogin
+                    ? "Sign In"
+                    : "Create Account"}
                 <ArrowRight size={17} aria-hidden="true" />
               </button>
             </form>

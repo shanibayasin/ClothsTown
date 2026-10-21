@@ -1,13 +1,13 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
+import CategoryImage from "@/app/components/category/CategoryImage";
 
 export default async function CategoriesPage() {
   await connectDB();
 
-  const categories: any[] = await Category.find({
+  const categories = await Category.find({
     status: true,
   })
     .sort({ createdAt: -1 })
@@ -54,17 +54,13 @@ export default async function CategoriesPage() {
 
                 {/* Image */}
 
-                <div className="relative h-[420px] overflow-hidden">
-
-                  <Image
-                    src={
-                      category.image
-                        ? category.image
-                        : "/placeholder.png"
-                    }
+                <div className="relative aspect-square overflow-hidden">
+                  <CategoryImage
+                    src={category.image}
                     alt={category.name}
-                    fill
-                    className="object-cover transition duration-700 group-hover:scale-110"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="object-cover transition duration-700 group-hover:scale-105"
+                    fallbackClassName="text-sm text-gray-500"
                   />
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
