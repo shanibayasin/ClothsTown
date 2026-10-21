@@ -3,13 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Pencil, Trash2, Search, Loader2 } from "lucide-react";
+import type { Banner as BannerFormData } from "./BannerForm";
 
-interface Banner {
+interface Banner extends Omit<BannerFormData, "_id"> {
   _id: string;
-  title: string;
-  subtitle: string;
-  image: string;
-  status: boolean;
 }
 
 interface Props {
@@ -25,17 +22,14 @@ export default function BannerTable({
   onEdit,
   onRefresh,
 }: Props) {
-  const [items, setItems] = useState<Banner[]>(banners ?? []);
+  const [loadedItems, setItems] = useState<Banner[]>([]);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(!banners);
+  const items = banners ?? loadedItems;
 
   useEffect(() => {
-    if (banners) {
-      setItems(banners);
-      setLoading(false);
-      return;
-    }
+    if (banners) return;
 
     let isMounted = true;
     const loadBanners = async () => {
@@ -91,7 +85,7 @@ export default function BannerTable({
 
   return (
     <div className="w-full">
-      {loading && (
+      {!banners && loading && (
         <div className="flex items-center justify-center border-b p-6 text-sm text-slate-500">
           <Loader2 size={16} className="mr-2 animate-spin" />
           Loading banner configuration...
@@ -161,6 +155,7 @@ export default function BannerTable({
                         fill
                         className="object-cover"
                         sizes="80px"
+                        unoptimized
                       />
                     </div>
                   </td>

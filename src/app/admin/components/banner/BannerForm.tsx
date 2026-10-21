@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import {
   FolderPlus,
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
 
-interface Banner {
+export interface Banner {
   _id?: string;
   title: string;
   subtitle: string;
@@ -38,25 +38,30 @@ const initialState: Banner = {
   status: true,
 };
 
+function getBannerFormState(banner: Banner): Banner {
+  return {
+    title: banner.title ?? "",
+    subtitle: banner.subtitle ?? "",
+    description: banner.description ?? "",
+    buttonText: banner.buttonText ?? "Shop Now",
+    buttonLink: banner.buttonLink ?? "/shop",
+    image: banner.image ?? "",
+    status: banner.status ?? true,
+  };
+}
+
 export default function BannerForm({
   editing,
   onClose,
   onSuccess,
 }: Props) {
-  const [form, setForm] = useState<Banner>(initialState);
-  const [editingId, setEditingId] = useState("");
+  const [form, setForm] = useState<Banner>(() =>
+    editing ? getBannerFormState(editing) : initialState
+  );
+  const editingId = editing?._id || "";
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    if (editing) {
-      setForm(editing);
-      setEditingId(editing._id || "");
-    } else {
-      setForm(initialState);
-      setEditingId("");
-    }
-  }, [editing]);
+  const [saveError, setSaveError] = useState("");
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -115,6 +120,7 @@ export default function BannerForm({
   ) {
     e.preventDefault();
     setLoading(true);
+    setSaveError("");
 
     const url = editingId
       ? `/api/banner/${editingId}`
@@ -123,7 +129,7 @@ export default function BannerForm({
     const method = editingId ? "PUT" : "POST";
 
     try {
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -131,13 +137,17 @@ export default function BannerForm({
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) throw new Error("Form action execution failed");
+      if (!res.ok) {
+        throw new Error(`Could not ${editingId ? "update" : "create"} banner (${res.status}).`);
+      }
 
       setForm(initialState);
-      setEditingId("");
       onSuccess();
     } catch (err) {
       console.error("Banner save operation error:", err);
+      setSaveError(
+        err instanceof Error ? err.message : "Could not save the banner."
+      );
     } finally {
       setLoading(false);
     }
@@ -189,10 +199,16 @@ export default function BannerForm({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        {saveError && (
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {saveError}
+          </p>
+        )}
+
         <div className="grid gap-6 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Banner Title
+              Main Heading
             </label>
             <input
               name="title"
@@ -205,7 +221,7 @@ export default function BannerForm({
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Subtitle
+              Eyebrow Text
             </label>
             <input
               name="subtitle"
@@ -219,7 +235,7 @@ export default function BannerForm({
 
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
-            Description
+            Hero Description
           </label>
           <textarea
             rows={3}
@@ -295,6 +311,7 @@ export default function BannerForm({
                 alt="Banner visual template preview"
                 fill
                 className="object-cover"
+                unoptimized
               />
               <button
                 type="button"
@@ -332,7 +349,6 @@ export default function BannerForm({
             type="button"
             onClick={() => {
               setForm(initialState);
-              setEditingId("");
               if (onClose) onClose();
             }}
             className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"

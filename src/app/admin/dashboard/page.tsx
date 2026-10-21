@@ -7,12 +7,18 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  ArrowUpRight,
   CalendarDays,
   CheckCircle,
+  ClipboardList,
   Clock,
+  ImagePlus,
   Package,
+  Plus,
+  Settings2,
   ShoppingBag,
   ShoppingCart,
+  Store,
   Truck,
   Users,
   Wallet,
@@ -206,6 +212,33 @@ function PanelHeading({
   );
 }
 
+const quickActions = [
+  {
+    title: "Add New Product",
+    href: "/admin/products",
+    icon: Plus,
+    detail: "Create a product listing",
+  },
+  {
+    title: "Manage Banners",
+    href: "/admin/banners",
+    icon: ImagePlus,
+    detail: "Update homepage slides",
+  },
+  {
+    title: "View Orders",
+    href: "/admin/orders",
+    icon: ClipboardList,
+    detail: "Review customer orders",
+  },
+  {
+    title: "Store Settings",
+    href: "/admin/settings",
+    icon: Settings2,
+    detail: "Manage store preferences",
+  },
+];
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>(initialData);
   const [loading, setLoading] = useState(true);
@@ -266,47 +299,85 @@ export default function DashboardPage() {
     {
       title: "Total Orders",
       value: loading ? "..." : data.orders.toLocaleString(),
+      detail: `${loading ? "..." : data.todayOrders.toLocaleString()} placed today`,
       icon: <ShoppingCart size={18} />,
+      color: "bg-slate-100 text-slate-700",
     },
     {
       title: "Total Revenue",
       value: loading ? "..." : `Rs. ${data.revenue.toLocaleString()}`,
+      detail: `${loading ? "..." : `${data.revenueGrowth >= 0 ? "+" : ""}${data.revenueGrowth}%`} this month`,
       icon: <Wallet size={18} />,
+      color: "bg-slate-100 text-slate-700",
     },
     {
       title: "Total Customers",
       value: loading ? "..." : data.customers.toLocaleString(),
+      detail: "Unique store customers",
       icon: <Users size={18} />,
+      color: "bg-slate-100 text-slate-700",
     },
     {
       title: "Total Products",
       value: loading ? "..." : data.products.toLocaleString(),
+      detail: "Active listings",
       icon: <Package size={18} />,
+      color: "bg-slate-100 text-slate-700",
     },
     {
       title: "Low Stock Items",
       value: loading ? "..." : data.lowStockCount.toLocaleString(),
+      detail: loading
+        ? "Checking inventory..."
+        : data.lowStockCount > 0
+          ? "Restock recommended"
+          : "Stock levels look good",
       icon: <AlertTriangle size={18} />,
+      color: "bg-slate-100 text-slate-700",
     },
   ];
 
   return (
-    <div className="space-y-4 pb-8">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">
-            {greeting}
-          </h1>
-          <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
-            Here&apos;s what&apos;s happening with your store today.
-          </p>
+    <div className="space-y-5 pb-8 sm:space-y-6">
+      <section className="relative isolate overflow-hidden rounded-2xl bg-[#142536] px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-28 size-72 rounded-full bg-slate-400/15 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 right-1/3 size-56 rounded-full bg-sky-500/10 blur-3xl" />
+        <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-300">
+              ClothesTown · Store overview
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {greeting}
+            </h1>
+            <p className="mt-2 max-w-xl text-xs leading-5 text-slate-300 sm:text-sm">
+              Here&apos;s what&apos;s happening with your store today.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 text-xs text-slate-200 backdrop-blur-sm">
+              <CalendarDays size={15} aria-hidden="true" />
+              <span>Today</span>
+              <span className="font-semibold text-white">{dateLabel || "..."}</span>
+            </div>
+            <Link
+              href="/admin/products"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white px-3.5 text-xs font-semibold text-[#142536] transition hover:bg-slate-100"
+            >
+              <Plus size={15} aria-hidden="true" />
+              Add product
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/20 px-3.5 text-xs font-semibold text-white transition hover:bg-white/10"
+            >
+              <Store size={15} aria-hidden="true" />
+              View store
+              <ArrowUpRight size={14} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
-        <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600 shadow-sm">
-          <CalendarDays size={16} aria-hidden="true" />
-          <span>Today</span>
-          <span className="font-semibold text-neutral-900">{dateLabel || "..."}</span>
-        </div>
-      </div>
+      </section>
 
       <section aria-label="Store statistics" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {stats.map((stat) => (
@@ -314,8 +385,9 @@ export default function DashboardPage() {
             key={stat.title}
             title={stat.title}
             value={stat.value}
+            detail={stat.detail}
             icon={stat.icon}
-            color="bg-neutral-900"
+            color={stat.color}
           />
         ))}
       </section>
@@ -323,7 +395,7 @@ export default function DashboardPage() {
       <div className="grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1fr)_290px]">
         <div className="min-w-0 space-y-4">
           <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
-            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+            <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
               <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
                 <h2 className="text-sm font-bold text-neutral-900">Sales Overview</h2>
                 <p className="mt-1 text-[11px] text-neutral-500">
@@ -339,7 +411,7 @@ export default function DashboardPage() {
               </div>
             </section>
 
-            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+            <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
               <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
                 <h2 className="text-sm font-bold text-neutral-900">Order Status</h2>
                 <p className="mt-1 text-[11px] text-neutral-500">
@@ -356,61 +428,8 @@ export default function DashboardPage() {
             </section>
           </div>
 
-          <div className="grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-[1.25fr_1fr_0.9fr]">
-            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
-              <PanelHeading title="Recent Orders" href="/admin/orders" />
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left text-[11px]">
-                  <thead className="bg-neutral-50 text-neutral-500">
-                    <tr>
-                      <th className="px-3 py-2.5 font-medium">Order ID</th>
-                      <th className="px-3 py-2.5 font-medium">Customer</th>
-                      <th className="px-3 py-2.5 font-medium">Total</th>
-                      <th className="px-3 py-2.5 font-medium">Status</th>
-                      <th className="px-3 py-2.5 font-medium">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100 text-neutral-700">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={5} className="px-3 py-8 text-center text-neutral-400">
-                          Loading orders...
-                        </td>
-                      </tr>
-                    ) : data.recentOrders.length ? (
-                      data.recentOrders.map((order) => (
-                        <tr key={order._id} className="transition-colors hover:bg-neutral-50">
-                          <td className="whitespace-nowrap px-3 py-3 font-medium text-neutral-900">
-                            #{order._id.slice(-6).toUpperCase()}
-                          </td>
-                          <td className="max-w-28 truncate px-3 py-3">{order.customerName}</td>
-                          <td className="whitespace-nowrap px-3 py-3">
-                            Rs. {(order.total ?? 0).toLocaleString()}
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={statusClass()}>{order.status}</span>
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-neutral-500">
-                            {new Date(order.createdAt).toLocaleDateString("en-PK", {
-                              day: "numeric",
-                              month: "short",
-                            })}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="px-3 py-8 text-center text-neutral-500">
-                          No orders yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+            <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
               <PanelHeading title="Latest Products" href="/admin/products" />
               <div className="divide-y divide-neutral-100">
                 {loading ? (
@@ -441,7 +460,7 @@ export default function DashboardPage() {
               </div>
             </section>
 
-            <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm lg:col-span-2 2xl:col-span-1">
+            <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
               <PanelHeading title="Low Stock Products" href="/admin/products" />
               <div className="divide-y divide-neutral-100">
                 {loading ? (
@@ -473,7 +492,7 @@ export default function DashboardPage() {
             </section>
           </div>
 
-          <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
             <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
               <h2 className="text-sm font-bold text-neutral-900">Recent Activity</h2>
               <p className="mt-1 text-[11px] text-neutral-500">Latest activity on your store</p>
@@ -511,7 +530,62 @@ export default function DashboardPage() {
         </div>
 
         <aside className="min-w-0 space-y-4">
-          <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
+            <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
+              <h2 className="text-sm font-bold text-neutral-900">Quick Actions</h2>
+              <p className="mt-1 text-[11px] text-neutral-500">Common store tasks</p>
+            </div>
+            <div className="space-y-2 p-3">
+              {quickActions.map(({ title, href, icon: Icon, detail }, index) => (
+                <Link
+                  key={title}
+                  href={href}
+                  className={`group flex min-h-[58px] items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+                    index === 0
+                      ? "bg-[#f8edf2] hover:bg-[#f3e2e9]"
+                      : "bg-slate-50 hover:bg-slate-100"
+                  }`}
+                >
+                  <span
+                    className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
+                      index === 0
+                        ? "bg-white [color:#6f1d46]"
+                        : "bg-white text-[#142536]"
+                    }`}
+                  >
+                    <Icon size={17} aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold text-slate-800">{title}</span>
+                    <span className="mt-0.5 block truncate text-[10px] text-slate-500">{detail}</span>
+                  </span>
+                  <ArrowRight
+                    size={14}
+                    className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="relative isolate overflow-hidden rounded-2xl bg-[#142536] p-5 text-white shadow-sm">
+            <div aria-hidden="true" className="absolute -right-8 -top-10 size-32 rounded-full [background-color:#6f1d46] opacity-60 blur-2xl" />
+            <div className="relative">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300">ClothesTown</p>
+              <h2 className="mt-2 text-lg font-bold tracking-tight text-white">Style Meets Comfort</h2>
+              <p className="mt-1 text-xs text-slate-300">More styles, more you.</p>
+              <Link
+                href="/"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-white/10"
+              >
+                Visit storefront
+                <ArrowUpRight size={13} aria-hidden="true" />
+              </Link>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
             <PanelHeading title="Recent Orders" href="/admin/orders" />
             <div className="divide-y divide-neutral-100">
               {loading ? (
@@ -591,7 +665,7 @@ export default function DashboardPage() {
             )}
           </section>
 
-          <section className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_2px_14px_rgba(15,23,42,0.035)]">
             <h2 className="text-xs font-semibold text-neutral-800">Today&apos;s Summary</h2>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>

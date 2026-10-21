@@ -13,11 +13,11 @@ interface Props {
 }
 
 const statuses = [
-  { name: "Pending", key: "pending", color: "#171717" },
-  { name: "Processing", key: "processing", color: "#404040" },
-  { name: "Shipped", key: "shipped", color: "#737373" },
-  { name: "Delivered", key: "delivered", color: "#a3a3a3" },
-  { name: "Cancelled", key: "cancelled", color: "#d4d4d4" },
+  { name: "Pending", key: "pending", color: "#d97706" },
+  { name: "Processing", key: "processing", color: "#2563eb" },
+  { name: "Shipped", key: "shipped", color: "#7c3aed" },
+  { name: "Delivered", key: "delivered", color: "#059669" },
+  { name: "Cancelled", key: "cancelled", color: "#dc2626" },
 ] as const;
 
 export default function OrderStatusChart({ analytics }: Props) {

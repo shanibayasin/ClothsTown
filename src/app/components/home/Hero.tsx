@@ -64,17 +64,6 @@ export default function Hero() {
   };
 
   const slide = slides[current];
-  const slideCopy = slide && /abaya|modest/i.test(
-    `${slide.subtitle} ${slide.title} ${slide.description} ${slide.buttonText}`
-  )
-    ? {
-        subtitle: "Winter Collection 2025",
-        title: "Stay Warm\nStay Stylish",
-        description:
-          "Premium winter wear for men & women.\nComfort, quality and style — all in one place.",
-        buttonText: "Shop Now",
-      }
-    : slide;
 
   if (loading) {
     return (
@@ -102,12 +91,13 @@ export default function Hero() {
             >
               <Image
                 src={slide.image}
-                alt={slideCopy?.title.replace(/\n/g, " ") || "Featured collection"}
+                alt={slide.title.replace(/\n/g, " ") || "Featured collection"}
                 fill
                 priority
                 sizes="100vw"
                 quality={100}
                 className="object-cover object-[70%_center] sm:object-[68%_center]"
+                unoptimized
               />
             </motion.div>
           </AnimatePresence>
@@ -124,21 +114,21 @@ export default function Hero() {
               className="w-full max-w-[470px] pb-12 sm:pb-8"
             >
               <p className="mb-2 text-[8px] font-bold uppercase tracking-[0.2em] text-[#102d40] sm:text-[10px] sm:tracking-[0.24em] lg:text-[11px]">
-                {slideCopy?.subtitle || "Winter Collection 2025"}
+                {slide.subtitle}
               </p>
               <h1 className="whitespace-pre-line text-[32px] font-extrabold leading-[1.02] tracking-tight text-[#102d40] sm:text-[40px] lg:text-[52px]">
-                {slideCopy?.title}
+                {slide.title}
               </h1>
-              {slideCopy?.description && (
+              {slide.description && (
                 <p className="mt-3 max-w-[340px] whitespace-pre-line text-[10px] leading-[1.5] text-[#243d4d] sm:mt-4 sm:text-xs sm:leading-[1.55]">
-                  {slideCopy.description}
+                  {slide.description}
                 </p>
               )}
               <Link
                 href={slide.buttonLink || "/shop"}
                 className="mt-4 inline-flex h-8 items-center gap-2 rounded-full bg-[#102d40] px-4 text-[10px] font-semibold text-white transition hover:bg-primary sm:mt-5 sm:h-9 sm:px-5 sm:text-[11px]"
               >
-                {slideCopy?.buttonText || "Shop Now"}
+                {slide.buttonText || "Shop Now"}
                 <ArrowRight size={13} />
               </Link>
 
