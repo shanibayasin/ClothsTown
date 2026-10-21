@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
@@ -6,32 +9,36 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
+
   return (
     <div className="admin-theme flex min-h-screen bg-background">
-
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-70 shrink-0">
+      <aside className="sticky top-0 hidden h-screen w-[216px] shrink-0 lg:block">
         <Sidebar />
-      </div>
+      </aside>
 
-      {/* Right Side */}
-      <div className="flex flex-1 flex-col min-w-0">
+      {isMobileSidebarOpen && (
+        <>
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={closeMobileSidebar}
+            className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden"
+          />
+          <aside className="fixed inset-y-0 left-0 z-50 w-[min(82vw,280px)] shadow-2xl lg:hidden">
+            <Sidebar closeSidebar={closeMobileSidebar} />
+          </aside>
+        </>
+      )}
 
-        <Header />
-
-        {/* Mobile Sidebar */}
-        <div className="lg:hidden">
-          <Sidebar />
-        </div>
-
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header onMenuClick={() => setIsMobileSidebarOpen((open) => !open)} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-          <div className="mx-auto w-full max-w-350">
-            {children}
-          </div>
+          <div className="mx-auto w-full max-w-350">{children}</div>
         </main>
-
       </div>
-
     </div>
   );
 }

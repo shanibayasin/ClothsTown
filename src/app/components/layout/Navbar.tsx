@@ -25,6 +25,7 @@ type Collection = {
 
 export default function Navbar() {
   const pathname = usePathname() || "";
+  const isAccountPage = pathname === "/login" || pathname === "/register";
   
   // Destructured target cart array to compute runtime totals dynamically
   const { cart } = useCart();
@@ -32,7 +33,6 @@ export default function Navbar() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [showCollectionMenu, setShowCollectionMenu] = useState(false);
-  const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const currentYear = new Date().getFullYear();
   
@@ -80,6 +80,8 @@ export default function Navbar() {
       { name: "Home", href: "/" },
       { name: "Men", href: "/shop?category=Men", hasChevron: true },
       { name: "Women", href: "/shop?category=Women", hasChevron: true },
+      { name: "Girls", href: "/shop?category=Girls", hasChevron: true },
+      { name: "Boys", href: "/shop?category=Boys", hasChevron: true },
       { name: "Accessories", href: "/shop?category=Accessories", hasChevron: true },
       { name: "Winter Collection", href: "/collections", collectionMenu: true },
       { name: "New Arrivals", href: "/new-arrivals" },
@@ -97,14 +99,14 @@ export default function Navbar() {
             : "bg-white"
         }`}
       >
-        <div className="mx-auto grid h-[58px] max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:h-[68px] sm:px-6 md:h-[82px] md:grid-cols-[minmax(220px,0.85fr)_minmax(180px,1.45fr)_minmax(190px,0.6fr)] md:gap-5 lg:h-[98px] lg:gap-8 lg:px-8">
+        <div className={`mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:px-6 md:grid-cols-[minmax(220px,0.85fr)_minmax(180px,1.45fr)_minmax(190px,0.6fr)] md:gap-5 lg:gap-8 lg:px-8 ${isAccountPage ? "h-[58px] sm:h-[66px] md:h-[72px] lg:h-[72px] lg:grid-cols-[minmax(210px,0.85fr)_minmax(180px,1.45fr)_minmax(165px,0.6fr)] lg:px-14" : "h-[58px] sm:h-[68px] md:h-[82px] lg:h-[98px]"}`}>
           <div className="flex min-w-0 items-center">
             <Link href="/" aria-label="ClothesTown home" className="flex min-w-0 items-center gap-2 text-[#102633] sm:gap-3">
-              <svg aria-hidden="true" viewBox="0 0 72 56" className="h-7 w-9 shrink-0 sm:h-11 sm:w-14 lg:h-14 lg:w-[70px]" fill="none">
+              <svg aria-hidden="true" viewBox="0 0 72 56" className={`shrink-0 ${isAccountPage ? "h-7 w-9 sm:h-8 sm:w-10 lg:h-8 lg:w-11" : "h-7 w-9 sm:h-11 sm:w-14 lg:h-14 lg:w-[70px]"}`} fill="none">
                 <path d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span className="truncate whitespace-nowrap text-[14px] font-bold tracking-tight sm:text-xl lg:text-[30px]">
-                ClothesTown<span className="text-[11px] font-medium text-[#9aa5ad] sm:text-sm lg:text-[26px]">.com</span>
+              <span className={`truncate whitespace-nowrap font-bold tracking-tight ${isAccountPage ? "text-[14px] sm:text-xl lg:text-[24px]" : "text-[14px] sm:text-xl lg:text-[30px]"}`}>
+                ClothesTown<span className={`font-medium text-[#9aa5ad] ${isAccountPage ? "text-[11px] sm:text-sm lg:text-[18px]" : "text-[11px] sm:text-sm lg:text-[26px]"}`}>.com</span>
               </span>
             </Link>
           </div>
@@ -116,57 +118,41 @@ export default function Navbar() {
               type="search"
               name="search"
               placeholder="Search for jackets, hoodies, sweaters, and more..."
-              className="h-10 min-w-0 flex-1 rounded-l-[18px] border border-r-0 border-[#d9e0e5] bg-[#f7f8fa] px-4 text-sm text-[#243643] outline-none transition focus:border-[#9eabb3] focus:bg-white lg:h-14 lg:rounded-l-[20px] lg:px-5"
+              className={`min-w-0 flex-1 border border-r-0 border-[#d9e0e5] bg-[#f7f8fa] text-[#243643] outline-none transition focus:border-[#9eabb3] focus:bg-white ${isAccountPage ? "h-9 rounded-l-[9px] px-3 text-[10px] lg:h-[34px] lg:px-3" : "h-10 rounded-l-[18px] px-4 text-sm lg:h-14 lg:rounded-l-[20px] lg:px-5"}`}
             />
             <button
               type="submit"
               aria-label="Search products"
-              className="flex h-10 w-12 items-center justify-center rounded-r-[18px] bg-[#102633] text-white transition hover:bg-primary lg:h-14 lg:w-[68px] lg:rounded-r-[20px]"
+              className={`flex items-center justify-center bg-[#102633] text-white transition hover:bg-primary ${isAccountPage ? "h-9 w-10 rounded-r-[9px] lg:h-[34px] lg:w-10" : "h-10 w-12 rounded-r-[18px] lg:h-14 lg:w-[68px] lg:rounded-r-[20px]"}`}
             >
-              <Search size={21} />
+              <Search size={isAccountPage ? 17 : 21} />
             </button>
           </form>
 
           <div className="flex shrink-0 items-center">
-            <div
-              className="relative hidden border-l border-[#dfe4e8] sm:block md:border-l-0"
-              onMouseEnter={() => setShowAccountMenu(true)}
-              onMouseLeave={() => setShowAccountMenu(false)}
+            <Link
+              href="/login"
+              aria-label="Account login and registration"
+              className={`flex flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] text-[#102633] transition hover:text-primary md:border-l-0 ${isAccountPage ? "h-10 min-w-9 px-1.5 sm:h-12 sm:min-w-[58px] sm:px-2 lg:h-10 lg:min-w-[58px] lg:px-1" : "h-10 min-w-9 px-1.5 sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"}`}
             >
-              <button
-                onClick={() => setShowAccountMenu((prev) => !prev)}
-                aria-expanded={showAccountMenu}
-                className="flex h-10 min-w-9 flex-col items-center justify-center gap-0.5 px-1.5 text-[#102633] transition hover:text-primary sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"
-              >
-                <User size={20} strokeWidth={1.8} className="lg:size-[26px]" />
-                <span className="hidden text-xs leading-none sm:block lg:text-[14px]">Account</span>
-              </button>
-              {showAccountMenu && (
-                <div className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
-                  <Link href="/admin" onClick={() => setShowAccountMenu(false)} className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary">
-                    Login
-                  </Link>
-                  <Link href="/register" onClick={() => setShowAccountMenu(false)} className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary">
-                    Create Account
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            <Link href="/wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`} className="flex h-9 min-w-8 flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] px-1 text-[#102633] transition hover:text-primary sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]">
-              <span className="relative">
-                <Heart size={18} strokeWidth={1.8} className="sm:size-5 lg:size-[26px]" />
-                {wishlistCount > 0 && <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">{wishlistCount}</span>}
-              </span>
-              <span className="hidden text-xs leading-none sm:block lg:text-[14px]">Wishlist</span>
+              <User size={20} strokeWidth={1.8} className={isAccountPage ? "sm:size-5 lg:size-[19px]" : "lg:size-[26px]"} />
+              <span className={`hidden leading-none sm:block ${isAccountPage ? "text-[9px]" : "text-xs lg:text-[14px]"}`}>Account</span>
             </Link>
 
-            <Link href="/cart" aria-label={`Cart${totalCartItems ? `, ${totalCartItems} items` : ""}`} className="flex h-9 min-w-8 flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] px-1 text-[#102633] transition hover:text-primary sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]">
+            <Link href="/wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`} className={`flex flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] text-[#102633] transition hover:text-primary ${isAccountPage ? "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[58px] sm:px-2 lg:h-10 lg:min-w-[58px] lg:px-1" : "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"}`}>
               <span className="relative">
-                <ShoppingCart size={18} strokeWidth={1.8} className="sm:size-5 lg:size-[26px]" />
+                <Heart size={18} strokeWidth={1.8} className={isAccountPage ? "sm:size-5 lg:size-[19px]" : "sm:size-5 lg:size-[26px]"} />
+                {wishlistCount > 0 && <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">{wishlistCount}</span>}
+              </span>
+              <span className={`hidden leading-none sm:block ${isAccountPage ? "text-[9px]" : "text-xs lg:text-[14px]"}`}>Wishlist</span>
+            </Link>
+
+            <Link href="/cart" aria-label={`Cart${totalCartItems ? `, ${totalCartItems} items` : ""}`} className={`flex flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] text-[#102633] transition hover:text-primary ${isAccountPage ? "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[58px] sm:px-2 lg:h-10 lg:min-w-[58px] lg:px-1" : "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"}`}>
+              <span className="relative">
+                <ShoppingCart size={18} strokeWidth={1.8} className={isAccountPage ? "sm:size-5 lg:size-[19px]" : "sm:size-5 lg:size-[26px]"} />
                 <span className="absolute -right-2.5 -top-2.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{totalCartItems}</span>
               </span>
-              <span className="hidden text-xs leading-none sm:block lg:text-[14px]">Cart</span>
+              <span className={`hidden leading-none sm:block ${isAccountPage ? "text-[9px]" : "text-xs lg:text-[14px]"}`}>Cart</span>
             </Link>
             <button
               type="button"
@@ -194,8 +180,8 @@ export default function Navbar() {
           </button>
         </form>
 
-        <nav aria-label="Main navigation" className="hidden border-t border-gray-100 md:block">
-          <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-start gap-8 overflow-visible px-6 lg:h-[67px] lg:gap-14 lg:px-10">
+        <nav aria-label="Main navigation" className={`hidden border-t border-gray-100 md:block ${isAccountPage ? "!hidden" : ""}`}>
+          <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-start gap-5 overflow-visible px-6 lg:h-[67px] lg:gap-9 lg:px-10">
             {links.map((link) => {
               const active = link.href === "/"
                 ? pathname === "/"
@@ -213,7 +199,7 @@ export default function Navbar() {
                       type="button"
                       aria-expanded={showCollectionMenu}
                       onClick={() => setShowCollectionMenu((prev) => !prev)}
-                      className={`flex h-full items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[16px] ${active ? "text-primary" : "text-[#172a33] hover:text-primary"}`}
+                      className={`flex h-full items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-primary" : "text-[#172a33] hover:text-primary"}`}
                     >
                       {link.name}
                       <Snowflake size={16} className="text-[#3b82f6]" />
@@ -246,7 +232,7 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[16px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
+                  className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
                 >
                   {link.name}
                   {"hasChevron" in link && link.hasChevron && <ChevronDown size={14} strokeWidth={2.2} />}
@@ -335,7 +321,7 @@ export default function Navbar() {
                   </p>
                   <div className="mt-3 space-y-2">
                     <Link
-                      href="/admin"
+                      href="/login"
                       onClick={() => setIsOpen(false)}
                       className="block rounded-xl bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:text-primary"
                     >

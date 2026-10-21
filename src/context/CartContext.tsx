@@ -19,6 +19,10 @@ export interface CartItem {
   quantity: number;
 }
 
+export function getCartItemKey(item: Pick<CartItem, "_id" | "size" | "color">) {
+  return `${item._id}:${item.size ?? ""}:${item.color ?? ""}`;
+}
+
 interface CartContextType {
   cart: CartItem[];
   cartTotal: number;
@@ -45,11 +49,12 @@ export function CartProvider({
 
   const addToCart = (product: CartItem) => {
     setCart((prev) => {
-      const exists = prev.find((item) => item._id === product._id);
+      const productKey = getCartItemKey(product);
+      const exists = prev.find((item) => getCartItemKey(item) === productKey);
 
       if (exists) {
         return prev.map((item) =>
-          item._id === product._id
+          getCartItemKey(item) === productKey
             ? { ...item, quantity: item.quantity + product.quantity }
             : item
         );
@@ -60,13 +65,17 @@ export function CartProvider({
   };
 
   const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((item) => item._id !== id));
+    setCart((prev) =>
+      prev.filter((item) => getCartItemKey(item) !== id && item._id !== id)
+    );
   };
 
   const increaseQty = (id: string) => {
     setCart((prev) =>
       prev.map((item) =>
-        item._id === id ? { ...item, quantity: item.quantity + 1 } : item
+        getCartItemKey(item) === id || item._id === id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
       )
     );
   };
@@ -74,7 +83,9 @@ export function CartProvider({
   const decreaseQty = (id: string) => {
     setCart((prev) =>
       prev.map((item) =>
-        item._id === id ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item
+        getCartItemKey(item) === id || item._id === id
+          ? { ...item, quantity: Math.max(1, item.quantity - 1) }
+          : item
       )
     );
   };

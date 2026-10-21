@@ -107,7 +107,7 @@ export default async function OrderDetails({
             </p>
 
             <h3 className="font-semibold">
-              {order.city}
+              {[order.city, order.postalCode].filter(Boolean).join(" ")}
             </h3>
           </div>
 

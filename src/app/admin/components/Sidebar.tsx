@@ -21,14 +21,14 @@ const menus = [
   { title: "Products", href: "/admin/products", icon: Package },
   { title: "Categories", href: "/admin/categories", icon: Shapes },
   { title: "Banners", href: "/admin/banners", icon: ImageIcon },
+  { title: "Reviews", href: "/admin/reviews", icon: Star },
   { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { title: "Customers", href: "/admin/customers", icon: Users },
-  { title: "Reviews", href: "/admin/reviews", icon: Star },
   { title: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 interface SidebarProps {
-  closeSidebar?: () => void; // Optional prop for mobile drawer control
+  closeSidebar?: () => void;
 }
 
 export default function Sidebar({ closeSidebar }: SidebarProps) {
@@ -48,80 +48,100 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
   };
 
   return (
-    <aside
-      className="relative flex h-full w-full flex-col justify-between overflow-hidden border-r border-gray-200 bg-white font-body text-gray-900 shadow-sm lg:rounded-r-3xl"
-    >
-      <div className="w-full">
-        {/* BRAND AREA */}
-        <div
-          className="flex h-24 items-center justify-start border-b border-gray-200 px-7 md:h-28"
+    <aside className="flex h-full w-full flex-col bg-[#142536] px-2.5 py-4 font-body text-white">
+      <Link
+        href="/admin"
+        onClick={closeSidebar}
+        className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 px-1 pb-4"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 72 56"
+          className="h-7 w-9 shrink-0 text-[#7de2d2]"
+          fill="none"
         >
-          <Link 
-            href="/admin" 
-            onClick={closeSidebar} 
-            className="flex h-full w-full items-center justify-start"
+          <path
+            d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className="whitespace-nowrap text-[15px] font-bold tracking-tight text-white">
+          ClothesTown
+        </span>
+      </Link>
+
+      <nav
+        aria-label="Admin navigation"
+        className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto"
+      >
+        {menus.map((item) => {
+          const Icon = item.icon;
+          const active =
+            item.href === "/admin"
+              ? pathname === "/admin"
+              : pathname?.startsWith(item.href);
+
+          return (
+            <Link
+              key={item.title}
+              href={item.href}
+              onClick={closeSidebar}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-10 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium transition-colors ${
+                active
+                  ? "bg-[#2867b2] text-white shadow-sm"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon size={17} strokeWidth={2} className="shrink-0" aria-hidden="true" />
+              <span>{item.title}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+        <div className="flex items-center gap-2">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 72 56"
+            className="h-4 w-5 shrink-0 text-[#7de2d2]"
+            fill="none"
           >
-            <span className="text-xl font-bold tracking-wide text-black transition-transform duration-300 hover:scale-[1.04]">
-              ClothesTown
-            </span>
-          </Link>
+            <path
+              d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31"
+              stroke="currentColor"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span className="text-xs font-semibold text-white">ClothesTown</span>
         </div>
-
-        {/* NAVIGATION AREA */}
-        <nav className="mt-6 md:mt-8 px-4 flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-200px)] no-scrollbar">
-          {menus.map((item) => {
-            const Icon = item.icon;
-            const active =
-              item.href === "/admin"
-                ? pathname === "/admin"
-                : pathname?.startsWith(item.href);
-
-            return (
-              <Link
-                key={item.title}
-                href={item.href}
-                onClick={closeSidebar} // Click hote hi mobile drawer auto-close ho jayega
-                className={`group flex items-center gap-4 rounded-xl px-5 py-3.5 text-[15px] font-semibold tracking-wide select-none cursor-pointer relative transition-all duration-300
-                  ${
-                    active
-                      ? "bg-gray-100 text-black shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-black hover:translate-x-1.5"
-                  }`}
-              >
-                {/* ACTIVE LINK SIDE ACCENT */}
-                {active && (
-                  <span
-                    className="absolute left-0 top-1/4 h-1/2 w-1 rounded-r-full bg-black"
-                    aria-hidden="true"
-                  />
-                )}
-
-                <Icon
-                  size={22}
-                  className="shrink-0 transition-all duration-300"
-                  aria-hidden="true"
-                />
-
-                <span className="font-sans tracking-wide transition-colors duration-300">
-                  {item.title}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* LOGOUT BUTTON AREA */}
-      <div className="mb-3 border-t border-gray-200 p-4">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="group flex w-full cursor-pointer items-center gap-4 rounded-xl px-5 py-3.5 text-[15px] font-semibold text-gray-600 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-black"
+        <p className="mt-2 text-[11px] leading-4 text-slate-400">
+          Style Meets Comfort
+          <br />
+          Manage your store with ease.
+        </p>
+        <Link
+          href="/"
+          className="mt-3 flex min-h-8 items-center justify-center rounded-md border border-white/10 px-2 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
         >
-          <LogOut size={22} className="shrink-0 transition-all duration-300" />
-          <span className="font-sans tracking-wide">Logout</span>
-        </button>
+          View Store
+        </Link>
       </div>
+
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="mt-2 flex min-h-9 items-center gap-3 rounded-lg px-2.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <LogOut size={16} aria-hidden="true" />
+        <span>Logout</span>
+      </button>
     </aside>
   );
 }

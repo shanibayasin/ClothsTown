@@ -22,7 +22,7 @@ const quickLinks = [
 
 const serviceLinks = [
   { label: "Contact Us", href: "/contact" },
-  { label: "Track Order", href: "/cart" },
+  { label: "Track Order", href: "/track-order" },
   { label: "Returns & Exchanges", href: "/contact" },
   { label: "FAQs", href: "/contact" },
   { label: "Size Guide", href: "/contact" },

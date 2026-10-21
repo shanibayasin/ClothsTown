@@ -4,7 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Search, Menu, ChevronRight } from "lucide-react";
 
-export default function Header() {
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
   const pathname = usePathname() || "";
 
   // Main Page Titles Mapping
@@ -43,7 +47,12 @@ export default function Header() {
       
       {/* LEFT SIDE: LOGO/MENU & TITLE WITH BREADCRUMBS */}
       <div className="flex items-center gap-3">
-        <button className="lg:hidden rounded-lg border p-2 hover:bg-gray-50 transition-colors">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Toggle navigation menu"
+          className="rounded-lg border p-2 transition-colors hover:bg-gray-50 lg:hidden"
+        >
           <Menu size={20} className="text-gray-600" />
         </button>
 

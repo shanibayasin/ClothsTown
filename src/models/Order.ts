@@ -22,6 +22,11 @@ const OrderSchema = new Schema(
       required: true,
     },
 
+    postalCode: {
+      type: String,
+      default: "",
+    },
+
     address: {
       type: String,
       required: true,

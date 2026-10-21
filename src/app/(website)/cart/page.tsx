@@ -1,166 +1,214 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCart } from "@/context/CartContext";
-import { Plus, Minus, Trash2, ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { getCartItemKey, useCart } from "@/context/CartContext";
 
 export default function CartPage() {
   const { cart, increaseQty, decreaseQty, removeFromCart } = useCart();
+  const [couponCode, setCouponCode] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
 
-  // Dynamic calculations panel 
-  const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const shipping = 0; // Free shipping active threshold
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shipping: number = 0;
   const total = subtotal + shipping;
 
+  function handleApplyCoupon() {
+    setCouponMessage(
+      couponCode.trim()
+        ? "Coupon codes are not available yet."
+        : "Enter a coupon code first."
+    );
+  }
+
   return (
-    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-      
-      {/* Top Header Section */}
-      <div className="mb-12">
-        <span className="text-xs uppercase tracking-[0.3em] font-bold text-primary bg-primary/5 px-4 py-1.5 rounded-full">
-          Shopping Bag
-        </span>
-        <h1 className="mt-5 font-heading text-4xl sm:text-5xl text-[#2B1A22] tracking-tight">
-          Your Cart
-        </h1>
-        <p className="mt-4 text-base text-gray-500">
-          Review your selected products before proceeding to checkout.
-        </p>
-      </div>
-
-      {cart.length === 0 ? (
-        /* Empty State Layout Layer */
-        <div className="rounded-[30px] border border-dashed border-[#d8b7c7] bg-[#FCF8F6] py-24 text-center max-w-4xl mx-auto shadow-inner animate-in fade-in duration-300">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-6">
-            <ShoppingBag size={28} />
+    <main className="min-h-[70vh] bg-[#f8fafb] text-[#172b3a]">
+      <section className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {cart.length === 0 ? (
+          <div className="mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white px-5 py-16 text-center">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-slate-100 text-[#173246]">
+              <ShoppingBag size={25} />
+            </div>
+            <h1 className="mt-4 text-xl font-bold text-[#173246]">Your cart is empty</h1>
+            <p className="mt-2 text-sm text-slate-500">
+              Browse the store and add products you love.
+            </p>
+            <Link
+              href="/shop"
+              className="mt-6 inline-flex items-center gap-2 rounded-md bg-[#102f43] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1c4d69]"
+            >
+              <ArrowLeft size={15} />
+              Continue Shopping
+            </Link>
           </div>
-          <h2 className="text-2xl font-bold text-[#2B1A22]">
-            Your cart is empty
-          </h2>
-          <p className="mt-3 text-sm text-gray-500 max-w-sm mx-auto">
-            Add beautiful luxury articles to your bag to continue shopping.
-          </p>
-          <Link
-            href="/shop"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-white transition duration-300 hover:bg-primary-dark hover:scale-105 shadow-md"
-          >
-            <ArrowLeft size={16} /> Continue Shopping
-          </Link>
-        </div>
-      ) : (
-        /* Dynamic Cart Table Grid */
-        <div className="grid gap-10 lg:grid-cols-3 items-start">
-          
-          {/* Left Column: Interactive Products Item List Stack */}
-          <div className="lg:col-span-2 space-y-6">
-            {cart.map((item) => (
-              <div 
-                key={item._id} 
-                className="rounded-[30px] bg-white p-5 sm:p-6 border border-slate-100 shadow-sm transition hover:shadow-md animate-in fade-in slide-in-from-bottom-3 duration-300"
-              >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                  
-                  {/* Optimized Image Layer */}
-                  <div className="relative h-36 w-28 flex-shrink-0 overflow-hidden rounded-2xl bg-[#FCF8F6] border border-slate-50">
-                    <Image
-                      src={item.image || "/images/placeholder-product.jpg"}
-                      alt={item.name}
-                      fill
-                      sizes="112px"
-                      className="object-cover"
-                    />
-                  </div>
+        ) : (
+          <>
+            <h1 className="mb-4 text-lg font-bold text-[#173246] sm:text-xl">
+              Shopping Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})
+            </h1>
 
-                  {/* Core Meta Details Layout */}
-                  <div className="flex-1 min-w-0">
-                    <h2 className="font-heading text-xl sm:text-2xl text-[#2B1A22] truncate">
-                      {item.name}
-                    </h2>
-                    <p className="mt-1.5 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                      Premium Collection
-                    </p>
-                    <p className="mt-4 text-xl font-bold text-[#6f1d46]">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="hidden grid-cols-[minmax(0,1fr)_100px_120px_100px_24px] items-center gap-4 border-b border-slate-200 bg-slate-50/70 px-4 py-3 text-[10px] font-semibold text-slate-600 sm:grid sm:px-5">
+                <span>Product</span>
+                <span>Price</span>
+                <span>Quantity</span>
+                <span>Total</span>
+                <span aria-label="Actions" />
+              </div>
+
+              {cart.map((item) => {
+                const lineTotal = item.price * item.quantity;
+
+                return (
+                  <article
+                    key={getCartItemKey(item)}
+                    className="grid grid-cols-[64px_minmax(0,1fr)_24px] items-center gap-x-3 gap-y-3 border-b border-slate-100 px-3 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_100px_120px_100px_24px] sm:gap-4 sm:px-5 sm:py-3.5"
+                  >
+                    <div className="relative row-span-2 aspect-square w-16 overflow-hidden rounded-lg border border-slate-100 bg-slate-50 sm:row-span-1 sm:flex sm:h-14 sm:w-14 sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent">
+                      <Image
+                        src={item.image || "/images/placeholder-product.jpg"}
+                        alt={item.name}
+                        fill
+                        sizes="64px"
+                        className="object-cover sm:!static sm:!h-14 sm:!w-14 sm:!transform-none sm:!object-cover"
+                      />
+                    </div>
+
+                    <div className="min-w-0 sm:col-start-1 sm:ml-[68px] sm:row-start-1">
+                      <Link
+                        href={`/product/${item.slug}`}
+                        className="block truncate text-[11px] font-semibold text-[#233b4d] hover:text-[#2867b2] sm:text-xs"
+                      >
+                        {item.name}
+                      </Link>
+                      {(item.color || item.size) && (
+                        <p className="mt-1 text-[9px] text-slate-500">
+                          {[item.color, item.size].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      <p className="mt-1 text-[10px] font-medium text-slate-600 sm:hidden">
+                        Rs. {item.price.toLocaleString()} each
+                      </p>
+                    </div>
+
+                    <p className="hidden text-[11px] font-medium text-slate-700 sm:block">
                       Rs. {item.price.toLocaleString()}
                     </p>
-                  </div>
 
-                  {/* Operational Controls Interface Panel */}
-                  <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto border-t sm:border-t-0 pt-4 sm:pt-0 gap-4">
-                    <button 
-                      onClick={() => removeFromCart(item._id)}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-full border border-rose-100 transition duration-200"
-                    >
-                      <Trash2 size={14} />
-                      Remove
-                    </button>
-
-                    {/* Quantity Selector Stepper */}
-                    <div className="flex items-center gap-4 rounded-full border border-slate-200 bg-slate-50/50 px-4 py-1.5 font-medium text-[#2B1A22]">
-                      <button 
-                        onClick={() => decreaseQty(item._id)}
-                        className="p-1 hover:text-primary disabled:text-gray-300 transition-colors"
+                    <div className="col-start-2 row-start-2 flex h-8 w-fit items-center rounded-md border border-slate-200 sm:col-start-3 sm:row-start-auto">
+                      <button
+                        type="button"
+                        onClick={() => decreaseQty(getCartItemKey(item))}
                         disabled={item.quantity <= 1}
+                        aria-label={`Decrease quantity of ${item.name}`}
+                        className="flex h-full w-7 items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40"
                       >
-                        <Minus size={14} />
+                        <Minus size={11} />
                       </button>
-                      <span className="text-sm font-bold w-4 text-center select-none">{item.quantity}</span>
-                      <button 
-                        onClick={() => increaseQty(item._id)}
-                        className="p-1 hover:text-primary transition-colors"
+                      <span className="w-7 text-center text-[11px] font-semibold">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => increaseQty(getCartItemKey(item))}
+                        aria-label={`Increase quantity of ${item.name}`}
+                        className="flex h-full w-7 items-center justify-center text-slate-500 hover:bg-slate-50"
                       >
-                        <Plus size={14} />
+                        <Plus size={11} />
                       </button>
                     </div>
-                  </div>
 
-                </div>
-              </div>
-            ))}
-          </div>
+                    <p className="col-start-3 row-start-2 text-right text-[11px] font-semibold text-[#263d4e] sm:col-start-4 sm:row-start-auto sm:text-left">
+                      <span className="sm:hidden">Total: </span>
+                      Rs. {lineTotal.toLocaleString()}
+                    </p>
 
-          {/* Right Column: Order Summary Configuration Panel */}
-          <div className="sticky top-28">
-            <div className="rounded-[30px] bg-white p-8 border border-slate-100 shadow-sm">
-              <h2 className="text-xl font-bold text-[#2B1A22] tracking-tight pb-4 border-b border-slate-100">
-                Order Summary
-              </h2>
-
-              <div className="mt-6 space-y-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                <div className="flex justify-between items-center">
-                  <span>Subtotal</span>
-                  <span className="text-gray-900 font-bold">Rs. {subtotal.toLocaleString()}</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span>Shipping</span>
-                  <span className="text-emerald-600 font-bold normal-case">Free Shipping</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span>Estimated Tax</span>
-                  <span className="text-gray-900 font-bold">Rs. 0</span>
-                </div>
-
-                <div className="border-t border-slate-100 pt-4 flex justify-between items-center text-base font-bold text-[#2B1A22] normal-case">
-                  <span>Total Amount</span>
-                  <span className="text-2xl font-bold text-primary">
-                    Rs. {total.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              <Link
-                href="/checkout"
-                className="mt-8 block w-full text-center rounded-full bg-primary py-4 text-sm font-semibold text-white shadow-md transition duration-300 hover:bg-primary-dark hover:shadow-xl hover:scale-[1.01]"
-              >
-                Proceed to Checkout
-              </Link>
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(getCartItemKey(item))}
+                      aria-label={`Remove ${item.name} from cart`}
+                      className="col-start-3 row-start-1 flex size-6 items-center justify-center rounded text-slate-400 hover:bg-red-50 hover:text-red-600 sm:col-start-5 sm:row-start-auto"
+                    >
+                      <X size={13} />
+                    </button>
+                  </article>
+                );
+              })}
             </div>
-          </div>
 
-        </div>
-      )}
-    </section>
+            <div className="mt-4 grid items-start gap-4 sm:grid-cols-2">
+              <section className="rounded-xl border border-slate-200 bg-white p-4">
+                <h2 className="text-xs font-bold text-[#233b4d]">Apply Coupon</h2>
+                <form
+                  className="mt-3 flex gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleApplyCoupon();
+                  }}
+                >
+                  <label htmlFor="cart-coupon" className="sr-only">Coupon code</label>
+                  <input
+                    id="cart-coupon"
+                    type="text"
+                    value={couponCode}
+                    onChange={(event) => {
+                      setCouponCode(event.target.value);
+                      setCouponMessage("");
+                    }}
+                    placeholder="Enter coupon code"
+                    className="h-9 min-w-0 flex-1 rounded-md border border-slate-200 px-3 text-[10px] outline-none placeholder:text-slate-400 focus:border-[#2867b2]"
+                  />
+                  <button
+                    type="submit"
+                    className="h-9 rounded-md bg-[#102f43] px-4 text-[10px] font-semibold text-white transition hover:bg-[#1c4d69]"
+                  >
+                    Apply
+                  </button>
+                </form>
+                {couponMessage && (
+                  <p role="status" className="mt-2 text-[10px] text-slate-500">
+                    {couponMessage}
+                  </p>
+                )}
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white p-4">
+                <h2 className="text-xs font-bold text-[#233b4d]">Order Summary</h2>
+                <dl className="mt-3 space-y-2 text-[11px]">
+                  <div className="flex justify-between gap-4 text-slate-500">
+                    <dt>Subtotal</dt>
+                    <dd className="font-medium text-slate-700">Rs. {subtotal.toLocaleString()}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4 text-slate-500">
+                    <dt>Shipping</dt>
+                    <dd className="font-medium text-slate-700">
+                      {shipping === 0 ? "Rs. 0" : `Rs. ${shipping.toLocaleString()}`}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-t border-slate-100 pt-2 text-sm font-bold text-[#263d4e]">
+                    <dt>Total</dt>
+                    <dd>Rs. {total.toLocaleString()}</dd>
+                  </div>
+                </dl>
+                <Link
+                  href="/checkout"
+                  className="mt-4 block rounded-md bg-[#102f43] py-2.5 text-center text-[11px] font-semibold text-white transition hover:bg-[#1c4d69]"
+                >
+                  Proceed to Checkout
+                </Link>
+                <Link
+                  href="/shop"
+                  className="mt-2 block rounded-md border border-[#102f43] py-2 text-center text-[11px] font-semibold text-[#102f43] transition hover:bg-slate-50"
+                >
+                  Continue Shopping
+                </Link>
+              </section>
+            </div>
+          </>
+        )}
+      </section>
+    </main>
   );
 }
