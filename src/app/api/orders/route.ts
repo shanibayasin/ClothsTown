@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
+import { requireAdmin } from "@/lib/admin-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 

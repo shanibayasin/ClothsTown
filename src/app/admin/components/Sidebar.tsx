@@ -35,16 +35,18 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      const keysToClear = ["token", "authToken", "adminToken", "user", "adminUser", "auth"];
-      keysToClear.forEach((key) => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/admin/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        throw new Error(`Logout failed with status ${response.status}.`);
+      }
+      router.replace("/admin/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Admin logout failed:", error);
+      window.alert("Could not sign out. Please try again.");
     }
-
-    router.replace("/");
   };
 
   return (

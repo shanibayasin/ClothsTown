@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const formData = await request.formData();
 
@@ -34,7 +38,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const result: any = await new Promise((resolve, reject) => {
+    const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: "velorae",
@@ -43,8 +47,10 @@ export async function POST(request: Request) {
           if (error) {
             console.error(error);
             reject(error);
+          } else if (result?.secure_url) {
+            resolve({ secure_url: result.secure_url });
           } else {
-            resolve(result);
+            reject(new Error("Cloudinary did not return an image URL."));
           }
         }
       );
@@ -55,12 +61,12 @@ export async function POST(request: Request) {
     return NextResponse.json({
       url: result.secure_url,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("UPLOAD ERROR:", error);
 
     return NextResponse.json(
       {
-        error: error.message,
+        error: error instanceof Error ? error.message : "Upload failed.",
       },
       {
         status: 500,

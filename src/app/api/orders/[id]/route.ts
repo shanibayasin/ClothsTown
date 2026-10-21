@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
+import { requireAdmin } from "@/lib/admin-auth";
 
 interface Props {
   params: Promise<{
@@ -12,6 +13,9 @@ export async function GET(
   req: Request,
   { params }: Props
 ) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 
@@ -41,6 +45,9 @@ export async function PUT(
   req: Request,
   { params }: Props
 ) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 
@@ -71,6 +78,9 @@ export async function DELETE(
   req: Request,
   { params }: Props
 ) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 

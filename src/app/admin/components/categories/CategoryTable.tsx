@@ -23,30 +23,40 @@ export default function CategoryTable({
 }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetchCategories();
-  }, [refresh]);
+    let active = true;
 
-  async function fetchCategories() {
-    try {
-      setLoading(true);
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to load categories (${res.status}).`);
+        }
 
-      const res = await fetch("/api/categories", {
-        cache: "no-store",
-      });
-
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : [];
-
-      setCategories(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : [];
+        if (active) {
+          setCategories(Array.isArray(data) ? data : []);
+          setLoadError("");
+        }
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+        if (active) setLoadError("Could not load categories. Please try again.");
+      } finally {
+        if (active) setLoading(false);
+      }
     }
-  }
+
+    void loadCategories();
+    return () => {
+      active = false;
+    };
+  }, [refresh]);
 
   async function deleteCategory(id: string) {
     const confirmDelete = window.confirm(
@@ -55,11 +65,28 @@ export default function CategoryTable({
 
     if (!confirmDelete) return;
 
-    await fetch(`/api/categories/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const deleteResponse = await fetch(`/api/categories/${id}`, {
+        method: "DELETE",
+      });
+      if (!deleteResponse.ok) {
+        const result = (await deleteResponse.json()) as { message?: string };
+        throw new Error(result.message ?? "Failed to delete category.");
+      }
 
-    fetchCategories();
+      const response = await fetch("/api/categories", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to refresh categories (${response.status}).`);
+      }
+      const data = (await response.json()) as Category[];
+      setCategories(data);
+      setLoadError("");
+    } catch (error) {
+      console.error("Failed to delete category:", error);
+      window.alert(
+        error instanceof Error ? error.message : "Failed to delete category."
+      );
+    }
   }
 
   const filteredCategories = useMemo(() => {
@@ -158,7 +185,16 @@ export default function CategoryTable({
 
             )}
 
+            {!loading && loadError && (
+              <tr>
+                <td colSpan={5} className="p-10 text-center text-red-700">
+                  {loadError}
+                </td>
+              </tr>
+            )}
+
             {!loading &&
+              !loadError &&
               filteredCategories.length === 0 && (
 
                 <tr>
@@ -228,25 +264,27 @@ export default function CategoryTable({
                     <div className="flex justify-center gap-2">
 
                       <button
+                        type="button"
                         onClick={() => onEdit(item)}
-                        className="rounded-lg bg-blue-50 p-2 hover:bg-blue-100"
+                        title={`Edit ${item.name}`}
+                        aria-label={`Edit ${item.name}`}
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-[#2867b2] bg-[#2867b2] px-2.5 text-xs font-semibold text-white transition hover:border-[#1e4f88] hover:bg-[#1e4f88] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867b2]"
                       >
-                        <Pencil
-                          size={18}
-                          className="text-blue-600"
-                        />
+                        <Pencil size={14} aria-hidden="true" />
+                        <span>Edit</span>
                       </button>
 
                       <button
+                        type="button"
                         onClick={() =>
                           deleteCategory(item._id)
                         }
-                        className="rounded-lg bg-red-50 p-2 hover:bg-red-100"
+                        title={`Delete ${item.name}`}
+                        aria-label={`Delete ${item.name}`}
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-[#a33b3b] bg-[#a33b3b] px-2.5 text-xs font-semibold text-white transition hover:border-[#812d2d] hover:bg-[#812d2d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a33b3b]"
                       >
-                        <Trash2
-                          size={18}
-                          className="text-red-600"
-                        />
+                        <Trash2 size={14} aria-hidden="true" />
+                        <span>Delete</span>
                       </button>
 
                     </div>

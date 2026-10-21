@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET SINGLE CATEGORY
 
@@ -22,7 +23,7 @@ export async function GET(
     }
 
     return NextResponse.json(category);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { message: "Failed to fetch category" },
       { status: 500 }
@@ -36,6 +37,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 
@@ -64,9 +68,12 @@ export async function PUT(
     }
 
     return NextResponse.json(updatedCategory);
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { message: error.message || "Failed to update category" },
+      {
+        message:
+          error instanceof Error ? error.message : "Failed to update category",
+      },
       { status: 500 }
     );
   }
@@ -78,6 +85,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 
@@ -92,9 +102,12 @@ export async function DELETE(
     }
 
     return NextResponse.json({ message: "Category deleted" });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { message: error.message || "Failed to delete category" },
+      {
+        message:
+          error instanceof Error ? error.message : "Failed to delete category",
+      },
       { status: 500 }
     );
   }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 
 import Product from "@/models/Product";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // ✅ Register models for populate()
 import "@/models/Category";
@@ -40,6 +41,9 @@ export async function GET() {
 // ======================
 
 export async function POST(req: Request) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 

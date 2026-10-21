@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Banner from "@/models/Banner";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET SINGLE
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   await connectDB();
 
   const { id } = await params;
@@ -21,6 +25,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   await connectDB();
 
   const { id } = await params;
@@ -43,6 +50,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   await connectDB();
 
   const { id } = await params;

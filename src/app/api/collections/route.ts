@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Collection from "@/models/Collection";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // =========================================================
 // 1. GET ALL COLLECTIONS
@@ -28,6 +29,9 @@ export async function GET() {
 // 2. CREATE COLLECTION (With Slug Validation Protection)
 // =========================================================
 export async function POST(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 

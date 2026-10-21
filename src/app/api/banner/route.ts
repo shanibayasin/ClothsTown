@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Banner from "@/models/Banner";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET ALL BANNERS
-export async function GET() {
+export async function GET(request: Request) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 
@@ -22,6 +26,9 @@ export async function GET() {
 
 // CREATE BANNER
 export async function POST(request: Request) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     await connectDB();
 
