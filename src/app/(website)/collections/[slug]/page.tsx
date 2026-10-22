@@ -48,11 +48,15 @@ export default async function CollectionPage({
   }
 
   const products: any[] = await Product.find({
-    collection: collection._id,
+    $or: [
+      { collections: collection._id },
+      { collection: collection._id },
+    ],
     status: true,
   })
     .populate("category")
     .populate("collection")
+    .populate("collections")
     .lean();
 
   return (

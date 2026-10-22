@@ -15,12 +15,23 @@ interface Category {
   slug?: string;
   image?: string;
   sectionTiles?: SectionTile[];
+  menuGroups?: AccessoriesMenuGroup[];
 }
 
 interface SectionTile {
   title: string;
   image: string;
   category: string;
+}
+
+interface AccessoriesMenuItem {
+  title: string;
+  category: string;
+}
+
+interface AccessoriesMenuGroup {
+  title: string;
+  categories: AccessoriesMenuItem[];
 }
 
 interface Collection {
@@ -31,11 +42,19 @@ interface Collection {
 export default function CategorySectionManager({
   sectionName,
 }: {
-  sectionName: "Girls" | "Women";
+  sectionName:
+    | "Girls"
+    | "Women"
+    | "Men"
+    | "Boys"
+    | "Accessories"
+    | "New Arrivals";
 }) {
   const [sectionCategory, setSectionCategory] = useState<Category | null>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [editing, setEditing] = useState<AdminProduct | null>(null);
+  const [isProductFormOpen, setIsProductFormOpen] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
   const [setupRevision, setSetupRevision] = useState(0);
@@ -43,6 +62,9 @@ export default function CategorySectionManager({
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [bannerImage, setBannerImage] = useState("");
   const [sectionTiles, setSectionTiles] = useState<SectionTile[]>([]);
+  const [accessoriesMenuGroups, setAccessoriesMenuGroups] = useState<
+    AccessoriesMenuGroup[]
+  >([]);
   const [uploadingTile, setUploadingTile] = useState<number | null>(null);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [savingBanner, setSavingBanner] = useState(false);
@@ -76,33 +98,79 @@ export default function CategorySectionManager({
         if (!active) return;
 
         setLoadFailed(false);
+        setAllCategories(categories);
         const sectionPattern =
-          sectionName === "Girls" ? /\bgirls?\b/ : /\bwomen\b|womens/;
+          sectionName === "New Arrivals"
+            ? /^new[-\s]?arrivals?$/
+            : sectionName === "Girls"
+              ? /\bgirls?\b/
+              : sectionName === "Women"
+                ? /\bwomen\b|womens/
+                : sectionName === "Men"
+                  ? /\bmen\b|\bmens\b|\bmenswear\b/
+                    : sectionName === "Boys"
+                      ? /\bboys?\b/
+                      : /\baccessor(y|ies)\b/;
         const sectionCategories = categories.filter((item: Category) =>
-          sectionPattern.test(
-            `${item.name?.trim().toLowerCase() ?? ""} ${item.slug?.trim().toLowerCase() ?? ""}`
-          )
+          sectionName === "New Arrivals"
+            ? sectionPattern.test(item.name?.trim().toLowerCase() ?? "") ||
+              sectionPattern.test(item.slug?.trim().toLowerCase() ?? "")
+            : sectionPattern.test(
+                `${item.name?.trim().toLowerCase() ?? ""} ${item.slug?.trim().toLowerCase() ?? ""}`
+              )
         );
         const category =
-          sectionCategories.find(
-            (item: Category) => (item.sectionTiles?.length ?? 0) > 0
-          ) ??
-          sectionCategories.find(
-            (item: Category) =>
-              sectionName === "Girls"
-                ? /girls?\s+wear/.test(item.name?.trim().toLowerCase() ?? "") ||
-                  /girls?-wear/.test(item.slug?.trim().toLowerCase() ?? "")
-                : /women('?s)?\s+wear|womens?\s+wear/.test(
-                    item.name?.trim().toLowerCase() ?? ""
-                  ) || /women('?s)?-wear|womens?-wear/.test(
-                    item.slug?.trim().toLowerCase() ?? ""
-                  )
-          ) ??
-          sectionCategories[0] ??
-          null;
+          sectionName === "New Arrivals"
+            ? sectionCategories.find(
+                (item: Category) =>
+                  item.name?.trim().toLowerCase() === "new arrivals" ||
+                  item.slug?.trim().toLowerCase() === "new-arrivals"
+              ) ?? null
+            : sectionName === "Accessories"
+              ? sectionCategories.find(
+                  (item: Category) =>
+                    /^(accessory|accessories)$/.test(
+                      item.name?.trim().toLowerCase() ?? ""
+                    ) ||
+                    /^(accessory|accessories)$/.test(
+                      item.slug?.trim().toLowerCase() ?? ""
+                    )
+                ) ?? null
+            : sectionCategories.find(
+                (item: Category) => (item.sectionTiles?.length ?? 0) > 0
+              ) ??
+              sectionCategories.find((item: Category) =>
+                sectionName === "Girls"
+                  ? /girls?\s+wear/.test(item.name?.trim().toLowerCase() ?? "") ||
+                    /girls?-wear/.test(item.slug?.trim().toLowerCase() ?? "")
+                  : sectionName === "Women"
+                    ? /women('?s)?\s+wear|womens?\s+wear/.test(
+                        item.name?.trim().toLowerCase() ?? ""
+                      ) || /women('?s)?-wear|womens?-wear/.test(
+                        item.slug?.trim().toLowerCase() ?? ""
+                      )
+                    : sectionName === "Men"
+                      ? /\bmen('?s)?\s+wear|\bmens?\s+wear|\bmenswear\b/.test(
+                          item.name?.trim().toLowerCase() ?? ""
+                        ) || /\bmen('?s)?-wear|\bmens?-wear|\bmenswear\b/.test(
+                          item.slug?.trim().toLowerCase() ?? ""
+                        )
+                      : /\bboys?\s+wear/.test(
+                          item.name?.trim().toLowerCase() ?? ""
+                        ) || /\bboys?-wear/.test(
+                          item.slug?.trim().toLowerCase() ?? ""
+                        )
+              ) ??
+              sectionCategories.find(
+                (item: Category) =>
+                  item.name?.trim().toLowerCase() === sectionName.toLowerCase()
+              ) ??
+              sectionCategories[0] ??
+              null;
         setSectionCategory(category);
         setBannerImage(category?.image ?? "");
         setSectionTiles(category?.sectionTiles ?? []);
+        setAccessoriesMenuGroups(category?.menuGroups ?? []);
         setCollections(loadedCollections);
       })
       .catch((loadError: unknown) => {
@@ -144,6 +212,7 @@ export default function CategorySectionManager({
       setSectionCategory(data);
       setBannerImage(data.image ?? "");
       setSectionTiles(data.sectionTiles ?? []);
+      setAccessoriesMenuGroups(data.menuGroups ?? []);
     } catch (categoryError) {
       console.error(`Failed to create ${sectionName} category:`, categoryError);
       setError(
@@ -304,6 +373,58 @@ export default function CategorySectionManager({
     }
   }
 
+  async function saveAccessoriesMenu() {
+    if (!sectionCategory) return;
+    if (
+      accessoriesMenuGroups.some(
+        (group) =>
+          !group.title.trim() ||
+          group.categories.some(
+            (item) => !item.title.trim() || !item.category.trim()
+          )
+      )
+    ) {
+      setError("Each Accessories menu group and category needs a name and category.");
+      return;
+    }
+
+    setSavingTiles(true);
+    setError("");
+
+    try {
+      const response = await adminFetch(`/api/categories/${sectionCategory._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          menuGroups: accessoriesMenuGroups.map((group) => ({
+            title: group.title.trim(),
+            categories: group.categories.map((item) => ({
+              title: item.title.trim(),
+              category: item.category.trim(),
+            })),
+          })),
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not save the Accessories menu.");
+      }
+
+      setSectionCategory(data);
+      setAccessoriesMenuGroups(data.menuGroups ?? []);
+    } catch (saveError) {
+      console.error("Failed to save Accessories menu:", saveError);
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not save the Accessories menu."
+      );
+    } finally {
+      setSavingTiles(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-[#e9e5df] bg-white p-5 shadow-sm">
@@ -385,14 +506,24 @@ export default function CategorySectionManager({
               </button>
             </div>
             {bannerImage && (
-              <div className="relative mt-4 h-40 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 sm:h-52">
+              <div
+                className={`relative mt-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 ${
+                  sectionName === "New Arrivals"
+                    ? "aspect-[3.2/1]"
+                    : "h-40 sm:h-52"
+                }`}
+              >
                 <Image
                   src={bannerImage}
                   alt={`${sectionName} hero banner preview`}
                   fill
                   unoptimized
                   sizes="(max-width: 640px) 100vw, 800px"
-                  className="object-cover"
+                  className={
+                    sectionName === "New Arrivals"
+                      ? "object-contain"
+                      : "object-cover"
+                  }
                 />
               </div>
             )}
@@ -572,19 +703,277 @@ export default function CategorySectionManager({
               </button>
             </div>
           </section>
-          <ProductForm
-            editing={editing}
-            categories={[sectionCategory]}
-            collections={collections}
-            onSuccess={() => {
-              setEditing(null);
-              setRefresh((current) => current + 1);
-            }}
-          />
+          {sectionName === "Accessories" && (
+            <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <div>
+                  <h2 className="text-base font-bold text-[#24211e]">
+                    Accessories Navigation Menu
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Manage the headings and category names shown when customers open Accessories.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAccessoriesMenuGroups((groups) => [
+                      ...groups,
+                      { title: "", categories: [] },
+                    ])
+                  }
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#e7e2dc] px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-[#f8f6f3]"
+                >
+                  <Plus size={15} aria-hidden="true" />
+                  Add heading
+                </button>
+              </div>
+              {accessoriesMenuGroups.length === 0 ? (
+                <p className="mt-4 rounded-lg bg-[#faf9f7] px-4 py-6 text-center text-sm text-slate-500">
+                  No menu headings yet. Add a heading such as Jewellery, Hair, or Bags.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  {accessoriesMenuGroups.map((group, groupIndex) => (
+                    <div
+                      key={`accessory-menu-${groupIndex}`}
+                      className="rounded-lg border border-[#eeeae4] p-3 sm:p-4"
+                    >
+                      <div className="flex gap-2">
+                        <label className="min-w-0 flex-1">
+                          <span className="mb-1 block text-[11px] font-semibold text-slate-600">
+                            Menu heading
+                          </span>
+                          <input
+                            value={group.title}
+                            maxLength={60}
+                            onChange={(event) =>
+                              setAccessoriesMenuGroups((groups) =>
+                                groups.map((item, index) =>
+                                  index === groupIndex
+                                    ? { ...item, title: event.target.value }
+                                    : item
+                                )
+                              )
+                            }
+                            placeholder="Jewellery"
+                            className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#2867b2]"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${group.title || "menu"} heading`}
+                          onClick={() =>
+                            setAccessoriesMenuGroups((groups) =>
+                              groups.filter((_, index) => index !== groupIndex)
+                            )
+                          }
+                          className="mt-6 flex size-10 shrink-0 items-center justify-center rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                        </button>
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        {group.categories.map((item, itemIndex) => (
+                          <div
+                            key={`accessory-menu-item-${groupIndex}-${itemIndex}`}
+                            className="grid gap-2 sm:grid-cols-2"
+                          >
+                            <label>
+                              <span className="mb-1 block text-[11px] font-semibold text-slate-600">
+                                Display name
+                              </span>
+                              <input
+                                value={item.title}
+                                maxLength={60}
+                                onChange={(event) =>
+                                  setAccessoriesMenuGroups((groups) =>
+                                    groups.map((currentGroup, currentGroupIndex) =>
+                                      currentGroupIndex === groupIndex
+                                        ? {
+                                            ...currentGroup,
+                                            categories: currentGroup.categories.map(
+                                              (currentItem, currentItemIndex) =>
+                                                currentItemIndex === itemIndex
+                                                  ? { ...currentItem, title: event.target.value }
+                                                  : currentItem
+                                            ),
+                                          }
+                                        : currentGroup
+                                    )
+                                  )
+                                }
+                                placeholder="Bracelet"
+                                className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#2867b2]"
+                              />
+                            </label>
+                            <div className="flex items-end gap-2">
+                              <label className="min-w-0 flex-1">
+                                <span className="mb-1 block text-[11px] font-semibold text-slate-600">
+                                  Category to open
+                                </span>
+                                <select
+                                  value={item.category}
+                                  onChange={(event) =>
+                                    setAccessoriesMenuGroups((groups) =>
+                                      groups.map((currentGroup, currentGroupIndex) =>
+                                        currentGroupIndex === groupIndex
+                                          ? {
+                                              ...currentGroup,
+                                              categories: currentGroup.categories.map(
+                                                (currentItem, currentItemIndex) =>
+                                                  currentItemIndex === itemIndex
+                                                    ? {
+                                                        ...currentItem,
+                                                        category: event.target.value,
+                                                      }
+                                                    : currentItem
+                                              ),
+                                            }
+                                          : currentGroup
+                                      )
+                                    )
+                                  }
+                                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#2867b2]"
+                                >
+                                  <option value="">Select category</option>
+                                  {allCategories
+                                    .filter((category) => category._id !== sectionCategory._id)
+                                    .map((category) => (
+                                      <option key={category._id} value={category.name}>
+                                        {category.name}
+                                      </option>
+                                    ))}
+                                </select>
+                              </label>
+                              <button
+                                type="button"
+                                aria-label={`Remove ${item.title || "category"}`}
+                                onClick={() =>
+                                  setAccessoriesMenuGroups((groups) =>
+                                    groups.map((currentGroup, currentGroupIndex) =>
+                                      currentGroupIndex === groupIndex
+                                        ? {
+                                            ...currentGroup,
+                                            categories: currentGroup.categories.filter(
+                                              (_, currentItemIndex) =>
+                                                currentItemIndex !== itemIndex
+                                            ),
+                                          }
+                                        : currentGroup
+                                    )
+                                  )
+                                }
+                                className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 size={16} aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAccessoriesMenuGroups((groups) =>
+                            groups.map((item, index) =>
+                              index === groupIndex
+                                ? {
+                                    ...item,
+                                    categories: [
+                                      ...item.categories,
+                                      { title: "", category: "" },
+                                    ],
+                                  }
+                                : item
+                            )
+                          )
+                        }
+                        className="mt-3 text-xs font-semibold text-[#2867b2] hover:underline"
+                      >
+                        + Add category
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={saveAccessoriesMenu}
+                  disabled={savingTiles}
+                  className="min-h-10 rounded-lg bg-[#2867b2] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {savingTiles ? "Saving menu..." : "Save Accessories menu"}
+                </button>
+              </div>
+            </section>
+          )}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setIsProductFormOpen((open) => !open);
+              }}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#2867b2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#205796]"
+            >
+              <Plus size={16} aria-hidden="true" />
+              {isProductFormOpen ? "Close Product Form" : "New Product"}
+            </button>
+          </div>
+          {isProductFormOpen && (
+            <ProductForm
+              key={editing?._id ?? "new"}
+              editing={editing}
+              categories={
+                sectionName === "New Arrivals" || sectionName === "Accessories"
+                  ? allCategories
+                  : [sectionCategory]
+              }
+              collections={collections}
+              forceNewArrival={sectionName === "New Arrivals"}
+              preselectedCategoryId={
+                sectionName === "New Arrivals" ? "" : sectionCategory._id
+              }
+              onSuccess={() => {
+                setRefresh((current) => current + 1);
+              }}
+            />
+          )}
           <ProductTable
             refresh={refresh}
-            categoryId={sectionCategory._id}
-            onEdit={setEditing}
+            categoryId={
+              sectionName === "New Arrivals" || sectionName === "Accessories"
+                ? undefined
+                : sectionCategory._id
+            }
+            newArrivalOnly={sectionName === "New Arrivals"}
+            categoryIds={
+              sectionName === "Accessories"
+                ? [
+                    sectionCategory._id,
+                    ...allCategories
+                      .filter((category) =>
+                        accessoriesMenuGroups.some((group) =>
+                          group.categories.some(
+                            (item) =>
+                              item.category.trim().toLowerCase() ===
+                                category.name.trim().toLowerCase() ||
+                              item.category.trim().toLowerCase() ===
+                                category.slug?.trim().toLowerCase()
+                          )
+                        )
+                      )
+                      .map((category) => category._id),
+                  ]
+                : undefined
+            }
+            onEdit={(product) => {
+              setEditing(product);
+              setIsProductFormOpen(true);
+            }}
           />
         </>
       ) : (

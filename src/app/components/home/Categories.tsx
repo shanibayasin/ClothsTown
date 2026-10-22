@@ -19,6 +19,16 @@ export default function CategoriesSection() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
+  function categoryHref(category: Category) {
+    const value = `${category.name} ${category.slug}`.toLowerCase();
+    if (/\bmen\b|\bmenswear\b/.test(value)) return "/shop/men";
+    if (/\bwomen\b|\bwomenswear\b/.test(value)) return "/shop/women";
+    if (/\bgirls?\b/.test(value)) return "/shop/girls";
+    if (/\bboys?\b/.test(value)) return "/shop/boys";
+    if (/\baccessor(y|ies)\b/.test(value)) return "/shop/accessories";
+    return `/category/${category._id}`;
+  }
+
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -77,7 +87,7 @@ export default function CategoriesSection() {
                   className="w-max min-w-[104px] shrink-0 sm:min-w-[120px] lg:w-auto lg:min-w-0"
                 >
                   <Link
-                    href={`/category/${category._id}`}
+                    href={categoryHref(category)}
                     className="group flex w-full flex-col items-center text-center text-[#102d40]"
                   >
                     <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-xl bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">

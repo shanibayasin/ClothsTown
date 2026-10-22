@@ -13,9 +13,9 @@ import {
 
 const quickLinks = [
   { label: "Home", href: "/" },
-  { label: "Men", href: "/shop?category=men" },
-  { label: "Women", href: "/shop?category=women" },
-  { label: "Accessories", href: "/shop?category=accessories" },
+  { label: "Men", href: "/shop/men" },
+  { label: "Women", href: "/shop/women" },
+  { label: "Accessories", href: "/shop/accessories" },
   { label: "New Arrivals", href: "/new-arrivals" },
   { label: "Sale", href: "/shop?sale=true" },
 ];

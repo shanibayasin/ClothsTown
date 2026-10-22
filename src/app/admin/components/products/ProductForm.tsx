@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
 import { prepareImageForUpload } from "@/lib/image-upload";
+import type { AdminProduct } from "./ProductTable";
 
 interface Category {
   _id: string;
@@ -27,10 +28,12 @@ interface Collection {
 }
 
 interface ProductFormProps {
-  editing?: any | null;
+  editing?: AdminProduct | null;
   categories: Category[];
   collections: Collection[];
   onSuccess: () => void;
+  forceNewArrival?: boolean;
+  preselectedCategoryId?: string;
 }
 
 interface ProductFormState {
@@ -45,13 +48,15 @@ interface ProductFormState {
   stock: string;
   sku: string;
   category: string;
-  collection: string;
+  collections: string[];
   images: string[];
   sizes: string[];
   colors: string[];
   featured: boolean;
+  onSale: boolean;
   newArrival: boolean;
   status: boolean;
+  publicationStatus: "active" | "draft" | "inactive";
 }
 
 const initialState: ProductFormState = {
@@ -66,14 +71,78 @@ const initialState: ProductFormState = {
   stock: "",
   sku: "",
   category: "",
-  collection: "",
+  collections: [],
   images: [],
   sizes: [],
   colors: [],
   featured: false,
+  onSale: false,
   newArrival: false,
   status: true,
+  publicationStatus: "active",
 };
+
+function createFormState(
+  editing: AdminProduct | null | undefined,
+  forceNewArrival: boolean,
+  preselectedCategoryId: string
+): ProductFormState {
+  if (!editing) {
+    return {
+      ...initialState,
+      newArrival: forceNewArrival,
+      category: preselectedCategoryId,
+    };
+  }
+
+  return {
+    ...initialState,
+    name: editing.name ?? "",
+    slug: editing.slug ?? "",
+    shortDescription: editing.shortDescription ?? "",
+    description: editing.description ?? "",
+    season: editing.season ?? "",
+    fabric: editing.fabric ?? "",
+    price: String(editing.price ?? ""),
+    discountPrice: String(editing.discountPrice ?? ""),
+    stock: String(editing.stock ?? ""),
+    sku: editing.sku ?? "",
+    category:
+      typeof editing.category === "object"
+        ? editing.category?._id ?? ""
+        : editing.category ?? "",
+    collections: Array.from(
+      new Set([
+        ...(editing.collections ?? []).map((collection) =>
+          typeof collection === "string" ? collection : collection._id
+        ),
+        ...(editing.collection
+          ? [
+              typeof editing.collection === "string"
+                ? editing.collection
+                : editing.collection._id,
+            ]
+          : []),
+      ])
+    ),
+    images: editing.images ?? [],
+    sizes: editing.sizes ?? [],
+    colors: editing.colors ?? [],
+    featured: editing.featured ?? editing.isFeatured ?? false,
+    onSale:
+      editing.onSale === true ||
+      (editing.onSale === undefined &&
+        Number(editing.discountPrice) > 0 &&
+        Number(editing.discountPrice) < Number(editing.price)),
+    newArrival: forceNewArrival || editing.newArrival === true || editing.isNewArrival === true,
+    status:
+      editing.publicationStatus === "active" ||
+      (editing.publicationStatus === undefined && editing.status !== false),
+    publicationStatus:
+      editing.publicationStatus ??
+      (editing.status === false ? "inactive" : "active"),
+  };
+}
 
 const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL"];
 const colorOptions = ["Black", "White", "Brown", "Beige", "Navy", "Grey", "Olive", "Maroon"];
@@ -86,26 +155,20 @@ function createSlug(text: string) {
     .replace(/[^\w-]+/g, "");
 }
 
-function createSKU(name: string) {
-  const code = name
-    .split(" ")
-    .slice(0, 3)
-    .map((w) => w.charAt(0))
-    .join("")
-    .toUpperCase();
-
-  return `VEL-${code}-${Math.floor(100 + Math.random() * 900)}`;
-}
-
 export default function ProductForm({
   editing,
   categories,
   collections,
   onSuccess,
+  forceNewArrival = false,
+  preselectedCategoryId = "",
 }: ProductFormProps) {
-  const [form, setForm] = useState<ProductFormState>(initialState);
+  const [form, setForm] = useState<ProductFormState>(() =>
+    createFormState(editing, forceNewArrival, preselectedCategoryId)
+  );
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loadedCategories, setLoadedCategories] = useState<Category[]>([]);
   const [loadedCollections, setLoadedCollections] = useState<Collection[]>([]);
 
@@ -129,13 +192,27 @@ export default function ProductForm({
 
         const normalizedCategories = Array.isArray(catData)
           ? catData.filter(
-              (item: any) => item && item._id && item.name && item.status !== false
+              (item: unknown): item is Category & { status?: boolean } =>
+                typeof item === "object" &&
+                item !== null &&
+                "_id" in item &&
+                typeof item._id === "string" &&
+                "name" in item &&
+                typeof item.name === "string" &&
+                (!("status" in item) || item.status !== false)
             )
           : [];
 
         const normalizedCollections = Array.isArray(colData)
           ? colData.filter(
-              (item: any) => item && item._id && item.title && item.status !== false
+              (item: unknown): item is Collection & { status?: boolean } =>
+                typeof item === "object" &&
+                item !== null &&
+                "_id" in item &&
+                typeof item._id === "string" &&
+                "title" in item &&
+                typeof item.title === "string" &&
+                (!("status" in item) || item.status !== false)
             )
           : [];
 
@@ -156,26 +233,6 @@ export default function ProductForm({
       isMounted = false;
     };
   }, [categories.length, collections.length]);
-
-  useEffect(() => {
-    if (editing) {
-      setForm({
-        ...editing,
-        season: editing.season || "",
-        fabric: editing.fabric || "",
-        category: editing.category?._id || editing.category || "",
-        collection: editing.collection?._id || editing.collection || "",
-        price: String(editing.price || ""),
-        discountPrice: String(editing.discountPrice || ""),
-        stock: String(editing.stock || ""),
-        images: editing.images || [],
-        sizes: editing.sizes || [],
-        colors: editing.colors || [],
-      });
-    } else {
-      setForm(initialState);
-    }
-  }, [editing]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -254,26 +311,35 @@ export default function ProductForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving || uploading) return;
+    setMessage(null);
 
     if (!form.name.trim() || form.name.trim().length < 3) {
-      return alert("Product name must be at least 3 characters.");
+      return setMessage({ type: "error", text: "Product name must be at least 3 characters." });
     }
-    if (!form.category) return alert("Please select a category.");
-    if (!form.collection) return alert("Please select a collection.");
-    if (!form.price || Number(form.price) <= 0) return alert("Valid price is required.");
+    if (!form.category) {
+      return setMessage({ type: "error", text: "Please select a category." });
+    }
+    if (!form.price || !Number.isFinite(Number(form.price)) || Number(form.price) <= 0) {
+      return setMessage({ type: "error", text: "Valid price is required." });
+    }
     if (Number(form.discountPrice) > Number(form.price)) {
-      return alert("Discount price cannot be greater than product price.");
+      return setMessage({ type: "error", text: "Discount price cannot be greater than product price." });
     }
-    if (Number(form.stock) < 0) return alert("Stock cannot be negative.");
-    if (form.images.length === 0) return alert("Please upload at least one image.");
-    if (form.sizes.length === 0) return alert("Select at least one size.");
-    if (form.colors.length === 0) return alert("Select at least one color.");
+    if (!Number.isInteger(Number(form.stock)) || Number(form.stock) < 0) {
+      return setMessage({ type: "error", text: "Stock must be a non-negative whole number." });
+    }
 
     setSaving(true);
 
     const payload = {
       ...form,
-      sku: form.sku.trim() || createSKU(form.name),
+      collection: form.collections[0],
+      collections: Array.from(new Set(form.collections)),
+      newArrival: forceNewArrival || form.newArrival,
+      publicationStatus: form.publicationStatus,
+      status: form.publicationStatus === "active",
+      sku: form.sku.trim(),
       price: Number(form.price),
       discountPrice: Number(form.discountPrice || 0),
       stock: Number(form.stock),
@@ -283,21 +349,36 @@ export default function ProductForm({
       const url = editing ? `/api/products/${editing._id}` : "/api/products";
       const method = editing ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok) return alert(data.message || "Failed to save product.");
+      if (!res.ok) {
+        setMessage({ type: "error", text: data.message || "Failed to save product." });
+        return;
+      }
 
-      alert(editing ? "Product updated successfully." : "Product added successfully.");
-      if (!editing) setForm(initialState);
+      setMessage({
+        type: "success",
+        text: editing ? "Product updated successfully." : "Product added successfully.",
+      });
+      if (!editing) {
+        setForm({
+          ...initialState,
+          newArrival: forceNewArrival,
+          category: preselectedCategoryId,
+        });
+      }
       onSuccess();
     } catch (error) {
       console.error(error);
-      alert("Something went wrong.");
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Something went wrong.",
+      });
     } finally {
       setSaving(false);
     }
@@ -305,6 +386,18 @@ export default function ProductForm({
 
   return (
     <div className="w-full">
+      {message && (
+        <p
+          role={message.type === "error" ? "alert" : "status"}
+          className={`mb-3 rounded-lg border px-4 py-3 text-sm ${
+            message.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {message.text}
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e9e5df] bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:px-5 lg:col-span-2">
           <div>
@@ -321,7 +414,11 @@ export default function ProductForm({
               type="button"
               onClick={() => {
                 if (confirm("Clear all entered information?")) {
-                  setForm(initialState);
+                  setForm({
+                    ...initialState,
+                    newArrival: forceNewArrival,
+                    category: preselectedCategoryId,
+                  });
                 }
               }}
               className="min-h-10 rounded-lg border border-[#e7e2dc] bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f8f6f3]"
@@ -362,7 +459,6 @@ export default function ProductForm({
                     ...form,
                     name: value,
                     slug: createSlug(value),
-                    sku: form.sku || createSKU(value),
                   });
                 }}
                 placeholder="e.g., Classic Winter Coat"
@@ -441,18 +537,32 @@ export default function ProductForm({
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Collection</label>
-              <select
-                name="collection"
-                value={form.collection}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
-              >
-                <option value="">Select Collection</option>
+              <span className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">
+                Collections
+              </span>
+              <div className="max-h-44 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3">
                 {resolvedCollections.map((col) => (
-                  <option key={col._id} value={col._id}>{col.title}</option>
+                  <label key={col._id} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form.collections.includes(col._id)}
+                      onChange={() =>
+                        setForm((current) => ({
+                          ...current,
+                          collections: current.collections.includes(col._id)
+                            ? current.collections.filter((id) => id !== col._id)
+                            : [...current.collections, col._id],
+                        }))
+                      }
+                      className="size-4 accent-primary"
+                    />
+                    {col.title}
+                  </label>
                 ))}
-              </select>
+                {resolvedCollections.length === 0 && (
+                  <p className="text-xs text-slate-500">Create a collection before assigning products.</p>
+                )}
+              </div>
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Season</label>
@@ -531,7 +641,7 @@ export default function ProductForm({
                 name="sku"
                 value={form.sku}
                 onChange={handleChange}
-                placeholder="VEL-AB-123"
+                placeholder="Leave blank to generate a unique SKU"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-700 outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
               />
             </div>
@@ -666,12 +776,46 @@ export default function ProductForm({
               <span className="text-xs font-medium text-slate-700 sm:text-sm">Featured Item</span>
             </label>
             <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
-              <input type="checkbox" name="newArrival" checked={form.newArrival} onChange={handleChange} className="h-4 w-4 accent-primary" />
-              <span className="text-xs font-medium text-slate-700 sm:text-sm">New Arrival</span>
+              <input type="checkbox" name="onSale" checked={form.onSale} onChange={handleChange} className="h-4 w-4 accent-primary" />
+              <span className="text-xs font-medium text-slate-700 sm:text-sm">Sale Item</span>
             </label>
+            {forceNewArrival ? (
+              <div className="flex min-h-12 items-center gap-3 rounded-xl border border-[#6f1d46]/30 bg-[#fff8fa] px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  checked
+                  disabled
+                  aria-label="New Arrival enabled"
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-xs font-medium text-slate-700 sm:text-sm">
+                  New Arrival (required)
+                </span>
+              </div>
+            ) : (
+              <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
+                <input type="checkbox" name="newArrival" checked={form.newArrival} onChange={handleChange} className="h-4 w-4 accent-primary" />
+                <span className="text-xs font-medium text-slate-700 sm:text-sm">New Arrival</span>
+              </label>
+            )}
             <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
-              <input type="checkbox" name="status" checked={form.status} onChange={handleChange} className="h-4 w-4 accent-primary" />
-              <span className="text-xs font-medium text-slate-700 sm:text-sm">Active (Visible)</span>
+              <span className="text-xs font-medium text-slate-700 sm:text-sm">Publication status</span>
+              <select
+                name="publicationStatus"
+                value={form.publicationStatus}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    publicationStatus: event.target.value as ProductFormState["publicationStatus"],
+                    status: event.target.value === "active",
+                  }))
+                }
+                className="ml-auto min-h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700"
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+                <option value="inactive">Inactive</option>
+              </select>
             </label>
           </div>
         </div>
@@ -734,7 +878,10 @@ export default function ProductForm({
               <div className="rounded-lg border border-[#eeeae4] p-2">
                 <p className="text-[10px] text-slate-500">Collection</p>
                 <p className="mt-1 truncate text-[11px] font-semibold text-slate-700">
-                  {resolvedCollections.find((c) => c._id === form.collection)?.title || "—"}
+                  {resolvedCollections
+                    .filter((collection) => form.collections.includes(collection._id))
+                    .map((collection) => collection.title)
+                    .join(", ") || "—"}
                 </p>
               </div>
               <div className="rounded-lg border border-[#eeeae4] p-2">

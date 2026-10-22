@@ -1,6 +1,8 @@
+import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Collection from "@/models/Collection";
+import Product from "@/models/Product";
 import { requireAdmin } from "@/lib/admin-auth";
 
 // =========================================================
@@ -110,6 +112,49 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = await params;
+
+    const collectionProducts = await Product.find({
+      $or: [{ collections: id }, { collection: id }],
+    }).select("_id collections collection");
+
+    if (collectionProducts.length > 0) {
+      await Product.bulkWrite(
+        collectionProducts.map((product) => {
+          const memberships = Array.from(
+            new Set(
+              [
+                ...((product.collections ?? []).map(
+                  (value: mongoose.Types.ObjectId) => value.toString()
+                )),
+                ...(product.collection ? [product.collection.toString()] : []),
+              ].filter((collectionId) => collectionId !== id)
+            )
+          );
+          const primaryCollectionId = memberships[0];
+          const update: Record<string, unknown> = {
+            $set: {
+              collections: memberships.map(
+                (collectionId) => new mongoose.Types.ObjectId(collectionId)
+              ),
+            },
+          };
+
+          if (primaryCollectionId) {
+            (update.$set as Record<string, unknown>).collection =
+              new mongoose.Types.ObjectId(primaryCollectionId);
+          } else {
+            update.$unset = { collection: "" };
+          }
+
+          return {
+            updateOne: {
+              filter: { _id: product._id },
+              update,
+            },
+          };
+        })
+      );
+    }
 
     const deletedCollection = await Collection.findByIdAndDelete(id);
 

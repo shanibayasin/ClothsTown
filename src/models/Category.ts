@@ -34,6 +34,30 @@ const CategorySchema = new Schema(
       default: [],
     },
 
+    menuGroups: {
+      type: [
+        new Schema(
+          {
+            title: { type: String, required: true, trim: true },
+            categories: {
+              type: [
+                new Schema(
+                  {
+                    title: { type: String, required: true, trim: true },
+                    category: { type: String, required: true, trim: true },
+                  },
+                  { _id: false }
+                ),
+              ],
+              default: [],
+            },
+          },
+          { _id: false }
+        ),
+      ],
+      default: [],
+    },
+
     status: {
       type: Boolean,
       default: true,
@@ -49,6 +73,12 @@ const CategoryModel = models.Category || model("Category", CategorySchema);
 if (!CategoryModel.schema.path("sectionTiles")) {
   CategoryModel.schema.add({
     sectionTiles: CategorySchema.obj.sectionTiles,
+  });
+}
+
+if (!CategoryModel.schema.path("menuGroups")) {
+  CategoryModel.schema.add({
+    menuGroups: CategorySchema.obj.menuGroups,
   });
 }
 

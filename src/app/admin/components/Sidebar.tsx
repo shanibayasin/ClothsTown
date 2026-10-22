@@ -14,12 +14,18 @@ import {
   LogOut,
   LayoutGrid,
   Shirt,
+  Sparkles,
+  Gem,
 } from "lucide-react";
 
 const menus = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { title: "Collections", href: "/admin/collections", icon: LayoutGrid },
   { title: "Products", href: "/admin/products", icon: Package },
+  { title: "Men", href: "/admin/men", icon: Shirt },
+  { title: "Boys", href: "/admin/boys", icon: Shirt },
+  { title: "Accessories", href: "/admin/accessories", icon: Gem },
+  { title: "New Arrivals", href: "/admin/new-arrivals", icon: Sparkles },
   { title: "Girls", href: "/admin/girls", icon: Shirt },
   { title: "Women", href: "/admin/women", icon: Shirt },
   { title: "Categories", href: "/admin/categories", icon: Shapes },

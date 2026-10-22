@@ -15,22 +15,26 @@ type Product = {
   images: string[];
   price: number;
   discountPrice?: number;
+  onSale?: boolean;
   newArrival?: boolean;
 };
 
 export default function FeaturedSection() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const { addToCart } = useCart();
 
   useEffect(() => {
     async function loadProducts() {
       try {
         const res = await fetch("/api/products/featured", { cache: "no-store" });
+        if (!res.ok) throw new Error(`Featured products request failed (${res.status}).`);
         const data = await readJsonResponse<Product[]>(res, []);
         setProducts(data);
       } catch (error) {
         console.error("Featured products fetch error:", error);
+        setError("Featured products could not be loaded. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -66,16 +70,17 @@ export default function FeaturedSection() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          <p role="status" className="py-10 text-center text-sm text-red-600">{error}</p>
         ) : products.length === 0 ? (
           <p className="py-10 text-center text-sm text-gray-500">
             No featured products available right now.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-            {products.slice(0, 5).map((product, index) => {
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            {products.slice(0, 8).map((product, index) => {
               const discountPrice = product.discountPrice ?? 0;
-              const onSale =
-                discountPrice > 0 && discountPrice < product.price;
+              const onSale = discountPrice > 0 && discountPrice < product.price;
               const currentPrice = onSale ? discountPrice : product.price;
               const image = product.images?.[0] || "/placeholder.png";
 

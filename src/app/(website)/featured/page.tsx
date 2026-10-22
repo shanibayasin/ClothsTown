@@ -1,15 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
+import { connection } from "next/server";
 import { connectDB } from "@/lib/mongodb";
+import { getActiveProductFilter } from "@/lib/products";
 import Product from "@/models/Product";
 
 export default async function FeaturedPage() {
+  await connection();
   await connectDB();
 
-  const products: any[] = await Product.find({
-    featured: true,
-    status: true,
-  })
+  const products = await Product.find(getActiveProductFilter({
+    $or: [{ featured: true }, { isFeatured: true }],
+  }))
     .sort({ createdAt: -1 })
     .lean();
 
@@ -79,8 +81,15 @@ export default async function FeaturedPage() {
                   {product.name}
                 </h2>
 
-                <p className="mt-4 text-2xl font-bold text-primary">
-                  Rs. {product.price}
+                <p className="mt-4 flex items-baseline gap-3 text-2xl font-bold text-primary">
+                  Rs. {product.discountPrice > 0 && product.discountPrice < product.price
+                    ? product.discountPrice
+                    : product.price}
+                  {product.discountPrice > 0 && product.discountPrice < product.price && (
+                    <span className="text-base font-normal text-slate-400 line-through">
+                      Rs. {product.price}
+                    </span>
+                  )}
                 </p>
 
                 <Link

@@ -6,6 +6,7 @@ import slugify from "slugify";
 import { X, Upload, Loader2, FolderPlus, Edit3 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
 import { prepareImageForUpload } from "@/lib/image-upload";
+import CollectionProductManager from "./CollectionProductManager";
 
 interface Collection {
   _id?: string;
@@ -158,6 +159,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
   }
 
   return (
+    <div className="space-y-6">
     <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -374,6 +376,8 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
         </div>
 
       </form>
+    </div>
+    {editingId && <CollectionProductManager key={editingId} collectionId={editingId} />}
     </div>
   );
 }

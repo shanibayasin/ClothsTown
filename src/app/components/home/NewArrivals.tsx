@@ -15,6 +15,7 @@ type Product = {
   images: string[];
   price: number;
   discountPrice?: number;
+  onSale?: boolean;
   newArrival: boolean;
   status: boolean;
 };
@@ -22,19 +23,20 @@ type Product = {
 export default function NewArrivals() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const { addToCart } = useCart();
 
   useEffect(() => {
     async function loadProducts() {
       try {
-        const res = await fetch("/api/products", { cache: "no-store" });
+        const res = await fetch("/api/products?newArrival=true&limit=8", { cache: "no-store" });
+        if (!res.ok) throw new Error(`New arrivals request failed (${res.status}).`);
         const data = await readJsonResponse<Product[] | { products: Product[] }>(res, []);
         const productsData = Array.isArray(data) ? data : data.products ?? [];
-        setProducts(
-          productsData.filter((product) => product.newArrival && product.status)
-        );
+        setProducts(productsData.slice(0, 8));
       } catch (error) {
         console.error("Failed to load new arrivals:", error);
+        setError("New arrivals could not be loaded. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -73,16 +75,17 @@ export default function NewArrivals() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          <p role="status" className="py-10 text-center text-sm text-red-600">{error}</p>
         ) : products.length === 0 ? (
           <p className="py-10 text-center text-sm text-gray-500">
             No new arrivals available right now.
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
-            {products.slice(0, 5).map((product, index) => {
+            {products.slice(0, 8).map((product, index) => {
               const discountPrice = product.discountPrice ?? 0;
-              const onSale =
-                discountPrice > 0 && discountPrice < product.price;
+              const onSale = discountPrice > 0 && discountPrice < product.price;
               const currentPrice = onSale ? discountPrice : product.price;
               const image = product.images?.[0] || "/placeholder.png";
 

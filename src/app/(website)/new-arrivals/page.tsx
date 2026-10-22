@@ -38,6 +38,7 @@ interface ArrivalProduct {
   image?: string;
   price: number;
   discountPrice?: number;
+  onSale?: boolean;
   shortDescription?: string;
   description?: string;
   category?: ProductCategory | string | null;
@@ -54,6 +55,17 @@ interface StoreBanner {
   title?: string;
   subtitle?: string;
   description?: string;
+}
+
+interface StoreCategory {
+  name: string;
+  slug?: string;
+  image?: string;
+  sectionTiles?: {
+    title: string;
+    image: string;
+    category: string;
+  }[];
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -127,9 +139,11 @@ function isCategory(
 
 function productIsOnSale(product: ArrivalProduct) {
   return (
-    typeof product.discountPrice === "number" &&
-    product.discountPrice > 0 &&
-    product.discountPrice < product.price
+    product.onSale === true ||
+    (product.onSale === undefined &&
+      typeof product.discountPrice === "number" &&
+      product.discountPrice > 0 &&
+      product.discountPrice < product.price)
   );
 }
 
@@ -138,6 +152,7 @@ export default function NewArrivalsPage() {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<ArrivalProduct[]>([]);
   const [heroImage, setHeroImage] = useState("");
+  const [sectionTiles, setSectionTiles] = useState<StoreCategory["sectionTiles"]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
@@ -163,9 +178,10 @@ export default function NewArrivalsPage() {
       setLoadError("");
 
       try {
-        const [productResponse, bannerResponse] = await Promise.all([
-          fetch("/api/products"),
+        const [productResponse, bannerResponse, categoryResponse] = await Promise.all([
+          fetch("/api/products?newArrival=true&limit=100", { cache: "no-store" }),
           fetch("/api/banners/public"),
+          fetch("/api/categories", { cache: "no-store" }),
         ]);
 
         if (!productResponse.ok) {
@@ -193,10 +209,32 @@ export default function NewArrivalsPage() {
           );
         }
 
+        let arrivalsCategory: StoreCategory | undefined;
+        if (categoryResponse.ok) {
+          const categoryData: unknown = await categoryResponse.json();
+          if (Array.isArray(categoryData)) {
+            arrivalsCategory = (categoryData as StoreCategory[]).find(
+              (category) =>
+                category.name.trim().toLowerCase() === "new arrivals" ||
+                category.slug?.trim().toLowerCase() === "new-arrivals"
+            );
+          }
+        } else {
+          console.error(
+            `New Arrivals category request failed with status ${categoryResponse.status}.`
+          );
+        }
+
         if (active) {
           setProducts(arrivalProducts);
+          setSectionTiles(
+            (arrivalsCategory?.sectionTiles ?? []).filter(
+              (tile) => tile.title?.trim() && tile.image && tile.category?.trim()
+            )
+          );
           setHeroImage(
-            bannerData.find((banner) => banner.image)?.image ??
+            arrivalsCategory?.image ??
+              bannerData.find((banner) => banner.image)?.image ??
               (arrivalProducts[0] ? productImage(arrivalProducts[0]) : "")
           );
         }
@@ -427,57 +465,85 @@ export default function NewArrivalsPage() {
         </FilterGroup>
       )}
 
-      <button
-        type="button"
-        onClick={clearFilters}
-        className="w-full rounded border border-[#102d40] px-4 py-2.5 text-xs font-semibold text-[#102d40] transition hover:bg-[#102d40] hover:text-white"
-      >
-        Clear all filters
-      </button>
     </div>
   );
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#fffdfa] text-[#172f3f]">
-      <section className="relative isolate min-h-[350px] overflow-hidden bg-[#e7e1d8] sm:min-h-[440px] lg:min-h-[510px]">
-        {heroImage && (
-          <Image
-            src={heroImage}
-            alt="New season fashion collection"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-[65%_center]"
-          />
-        )}
-        {!heroImage && (
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_35%,#b7aa9b_0%,#d9d0c5_32%,#f0e9df_72%)]" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#f5f0e9]/95 via-[#f5f0e9]/78 to-[#f5f0e9]/5" />
-        <div className="relative mx-auto flex min-h-[350px] max-w-[1440px] items-center px-5 py-12 sm:min-h-[440px] sm:px-8 lg:min-h-[510px] lg:px-16">
-          <div className="max-w-[540px]">
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#856e55] sm:text-xs">
-              The ClothesTown edit · New season
-            </p>
-            <h1 className="mt-4 font-serif text-[42px] leading-[1.04] tracking-tight text-[#102d40] sm:text-6xl lg:text-[68px]">
-              Fresh Styles
-              <br />
-              Just Landed
-            </h1>
-            <p className="mt-4 max-w-[420px] text-sm leading-6 text-[#4d5a60] sm:text-base sm:leading-7">
-              Discover the latest pieces, thoughtfully selected for everyday
-              comfort and a little something special.
-            </p>
-            <Link
-              href="#new-arrival-products"
-              className="mt-7 inline-flex h-12 items-center gap-3 rounded-sm bg-[#102d40] px-6 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-[#1b465f]"
+      <section className="bg-white">
+        <nav
+          aria-label="Breadcrumb"
+          className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#303030] sm:px-6"
+        >
+          <Link href="/" className="hover:text-[#6f1d46]">
+            Home
+          </Link>
+          <ChevronRight size={13} aria-hidden="true" />
+          <span className="font-medium">New Arrivals</span>
+        </nav>
+        <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f4f1ed]">
+          {heroImage && (
+            <Image
+              src={heroImage}
+              alt="New arrivals collection"
+              fill
+              priority
+              sizes="100vw"
+              className="object-contain"
+            />
+          )}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-black">
+            <h1
+              className="text-[clamp(3rem,10vw,9rem)] font-normal italic leading-[0.78] tracking-tight"
+              style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
             >
-              Shop New Arrivals
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
+              New Arrivals
+            </h1>
+            <p className="mt-2 text-[clamp(0.6rem,1.5vw,1.4rem)] font-medium tracking-[0.08em]">
+              FRESH STYLES, JUST LANDED
+            </p>
           </div>
         </div>
       </section>
+
+      {sectionTiles && sectionTiles.length > 0 && (
+        <section
+          aria-labelledby="new-arrivals-categories-title"
+          className="bg-white px-4 py-8 sm:px-6 sm:py-10 lg:py-12"
+        >
+          <div className="mx-auto max-w-5xl">
+            <h2
+              id="new-arrivals-categories-title"
+              className="mb-6 text-center text-2xl font-medium tracking-wide text-[#171717] sm:mb-8 sm:text-3xl"
+            >
+              NEW ARRIVALS
+            </h2>
+            <div className="grid grid-cols-2 justify-items-center gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-9 lg:grid-cols-4">
+              {sectionTiles.map((tile, index) => (
+                <Link
+                  key={`${tile.title}-${index}`}
+                  href={`/shop?category=${encodeURIComponent(tile.category)}`}
+                  className="group flex w-full max-w-48 flex-col items-center text-center"
+                >
+                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f5f2ed] sm:w-36 lg:w-40">
+                    <Image
+                      src={tile.image}
+                      alt={tile.title}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 128px, 160px"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </span>
+                  <span className="mt-3 text-xs font-medium uppercase tracking-wide text-[#171717] sm:text-sm">
+                    {tile.title}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section
         aria-label="Shopping benefits"
@@ -551,45 +617,26 @@ export default function NewArrivalsPage() {
           </label>
         </div>
 
-        <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
-          <p className="text-xs text-[#59666e]">
-            {isLoading ? "Loading products…" : `${filteredProducts.length} products`}
-          </p>
-          <button
-            type="button"
-            onClick={() => setFiltersOpen((open) => !open)}
-            aria-expanded={filtersOpen}
-            className="inline-flex h-9 items-center gap-2 rounded-sm border border-[#ddd8d2] bg-white px-3 text-xs font-medium"
-          >
-            <SlidersHorizontal size={15} aria-hidden="true" />
-            Filters
-            {filtersOpen ? (
-              <X size={14} aria-hidden="true" />
-            ) : (
-              <ChevronDown size={14} aria-hidden="true" />
-            )}
-          </button>
-        </div>
-
-        <div className="grid gap-7 lg:grid-cols-[218px_minmax(0,1fr)] lg:gap-9">
-          <aside className="hidden lg:block">
-            <h2 className="mb-5 text-sm font-semibold text-[#102d40]">Filters</h2>
-            {sidebar}
-          </aside>
-          {filtersOpen && (
-            <aside className="rounded-sm border border-[#e8e2dc] bg-white p-4 lg:hidden">
-              {sidebar}
-            </aside>
-          )}
-
-          <div className="min-w-0">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <p className="hidden text-xs text-[#59666e] lg:block">
-                {isLoading ? "Loading products…" : `${filteredProducts.length} products`}
-              </p>
-              <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="min-w-0">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(true)}
+                aria-expanded={filtersOpen}
+                aria-controls="new-arrivals-filter-drawer"
+                className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#172a33] hover:text-primary"
+              >
+                <SlidersHorizontal size={15} aria-hidden="true" />
+                Filter
+              </button>
+              <div className="ml-auto flex flex-wrap items-center gap-3 sm:gap-5">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-600 sm:text-xs">
+                  {isLoading ? "Loading products…" : `${filteredProducts.length} products`}
+                </p>
                 <label className="flex items-center gap-2 text-xs text-[#626e74]">
-                  <span className="hidden sm:inline">Sort by</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 sm:text-xs">
+                    Sort by
+                  </span>
                   <span className="relative">
                     <select
                       value={sort}
@@ -597,7 +644,7 @@ export default function NewArrivalsPage() {
                         setSort(event.target.value);
                         setPage(1);
                       }}
-                      className="h-9 appearance-none rounded-sm border border-[#ddd8d2] bg-white pl-3 pr-8 text-xs text-[#293e4b] outline-none focus:border-[#102d40]"
+                      className="appearance-none rounded-md border border-slate-300 bg-white py-2 pl-3 pr-8 text-[10px] font-medium uppercase text-slate-700 outline-none focus:border-[#2867b2] sm:text-xs"
                     >
                       <option value="latest">Newest</option>
                       <option value="price-low">Price: low to high</option>
@@ -656,16 +703,16 @@ export default function NewArrivalsPage() {
                 </button>
               </div>
             ) : isLoading ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, index) => (
                   <div
                     key={index}
-                    className="aspect-[0.76] animate-pulse rounded-sm bg-[#eee9e3]"
+                    className="aspect-[0.88] animate-pulse rounded-xl bg-slate-100"
                   />
                 ))}
               </div>
             ) : visibleProducts.length === 0 ? (
-              <div className="rounded-sm border border-[#e8e2dc] bg-white px-5 py-14 text-center">
+              <div className="col-span-full rounded-xl border border-slate-200 bg-white px-5 py-16 text-center">
                 <h3 className="font-serif text-2xl text-[#102d40]">
                   {products.length === 0
                     ? "New pieces are on their way"
@@ -680,7 +727,7 @@ export default function NewArrivalsPage() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="mt-5 text-xs font-semibold text-[#102d40] underline underline-offset-4"
+                    className="mt-4 text-sm font-semibold text-[#2867b2] hover:underline"
                   >
                     Clear filters
                   </button>
@@ -690,7 +737,7 @@ export default function NewArrivalsPage() {
               <div
                 className={
                   view === "grid"
-                    ? "grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-9 xl:grid-cols-4"
+                    ? "grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4"
                     : "flex flex-col gap-4"
                 }
               >
@@ -780,9 +827,60 @@ export default function NewArrivalsPage() {
                 </button>
               </nav>
             )}
-          </div>
         </div>
       </section>
+
+      {filtersOpen && (
+        <div className="fixed inset-0 z-[1000]">
+          <button
+            type="button"
+            aria-label="Close filters"
+            onClick={() => setFiltersOpen(false)}
+            className="absolute inset-0 bg-black/30"
+          />
+          <section
+            id="new-arrivals-filter-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-arrivals-filter-title"
+            className="absolute inset-0 flex h-full w-full flex-col bg-white shadow-2xl sm:left-auto sm:w-[min(100%,560px)]"
+          >
+            <header className="flex h-14 shrink-0 items-center justify-center border-b border-[#e7e7e7]">
+              <h2
+                id="new-arrivals-filter-title"
+                className="text-base font-semibold text-[#171717]"
+              >
+                Filter
+              </h2>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                aria-label="Close filters"
+                className="absolute right-4 top-3 flex size-8 items-center justify-center text-[#333] hover:text-black"
+              >
+                <X size={25} strokeWidth={1.4} />
+              </button>
+            </header>
+            <div className="flex-1 overflow-y-auto px-6 py-5">{sidebar}</div>
+            <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-[#e7e7e7] bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="min-h-11 border border-[#222] text-xs font-semibold uppercase tracking-wide text-[#222]"
+              >
+                Remove all
+              </button>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="min-h-11 bg-[#222] text-xs font-semibold uppercase tracking-wide text-white"
+              >
+                Apply
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
 
       <section className="mx-auto grid max-w-[1440px] gap-4 px-4 pb-14 sm:grid-cols-2 sm:px-7 lg:grid-cols-[1fr_1fr_0.85fr] lg:px-14">
         <CollectionPromo
@@ -926,15 +1024,17 @@ function ProductCard({
 
   return (
     <article
-      className={`group min-w-0 ${
+      className={`group min-w-0 overflow-hidden ${
         layout === "list"
-          ? "grid grid-cols-[38%_1fr] gap-4 border-b border-[#e8e2dc] pb-4 sm:grid-cols-[220px_1fr] sm:gap-6"
-          : ""
+          ? "grid grid-cols-[38%_1fr] gap-4 border-b border-[#e8e2dc] bg-white pb-4 sm:grid-cols-[220px_1fr] sm:gap-6"
+          : "rounded-xl border border-[#e3eaf0] bg-white p-2 shadow-[0_2px_10px_rgba(25,55,78,0.04)] transition hover:-translate-y-0.5 hover:shadow-md sm:p-3"
       }`}
     >
       <div
-        className={`relative overflow-hidden bg-[#f0ece6] ${
-          layout === "list" ? "aspect-[0.82] rounded-sm" : "aspect-[0.76] rounded-sm"
+        className={`relative overflow-hidden ${
+          layout === "list"
+            ? "aspect-[0.82] rounded-sm bg-[#f0ece6]"
+            : "aspect-[0.88] rounded-lg bg-[#f5f7f8]"
         }`}
       >
         {image ? (
@@ -952,7 +1052,7 @@ function ProductCard({
                   ? "(max-width: 640px) 38vw, 220px"
                   : "(max-width: 640px) 48vw, (max-width: 1280px) 30vw, 270px"
               }
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.035]"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             />
           </Link>
         ) : (
@@ -960,12 +1060,9 @@ function ProductCard({
             Image unavailable
           </div>
         )}
-        <span className="absolute left-2 top-2 rounded-sm bg-[#102d40] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-white sm:left-3 sm:top-3 sm:text-[9px]">
-          New
-        </span>
-        {onSale && (
-          <span className="absolute left-2 top-8 rounded-sm bg-[#9b513e] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-white sm:left-3 sm:top-10 sm:text-[9px]">
-            Sale
+        {(onSale || product.newArrival) && (
+          <span className="absolute left-2 top-2 rounded-sm bg-red-600 px-2 py-1 text-[9px] font-bold uppercase text-white">
+            {onSale ? "Sale" : "New"}
           </span>
         )}
         <button
@@ -977,37 +1074,38 @@ function ProductCard({
               : `Add ${product.name} to wishlist`
           }
           aria-pressed={wished}
-          className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/95 text-[#213b4c] shadow-sm transition hover:text-[#a34d52] sm:right-3 sm:top-3"
+          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm transition hover:text-red-500"
         >
           <Heart
             size={16}
             aria-hidden="true"
-            className={wished ? "fill-[#a34d52] text-[#a34d52]" : ""}
+            className={wished ? "fill-red-500 text-red-500" : ""}
           />
         </button>
       </div>
 
-      <div className={`pt-3 ${layout === "list" ? "sm:pt-2" : ""}`}>
-        <p className="text-[9px] font-medium uppercase tracking-[0.13em] text-[#8d7d6b]">
-          {categoryName(product) || "New season"}
-        </p>
+      <div className={`px-1 pb-1 pt-3 ${layout === "list" ? "sm:pt-2" : ""}`}>
         <Link
           href={`/product/${product.slug}`}
-          className="mt-1 block line-clamp-2 text-xs font-semibold leading-5 text-[#1a3548] hover:underline sm:text-sm"
+          className="line-clamp-1 text-xs font-semibold text-[#20394c] hover:text-[#2867b2] sm:text-sm"
         >
           {product.name}
         </Link>
+        <p className="mt-1 text-[10px] text-slate-500">
+          {categoryName(product)}
+          {product.sizes?.length ? ` · ${product.sizes.join(", ")}` : ""}
+        </p>
         {product.shortDescription && layout === "list" && (
           <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#6b777e]">
             {product.shortDescription}
           </p>
         )}
         <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-xs font-bold text-[#102d40] sm:text-sm">
+          <span className="text-xs font-bold text-[#142d40] sm:text-sm">
             Rs. {price.toLocaleString()}
           </span>
           {onSale && (
-            <span className="text-[10px] text-[#92999d] line-through">
+            <span className="text-[10px] text-slate-400 line-through">
               Rs. {product.price.toLocaleString()}
             </span>
           )}
@@ -1043,13 +1141,13 @@ function ProductCard({
           type="button"
           disabled={product.stock === 0}
           onClick={onAddToCart}
-          className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-sm border border-[#102d40] px-2 text-[9px] font-semibold uppercase tracking-[0.09em] text-[#102d40] transition hover:bg-[#102d40] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:text-[10px]"
+          className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-[#102f43] px-2 text-[10px] font-semibold text-white transition hover:bg-[#1c4d69] disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-xs"
         >
           {product.stock === 0 ? (
             "Out of stock"
           ) : (
             <>
-              Add to cart <ArrowRight size={13} aria-hidden="true" />
+              Add to Cart <ArrowRight size={13} aria-hidden="true" />
             </>
           )}
         </button>

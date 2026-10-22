@@ -35,6 +35,7 @@ type ProductType = {
   sku?: string;
   price: number;
   discountPrice?: number;
+  onSale?: boolean;
   description?: string;
   shortDescription?: string;
   images: string[];
@@ -45,6 +46,7 @@ type ProductType = {
   featured?: boolean;
   category?: DatabaseRef;
   collection?: DatabaseRef;
+  collections?: DatabaseRef[];
 };
 
 type ProductTab = "description" | "specifications" | "reviews";
@@ -76,7 +78,7 @@ export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params?.slug as string;
-  const { addToCart } = useCart();
+  const { cart, addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
   const [product, setProduct] = useState<ProductType | null>(null);
@@ -88,6 +90,7 @@ export default function ProductPage() {
   const [activeTab, setActiveTab] = useState<ProductTab>("description");
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [cartError, setCartError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -142,6 +145,27 @@ export default function ProductPage() {
   const handleAddToCart = (redirect = false) => {
     if (!product || !inStock || isAdding) return;
 
+    if (product.sizes?.length && !product.sizes.includes(selectedSize)) {
+      setCartError("Please select an available size.");
+      return;
+    }
+    if (product.colors?.length && !product.colors.includes(selectedColor)) {
+      setCartError("Please select an available color.");
+      return;
+    }
+    const existingQuantity =
+      cart.find(
+        (item) =>
+          item._id === product._id &&
+          item.size === (selectedSize || undefined) &&
+          item.color === (selectedColor || undefined)
+      )?.quantity ?? 0;
+    if (existingQuantity + quantity > (product.stock ?? 0)) {
+      setCartError(`Only ${Math.max(0, (product.stock ?? 0) - existingQuantity)} more item(s) are available.`);
+      return;
+    }
+
+    setCartError("");
     setIsAdding(true);
     try {
       addToCart({
@@ -201,7 +225,14 @@ export default function ProductPage() {
           {product.category && (
             <>
               <Link
-                href={`/shop?category=${encodeURIComponent(product.category.name || "")}`}
+                href={
+                  product.category.slug &&
+                  ["men", "women", "girls", "boys", "accessories"].includes(
+                    product.category.slug.toLowerCase()
+                  )
+                    ? `/shop/${product.category.slug.toLowerCase()}`
+                    : `/category/${product.category._id}`
+                }
                 className="hover:text-[#102f43]"
               >
                 {product.category.name}
@@ -209,17 +240,22 @@ export default function ProductPage() {
               <ChevronRight size={12} aria-hidden="true" />
             </>
           )}
-          {product.collection && (
-            <>
+          {(product.collections?.length
+            ? product.collections
+            : product.collection
+              ? [product.collection]
+              : []
+          ).map((collection) => (
+            <span key={collection._id} className="inline-flex items-center gap-2">
               <Link
-                href={`/collections/${product.collection.slug}`}
+                href={`/collections/${collection.slug}`}
                 className="hover:text-[#102f43]"
               >
-                {product.collection.title}
+                {collection.title}
               </Link>
               <ChevronRight size={12} aria-hidden="true" />
-            </>
-          )}
+            </span>
+          ))}
           <span className="truncate font-medium text-slate-700">{product.name}</span>
         </nav>
 
@@ -292,14 +328,20 @@ export default function ProductPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                {product.collection && (
+                {(product.collections?.length
+                  ? product.collections
+                  : product.collection
+                    ? [product.collection]
+                    : []
+                ).map((collection) => (
                   <Link
-                    href={`/collections/${product.collection.slug}`}
-                    className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2867b2] hover:underline"
+                    key={collection._id}
+                    href={`/collections/${collection.slug}`}
+                    className="mr-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2867b2] hover:underline"
                   >
-                    {product.collection.title}
+                    {collection.title}
                   </Link>
-                )}
+                ))}
                 <h1 className="mt-1 text-2xl font-bold leading-tight text-[#173246] sm:text-[30px]">
                   {product.name}
                 </h1>
@@ -425,6 +467,12 @@ export default function ProductPage() {
                 </button>
               </div>
 
+              {cartError && (
+                <p role="alert" className="mt-3 text-xs font-medium text-red-600">
+                  {cartError}
+                </p>
+              )}
+
               <button
                 type="button"
                 onClick={() => handleAddToCart()}
@@ -509,7 +557,7 @@ export default function ProductPage() {
                     <dt className="text-slate-500">Category</dt><dd className="text-right font-medium text-slate-700">{product.category?.name || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
-                    <dt className="text-slate-500">Collection</dt><dd className="text-right font-medium text-slate-700">{product.collection?.title || "N/A"}</dd>
+                    <dt className="text-slate-500">Collections</dt><dd className="text-right font-medium text-slate-700">{product.collections?.map((collection) => collection.title).join(", ") || product.collection?.title || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
                     <dt className="text-slate-500">Available sizes</dt><dd className="text-right font-medium text-slate-700">{product.sizes?.join(", ") || "One size"}</dd>

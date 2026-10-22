@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Menu,
@@ -28,10 +29,17 @@ type DepartmentCategory = {
   category: string;
 };
 
+type AccessoriesMenuGroup = {
+  title: string;
+  categories: DepartmentCategory[];
+};
+
 type StoreCategory = {
   name: string;
   slug?: string;
+  image?: string;
   sectionTiles?: DepartmentCategory[];
+  menuGroups?: AccessoriesMenuGroup[];
 };
 
 export default function Navbar() {
@@ -53,6 +61,10 @@ export default function Navbar() {
   const [departmentCategories, setDepartmentCategories] = useState<
     Record<string, DepartmentCategory[]>
   >({});
+  const [accessoriesMenuGroups, setAccessoriesMenuGroups] = useState<
+    AccessoriesMenuGroup[]
+  >([]);
+  const [accessoriesMenuImage, setAccessoriesMenuImage] = useState("");
 
   // Derive structural dynamic item count safely from raw elements array matrix
   const totalCartItems = useMemo(() => {
@@ -79,9 +91,15 @@ export default function Navbar() {
         const response = await fetch("/api/categories", { cache: "no-store" });
         const categories = await readJsonResponse<StoreCategory[]>(response, []);
         const sections: Record<string, DepartmentCategory[]> = {};
-        for (const sectionName of ["Girls", "Women"]) {
+        for (const sectionName of ["Men", "Women", "Girls", "Boys"]) {
           const sectionPattern =
-            sectionName === "Girls" ? /\bgirls?\b/ : /\bwomen\b|womens/;
+            sectionName === "Girls"
+              ? /\bgirls?\b/
+              : sectionName === "Women"
+                ? /\bwomen\b|womens/
+                : sectionName === "Men"
+                  ? /\bmen\b|\bmens\b|\bmenswear\b/
+                  : /\bboys?\b/;
           const sectionCategories = categories.filter((category) =>
             sectionPattern.test(
               `${category.name.trim().toLowerCase()} ${category.slug?.trim().toLowerCase() ?? ""}`
@@ -95,6 +113,20 @@ export default function Navbar() {
             (tile) => tile.title?.trim() && tile.category?.trim()
           );
         }
+        const accessoriesCategory = categories.find((category) =>
+          /^(accessory|accessories)$/.test(
+            category.name.trim().toLowerCase()
+          ) ||
+          /^(accessory|accessories)$/.test(
+            category.slug?.trim().toLowerCase() ?? ""
+          )
+        );
+        setAccessoriesMenuGroups(
+          (accessoriesCategory?.menuGroups ?? []).filter(
+            (group) => group.title?.trim()
+          )
+        );
+        setAccessoriesMenuImage(accessoriesCategory?.image ?? "");
         setDepartmentCategories(sections);
       } catch (error) {
         console.error("Department categories fetch error:", error);
@@ -122,11 +154,11 @@ export default function Navbar() {
   const links = useMemo(
     () => [
       { name: "Home", href: "/" },
-      { name: "Men", href: "/shop?category=Men", hasChevron: true },
-      { name: "Women", href: "/shop?category=Women", hasChevron: true },
-      { name: "Girls", href: "/shop?category=Girls", hasChevron: true },
-      { name: "Boys", href: "/shop?category=Boys", hasChevron: true },
-      { name: "Accessories", href: "/shop?category=Accessories", hasChevron: true },
+      { name: "Men", href: "/shop/men", hasChevron: true },
+      { name: "Women", href: "/shop/women", hasChevron: true },
+      { name: "Girls", href: "/shop/girls", hasChevron: true },
+      { name: "Boys", href: "/shop/boys", hasChevron: true },
+      { name: "Accessories", href: "/shop/accessories", hasChevron: true },
       { name: "Winter Collection", href: "/collections", collectionMenu: true },
       { name: "New Arrivals", href: "/new-arrivals" },
       { name: "Sale", href: "/shop?sale=true" },
@@ -272,7 +304,101 @@ export default function Navbar() {
                 );
               }
 
-              if (link.name === "Girls" || link.name === "Women") {
+              if (link.name === "Accessories") {
+                const menuOpen = showDepartmentMenu === "Accessories";
+                return (
+                  <div
+                    key={link.name}
+                    className="relative flex h-full items-center"
+                    onMouseEnter={() => setShowDepartmentMenu("Accessories")}
+                    onMouseLeave={() => setShowDepartmentMenu("")}
+                    onFocus={() => setShowDepartmentMenu("Accessories")}
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                        setShowDepartmentMenu("");
+                      }
+                    }}
+                  >
+                    <Link
+                      href={link.href}
+                      aria-haspopup="true"
+                      aria-expanded={menuOpen}
+                      className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
+                    >
+                      Accessories
+                      <ChevronDown size={14} strokeWidth={2.2} />
+                      {active && (
+                        <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[#102633] lg:bottom-[7px]" />
+                      )}
+                    </Link>
+                    {menuOpen && (
+                      <div className="absolute left-0 top-full z-50 w-[min(1100px,calc(100vw-32px))] rounded-b-xl border border-gray-200 bg-white p-6 shadow-xl lg:w-[min(1200px,calc(100vw-48px))]">
+                        <div
+                          className="grid gap-6"
+                          style={{
+                            gridTemplateColumns: `repeat(${Math.max(
+                              accessoriesMenuGroups.length,
+                              1
+                            )}, minmax(0, 1fr)) minmax(260px, 1.2fr)`,
+                          }}
+                        >
+                          {accessoriesMenuGroups.map((group, groupIndex) => (
+                            <div key={`${group.title}-${groupIndex}`}>
+                              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-[#333]">
+                                {group.title}
+                              </h2>
+                              <div className="space-y-3">
+                                {group.categories.map((category, categoryIndex) => (
+                                  <Link
+                                    key={`${category.category}-${categoryIndex}`}
+                                    href={`/shop?category=${encodeURIComponent(category.category)}`}
+                                    onClick={() => setShowDepartmentMenu("")}
+                                    className="block text-sm text-[#444] transition hover:text-primary"
+                                  >
+                                    {category.title}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {accessoriesMenuImage ? (
+                            <Link
+                              href={link.href}
+                              onClick={() => setShowDepartmentMenu("")}
+                              className="relative block min-h-[240px] overflow-hidden rounded-sm bg-[#f5f2ed]"
+                            >
+                              <Image
+                                src={accessoriesMenuImage}
+                                alt="Shop accessories"
+                                fill
+                                sizes="(max-width: 1200px) 40vw, 420px"
+                                className="object-cover"
+                              />
+                            </Link>
+                          ) : (
+                            <Link
+                              href={link.href}
+                              onClick={() => setShowDepartmentMenu("")}
+                              className="flex min-h-[240px] items-center justify-center bg-[#f5f2ed] text-sm font-semibold uppercase tracking-wide text-[#172a33]"
+                            >
+                              Shop Accessories
+                            </Link>
+                          )}
+                        </div>
+                        <Link
+                          href={link.href}
+                          onClick={() => setShowDepartmentMenu("")}
+                          className="mt-5 inline-block border-t border-gray-100 pt-4 text-sm font-semibold text-[#172a33] hover:text-primary"
+                        >
+                          Shop All Accessories
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              if (["Men", "Girls", "Women", "Boys"].includes(link.name)) {
                 const sectionName = link.name;
                 const menuOpen = showDepartmentMenu === sectionName;
                 return (
@@ -375,7 +501,7 @@ export default function Navbar() {
                       ? pathname === "/"
                       : pathname === link.href || pathname.startsWith(link.href + "/");
 
-                  if (link.name === "Girls" || link.name === "Women") {
+                  if (["Men", "Girls", "Women", "Boys", "Accessories"].includes(link.name)) {
                     const sectionName = link.name;
                     const menuExpanded = expandedDepartment === sectionName;
                     return (
@@ -405,18 +531,41 @@ export default function Navbar() {
                               onClick={() => setIsOpen(false)}
                               className="block py-2 text-sm font-medium text-[#172a33] hover:text-primary"
                             >
-                              All {sectionName} Wear
+                              {sectionName === "Accessories"
+                                ? "Shop All Accessories"
+                                : `All ${sectionName} Wear`}
                             </Link>
-                            {(departmentCategories[sectionName] ?? []).map((category, index) => (
-                              <Link
-                                key={`${category.category}-${index}`}
-                                href={`/shop?category=${encodeURIComponent(category.category)}`}
-                                onClick={() => setIsOpen(false)}
-                                className="block py-2 text-sm text-gray-600 hover:text-primary"
-                              >
-                                {category.title}
-                              </Link>
-                            ))}
+                            {sectionName === "Accessories"
+                              ? accessoriesMenuGroups.flatMap((group, groupIndex) => [
+                                  <span
+                                    key={`accessories-group-${groupIndex}`}
+                                    className="block pt-3 text-xs font-bold uppercase tracking-wide text-[#333]"
+                                  >
+                                    {group.title}
+                                  </span>,
+                                  ...group.categories.map((category, index) => (
+                                    <Link
+                                      key={`${category.category}-${groupIndex}-${index}`}
+                                      href={`/shop?category=${encodeURIComponent(category.category)}`}
+                                      onClick={() => setIsOpen(false)}
+                                      className="block py-2 text-sm text-gray-600 hover:text-primary"
+                                    >
+                                      {category.title}
+                                    </Link>
+                                  )),
+                                ])
+                              : (departmentCategories[sectionName] ?? []).map(
+                                  (category, index) => (
+                                    <Link
+                                      key={`${category.category}-${index}`}
+                                      href={`/shop?category=${encodeURIComponent(category.category)}`}
+                                      onClick={() => setIsOpen(false)}
+                                      className="block py-2 text-sm text-gray-600 hover:text-primary"
+                                    >
+                                      {category.title}
+                                    </Link>
+                                  )
+                                )}
                           </div>
                         )}
                       </div>
