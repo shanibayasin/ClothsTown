@@ -4,7 +4,15 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronRight, Heart, ShoppingCart, SlidersHorizontal } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Heart,
+  ShoppingCart,
+  SlidersHorizontal,
+  Star,
+  X,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
@@ -29,6 +37,8 @@ interface Product {
   };
   sizes?: string[];
   colors?: string[];
+  season?: string;
+  fabric?: string;
   stock: number;
 }
 
@@ -37,6 +47,11 @@ interface Category {
   name: string;
   slug?: string;
   image?: string;
+  sectionTiles?: {
+    title: string;
+    image: string;
+    category: string;
+  }[];
 }
 
 interface Collection {
@@ -94,13 +109,15 @@ function ShopRoute() {
   const searchQuery = searchParams.get("search") ?? "";
   const categoryQuery = searchParams.get("category") ?? "";
   const saleQuery = searchParams.get("sale") ?? "";
+  const viewAllQuery = searchParams.get("view") === "all";
 
   return (
     <ShopContent
-      key={`${searchQuery}:${categoryQuery}:${saleQuery}`}
+      key={`${searchQuery}:${categoryQuery}:${saleQuery}:${viewAllQuery}`}
       searchQuery={searchQuery}
       categoryQuery={categoryQuery}
       saleQuery={saleQuery}
+      viewAllQuery={viewAllQuery}
     />
   );
 }
@@ -109,10 +126,12 @@ function ShopContent({
   searchQuery,
   categoryQuery,
   saleQuery,
+  viewAllQuery,
 }: {
   searchQuery: string;
   categoryQuery: string;
   saleQuery: string;
+  viewAllQuery: boolean;
 }) {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -127,12 +146,17 @@ function ShopContent({
   const [sort, setSort] = useState("latest");
   const [selectedCollection, setSelectedCollection] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSeasons, setSelectedSeasons] = useState<string[]>([]);
+  const [selectedFabrics, setSelectedFabrics] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState(100000);
+  const [minimumPrice, setMinimumPrice] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [saleOnly, setSaleOnly] = useState(saleQuery === "true");
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [filterSection, setFilterSection] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -149,7 +173,7 @@ function ShopContent({
         if (active) setIsLoading(false);
       });
 
-    fetch("/api/categories")
+    fetch("/api/categories", { cache: "no-store" })
       .then((res) => readJsonResponse<Category[]>(res, []))
       .then((data) => {
         if (active) setCategories(data);
@@ -200,6 +224,7 @@ function ShopContent({
         const categoryName = item.category?.name.toLowerCase() ?? "";
         if (selectedCategory === "men") return /\bmen\b|mens/.test(categoryName);
         if (selectedCategory === "women") return /\bwomen\b|womens/.test(categoryName);
+        if (selectedCategory === "girls") return /\bgirls?\b/.test(categoryName);
         return categoryName === selectedCategory;
       });
     }
@@ -212,11 +237,37 @@ function ShopContent({
       data = data.filter((item) => item.sizes?.includes(selectedSize));
     }
 
+    if (selectedSizes.length > 0) {
+      data = data.filter((item) =>
+        selectedSizes.some((size) => item.sizes?.includes(size))
+      );
+    }
+
     if (selectedColor) {
       data = data.filter((item) => item.colors?.includes(selectedColor));
     }
 
-    data = data.filter((item) => getProductPrice(item) <= priceRange);
+    if (selectedSeasons.length > 0) {
+      data = data.filter((item) =>
+        selectedSeasons.some(
+          (season) => item.season?.toLowerCase() === season.toLowerCase()
+        )
+      );
+    }
+
+    if (selectedFabrics.length > 0) {
+      data = data.filter((item) =>
+        selectedFabrics.some(
+          (fabric) => item.fabric?.toLowerCase() === fabric.toLowerCase()
+        )
+      );
+    }
+
+    data = data.filter(
+      (item) =>
+        getProductPrice(item) >= minimumPrice &&
+        (priceRange >= 100000 || getProductPrice(item) <= priceRange)
+    );
 
     if (inStockOnly) {
       data = data.filter((item) => item.stock > 0);
@@ -243,8 +294,12 @@ function ShopContent({
     selectedCategory,
     selectedCollection,
     selectedSize,
+    selectedSizes,
     selectedColor,
+    selectedSeasons,
+    selectedFabrics,
     priceRange,
+    minimumPrice,
     inStockOnly,
     saleOnly,
     sort,
@@ -266,13 +321,81 @@ function ShopContent({
     return (
       name === normalizedQuery ||
       slug === normalizedQuery ||
+      (normalizedQuery === "girls" &&
+        (/\bgirls?\b/.test(name) || /\bgirls?\b/.test(slug ?? ""))) ||
       (normalizedQuery === "men" && /\bmen\b|mens/.test(name)) ||
-      (normalizedQuery === "women" && /\bwomen\b|womens/.test(name))
+      (normalizedQuery === "women" &&
+        (/\bwomen\b|womens/.test(name) || /\bwomen\b|womens/.test(slug ?? "")))
     );
   };
-  const activeCategory = categories.find(
-    (item) => item._id === selectedCategory || matchesCategoryQuery(item, selectedCategory)
+  const womenCategories = categories.filter((item) =>
+    /\bwomen\b|womens/.test(
+      `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
+    )
   );
+  const womenLandingCategory =
+    womenCategories.find((item) => (item.sectionTiles?.length ?? 0) > 0) ||
+    womenCategories.find(
+      (item) =>
+        /women('?s)?\s+wear|womens?\s+wear/.test(item.name.trim().toLowerCase()) ||
+        /women('?s)?-wear|womens?-wear/.test(item.slug?.trim().toLowerCase() ?? "")
+    ) ||
+    womenCategories[0];
+  const girlsCategories = categories.filter((item) =>
+    /\bgirls?\b/.test(
+      `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
+    )
+  );
+  const girlsLandingCategory =
+    girlsCategories.find((item) => (item.sectionTiles?.length ?? 0) > 0) ||
+    girlsCategories.find(
+      (item) =>
+        /girls?\s+wear/.test(item.name.trim().toLowerCase()) ||
+        /girls?-wear/.test(item.slug?.trim().toLowerCase() ?? "")
+    ) ||
+    girlsCategories[0];
+  const isWomenProductListing = ["women", "womens"].includes(
+    categoryQuery.trim().toLowerCase()
+  );
+  const isGirlsProductListing =
+    categoryQuery.trim().toLowerCase() === "girls";
+  const isDepartmentProductListing =
+    isGirlsProductListing || isWomenProductListing;
+  const departmentName = isWomenProductListing ? "Women" : "Girls";
+  const departmentLandingCategory = isWomenProductListing
+    ? womenLandingCategory
+    : girlsLandingCategory;
+  const departmentProductsCount = departmentLandingCategory
+    ? products.filter(
+        (product) => product.category?._id === departmentLandingCategory._id
+      ).length
+    : filteredProducts.length;
+  const departmentProducts = products.filter((product) =>
+    isWomenProductListing
+      ? /\bwomen\b|womens/.test(product.category?.name?.toLowerCase() ?? "")
+      : /\bgirls?\b/.test(product.category?.name?.toLowerCase() ?? "")
+  );
+  const seasonOptions = Array.from(
+    new Set(departmentProducts.map((product) => product.season?.trim()).filter(Boolean))
+  ).sort((a, b) => a!.localeCompare(b!)) as string[];
+  const fabricOptions = Array.from(
+    new Set(departmentProducts.map((product) => product.fabric?.trim()).filter(Boolean))
+  ).sort((a, b) => a!.localeCompare(b!)) as string[];
+  const sizeOptions = Array.from(
+    new Set(departmentProducts.flatMap((product) => product.sizes ?? []))
+  ).sort((a, b) => a.localeCompare(b));
+  const highestDepartmentPrice = Math.max(
+    ...departmentProducts.map((product) => getProductPrice(product)),
+    0
+  );
+  const activeCategory =
+    categories.find((item) => item._id === selectedCategory) ||
+    (selectedCategory === "girls"
+      ? girlsLandingCategory
+      : selectedCategory === "women"
+        ? womenLandingCategory
+        : undefined) ||
+    categories.find((item) => matchesCategoryQuery(item, selectedCategory));
   const categoryName =
     activeCategory?.name ||
     (categoryQuery.toLowerCase() === "men"
@@ -295,14 +418,30 @@ function ShopContent({
     (categoryHeroProduct ? getProductImage(categoryHeroProduct) : undefined) ||
     products[0]?.images?.[0] ||
     products[0]?.image;
+  const departmentSectionTiles =
+    isDepartmentProductListing ||
+    (activeCategory &&
+      (isWomenProductListing
+        ? /\bwomen\b|womens/.test(activeCategory.name.trim().toLowerCase())
+        : /\bgirls?\b/.test(activeCategory.name.trim().toLowerCase())))
+      ? (departmentLandingCategory?.sectionTiles ?? activeCategory?.sectionTiles)?.filter(
+          (tile) => tile.title && tile.image && tile.category
+        ) ?? []
+      : [];
+  const isDepartmentLanding =
+    isDepartmentProductListing && !viewAllQuery;
 
   function resetFilters() {
     setSearch("");
     setSelectedCategory("");
     setSelectedCollection("");
     setSelectedSize("");
+    setSelectedSizes([]);
     setSelectedColor("");
+    setSelectedSeasons([]);
+    setSelectedFabrics([]);
     setPriceRange(100000);
+    setMinimumPrice(0);
     setInStockOnly(false);
     setSaleOnly(false);
     setSort("latest");
@@ -311,39 +450,239 @@ function ShopContent({
 
   return (
     <main className="min-h-screen bg-[#f7f9fb] pb-12 text-[#172b3a]">
-      <section className="relative mx-auto h-[190px] max-w-[1440px] overflow-hidden bg-gradient-to-r from-[#d8eafb] via-[#e9f3fb] to-[#a9c4da] sm:h-[230px] lg:h-[280px]">
-        {heroImage && (
-          <div className="absolute inset-y-0 right-0 w-[62%]">
-            <Image
-              src={heroImage}
-              alt=""
-              fill
-              priority
-              sizes="(max-width: 768px) 60vw, 800px"
-              className="object-cover object-center"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#e6f1fa] via-[#e6f1fa]/50 to-transparent" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/35 to-transparent" />
-        <div className="relative mx-auto flex h-full max-w-[1440px] flex-col justify-center px-5 sm:px-8 lg:px-12">
-          <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-xs text-[#526c7e]">
-            <Link href="/" className="hover:text-[#102633]">Home</Link>
+      {isDepartmentLanding ? (
+        <section className="bg-white">
+          <nav
+            aria-label="Breadcrumb"
+            className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#303030] sm:px-6"
+          >
+            <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
             <ChevronRight size={13} aria-hidden="true" />
-            <span>Shop</span>
-            <ChevronRight size={13} aria-hidden="true" />
-            <span className="font-semibold text-[#20394c]">{heroTitle}</span>
+            <span className="font-medium">{departmentName}</span>
           </nav>
-          <h1 className="max-w-[56%] text-3xl font-bold tracking-tight text-[#142d40] sm:text-4xl lg:text-5xl">
-            {heroTitle}
-          </h1>
-          <p className="mt-2 max-w-[48%] text-xs text-[#526c7e] sm:text-sm">
-            Premium quality. Timeless style.
-          </p>
-        </div>
-      </section>
+          <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f4f1ed]">
+            {heroImage && (
+              <Image
+                src={heroImage}
+                alt={`${departmentName} ready-to-wear collection`}
+                fill
+                priority
+                sizes="100vw"
+                className="object-contain"
+              />
+            )}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-black">
+              <h1
+                className="text-[clamp(3.5rem,11vw,10rem)] font-normal italic leading-[0.78] tracking-tight"
+                style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
+              >
+                {departmentName}
+              </h1>
+              <p className="mt-2 text-[clamp(0.65rem,1.6vw,1.5rem)] font-medium tracking-[0.08em]">
+                READY TO WEAR
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="relative mx-auto h-[190px] max-w-[1440px] overflow-hidden bg-gradient-to-r from-[#d8eafb] via-[#e9f3fb] to-[#a9c4da] sm:h-[230px] lg:h-[280px]">
+          {heroImage && (
+            <div className="absolute inset-y-0 right-0 w-[62%]">
+              <Image
+                src={heroImage}
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 768px) 60vw, 800px"
+                className="object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#e6f1fa] via-[#e6f1fa]/50 to-transparent" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/35 to-transparent" />
+          <div className="relative mx-auto flex h-full max-w-[1440px] flex-col justify-center px-5 sm:px-8 lg:px-12">
+            <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-xs text-[#526c7e]">
+              <Link href="/" className="hover:text-[#102633]">Home</Link>
+              <ChevronRight size={13} aria-hidden="true" />
+              <span>Shop</span>
+              <ChevronRight size={13} aria-hidden="true" />
+              <span className="font-semibold text-[#20394c]">{heroTitle}</span>
+            </nav>
+            <h1 className="max-w-[56%] text-3xl font-bold tracking-tight text-[#142d40] sm:text-4xl lg:text-5xl">
+              {heroTitle}
+            </h1>
+            <p className="mt-2 max-w-[48%] text-xs text-[#526c7e] sm:text-sm">
+              Premium quality. Timeless style.
+            </p>
+          </div>
+        </section>
+      )}
 
+      {departmentSectionTiles.length > 0 && (
+        <section
+          aria-labelledby="department-category-tiles-title"
+          className="bg-white px-4 py-8 sm:px-6 sm:py-10 lg:py-12"
+        >
+          <div className="mx-auto max-w-5xl">
+            <h2
+              id="department-category-tiles-title"
+              className="mb-6 text-center text-2xl font-medium tracking-wide text-[#171717] sm:mb-8 sm:text-3xl"
+            >
+              {departmentName.toUpperCase()}
+            </h2>
+            <div className="grid grid-cols-2 justify-items-center gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-9 lg:grid-cols-4">
+              {departmentSectionTiles.map((tile, index) => (
+                <Link
+                  key={`${tile.title}-${index}`}
+                  href={`/shop?category=${encodeURIComponent(tile.category)}`}
+                  className="group flex w-full max-w-48 flex-col items-center text-center"
+                >
+                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f5f2ed] sm:w-36 lg:w-40">
+                    <Image
+                      src={tile.image}
+                      alt={tile.title}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 128px, 160px"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </span>
+                  <span className="mt-3 text-xs font-medium uppercase tracking-wide text-[#171717] sm:text-sm">
+                    {tile.title}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isDepartmentLanding && !isDepartmentProductListing ? (
+        <section
+          aria-labelledby="girls-products-title"
+          className="bg-white py-5 sm:py-7"
+        >
+          <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
+            <div className="mb-3 flex items-center justify-between">
+              <h2
+                id="department-products-title"
+                className="text-sm font-bold tracking-tight text-[#172a33] sm:text-base"
+              >
+                {departmentName} Wear
+              </h2>
+              <Link
+                href={`/shop?category=${departmentName}&view=all`}
+                className="text-[10px] font-semibold text-[#172a33] transition hover:text-primary sm:text-xs"
+              >
+                View All →
+              </Link>
+            </div>
+
+            {isLoading ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:gap-4">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div
+                    key={index}
+                    className="aspect-[1.35] animate-pulse rounded-md bg-slate-100"
+                  />
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <p className="py-8 text-center text-xs text-slate-500">
+                No {departmentName} Wear products are available yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:gap-4">
+                {filteredProducts.slice(0, 4).map((product) => {
+                  const image = getProductImage(product);
+                  const price = getProductPrice(product);
+                  const onSale = price < product.price;
+
+                  return (
+                    <article
+                      key={product._id}
+                      className="group min-w-0 overflow-hidden rounded-md border border-[#e7edf1] bg-white"
+                    >
+                      <Link
+                        href={`/product/${product.slug}`}
+                        className="relative block aspect-[1.35] overflow-hidden bg-[#f3f4f5]"
+                      >
+                        <Image
+                          src={image}
+                          alt={product.name}
+                          fill
+                          sizes="(max-width: 639px) 50vw, 25vw"
+                          className="object-contain p-2 transition-transform duration-300 group-hover:scale-[1.04] sm:p-3"
+                        />
+                        {(onSale || product.newArrival) && (
+                          <span
+                            className={`absolute left-1.5 top-1.5 rounded-sm px-1.5 py-0.5 text-[8px] font-bold uppercase text-white sm:left-2 sm:top-2 ${
+                              onSale ? "bg-[#df2638]" : "bg-[#27975a]"
+                            }`}
+                          >
+                            {onSale ? "Sale" : "New"}
+                          </span>
+                        )}
+                      </Link>
+                      <div className="p-2 sm:p-2.5">
+                        <Link
+                          href={`/product/${product.slug}`}
+                          className="block truncate text-[10px] font-semibold text-[#263238] hover:text-primary sm:text-xs"
+                        >
+                          {product.name}
+                        </Link>
+                        <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[9px] sm:text-[10px]">
+                          <span className="font-bold text-[#172a33]">
+                            Rs. {price.toLocaleString()}
+                          </span>
+                          {onSale && (
+                            <span className="text-[8px] text-gray-400 line-through sm:text-[9px]">
+                              Rs. {product.price.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          aria-hidden="true"
+                          className="mt-1 flex gap-px text-[#f3aa21]"
+                        >
+                          {Array.from({ length: 5 }, (_, star) => (
+                            <Star
+                              key={star}
+                              size={10}
+                              fill="currentColor"
+                              strokeWidth={0}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={product.stock <= 0}
+                          onClick={() =>
+                            addToCart({
+                              _id: product._id,
+                              name: product.name,
+                              slug: product.slug,
+                              image,
+                              price,
+                              quantity: 1,
+                            })
+                          }
+                          className="mt-2 flex h-7 w-full items-center justify-center gap-1 rounded-sm bg-[#102d40] px-1 text-[8px] font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-[9px]"
+                        >
+                          <ShoppingCart size={11} />
+                          {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      ) : (
       <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {!isDepartmentProductListing && (
         <div className="mb-4 flex items-center justify-between lg:hidden">
           <p className="text-sm font-semibold">
             {filteredProducts.length} Products
@@ -358,10 +697,20 @@ function ShopContent({
             {showFilters ? "Hide filters" : "Filters"}
           </button>
         </div>
+        )}
 
-        <div className="grid gap-6 lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8">
+        <div
+          className={
+            isDepartmentProductListing
+              ? showFilters
+                ? "block space-y-4"
+                : "block"
+              : "grid gap-6 lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8"
+          }
+        >
+          {!isDepartmentProductListing && (
           <aside
-            className={`${showFilters ? "block" : "hidden"} space-y-5 lg:sticky lg:top-6 lg:block lg:self-start`}
+            className="hidden space-y-5 lg:sticky lg:top-6 lg:block lg:self-start"
           >
             <div className="border-b border-slate-200 pb-4">
               <h2 className="mb-3 text-sm font-bold">Categories</h2>
@@ -560,13 +909,36 @@ function ShopContent({
               </button>
             </div>
           </aside>
+          )}
 
           <section aria-label={`${heroTitle} products`} className="min-w-0">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold">
-                All Products <span className="text-slate-500">({filteredProducts.length})</span>
-              </p>
-              <label className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              {isDepartmentProductListing ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterSection("");
+                    setShowFilters(true);
+                  }}
+                  aria-expanded={showFilters}
+                  aria-controls="department-filter-drawer"
+                  className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#172a33] hover:text-primary"
+                >
+                  <SlidersHorizontal size={15} aria-hidden="true" />
+                  Filter
+                </button>
+              ) : (
+                <p className="text-sm font-semibold">
+                  All Products <span className="text-slate-500">({filteredProducts.length})</span>
+                </p>
+              )}
+              <div className="ml-auto flex flex-wrap items-center gap-3 sm:gap-5">
+                {isDepartmentProductListing && (
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-600 sm:text-xs">
+                    {filteredProducts.length} of {departmentProductsCount} products
+                  </p>
+                )}
+                <label className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-slate-600 sm:text-xs">
                 Sort by
                 <span className="relative">
                   <select
@@ -575,7 +947,7 @@ function ShopContent({
                       setSort(event.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none rounded-md border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none focus:border-[#2867b2]"
+                    className="appearance-none rounded-md border border-slate-300 bg-white py-2 pl-3 pr-8 text-[10px] font-medium uppercase text-slate-700 outline-none focus:border-[#2867b2] sm:text-xs"
                   >
                     <option value="latest">Newest First</option>
                     <option value="low">Price: Low to High</option>
@@ -585,16 +957,17 @@ function ShopContent({
                   <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" />
                 </span>
               </label>
+              </div>
             </div>
 
             {isLoading ? (
-              <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
+              <div className={`grid grid-cols-2 gap-3 sm:gap-5 ${isDepartmentProductListing ? "lg:grid-cols-4" : "xl:grid-cols-3"}`}>
                 {Array.from({ length: 6 }).map((_, index) => (
                   <div key={index} className="h-[300px] animate-pulse rounded-xl bg-white sm:h-[370px]" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
+              <div className={`grid grid-cols-2 gap-3 sm:gap-5 ${isDepartmentProductListing ? "lg:grid-cols-4" : "xl:grid-cols-3"}`}>
                 {paginatedProducts.length === 0 ? (
                   <div className="col-span-full rounded-xl border border-slate-200 bg-white px-5 py-16 text-center">
                     <h2 className="text-xl font-semibold text-slate-800">No products found</h2>
@@ -744,6 +1117,268 @@ function ShopContent({
           </section>
         </div>
       </div>
+      )}
+      {isDepartmentProductListing && showFilters && (
+        <div className="fixed inset-0 z-[1000]">
+          <button
+            type="button"
+            aria-label="Close filters"
+            onClick={() => setShowFilters(false)}
+            className="absolute inset-0 bg-black/30"
+          />
+          <section
+            id="department-filter-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="department-filter-title"
+            className="absolute inset-0 flex h-full w-full flex-col bg-white shadow-2xl sm:left-auto sm:w-[min(100%,560px)]"
+          >
+            <header className="flex h-14 shrink-0 items-center justify-center border-b border-[#e7e7e7]">
+              <h2
+                id="department-filter-title"
+                className="text-base font-semibold text-[#171717]"
+              >
+                Filter
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowFilters(false)}
+                aria-label="Close filters"
+                className="absolute right-4 top-3 flex size-8 items-center justify-center text-[#333] hover:text-black"
+              >
+                <X size={25} strokeWidth={1.4} />
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto">
+              {filterSection ? (
+                <div className="px-6 pt-5">
+                  <button
+                    type="button"
+                    onClick={() => setFilterSection("")}
+                    className="mb-5 inline-flex items-center gap-3 text-base text-[#242424]"
+                  >
+                    <ChevronRight
+                      size={21}
+                      className="rotate-180"
+                      aria-hidden="true"
+                    />
+                    {filterSection === "season"
+                      ? "Season"
+                      : filterSection === "fabric"
+                        ? "Fabric"
+                        : filterSection === "size"
+                          ? "Size"
+                          : "Price"}
+                  </button>
+
+                  {filterSection === "season" &&
+                    (seasonOptions.length ? (
+                      <div className="space-y-5">
+                        {seasonOptions.map((season) => {
+                          const count = departmentProducts.filter(
+                            (product) => product.season?.trim() === season
+                          ).length;
+                          return (
+                            <label
+                              key={season}
+                              className="flex cursor-pointer items-center gap-4 text-sm tracking-wide text-[#555]"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedSeasons.includes(season)}
+                                onChange={() => {
+                                  setSelectedSeasons((selected) =>
+                                    selected.includes(season)
+                                      ? selected.filter((item) => item !== season)
+                                      : [...selected, season]
+                                  );
+                                  setCurrentPage(1);
+                                }}
+                                className="size-5 accent-black"
+                              />
+                              <span>
+                                {season} ({count})
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        No season options yet. Add a season to {departmentName} products in
+                        admin.
+                      </p>
+                    ))}
+
+                  {filterSection === "fabric" &&
+                    (fabricOptions.length ? (
+                      <div className="max-h-[calc(100dvh-190px)] space-y-5 overflow-y-auto">
+                        {fabricOptions.map((fabric) => {
+                          const count = departmentProducts.filter(
+                            (product) => product.fabric?.trim() === fabric
+                          ).length;
+                          return (
+                            <label
+                              key={fabric}
+                              className="flex cursor-pointer items-center gap-4 text-sm uppercase tracking-wide text-[#555]"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedFabrics.includes(fabric)}
+                                onChange={() => {
+                                  setSelectedFabrics((selected) =>
+                                    selected.includes(fabric)
+                                      ? selected.filter((item) => item !== fabric)
+                                      : [...selected, fabric]
+                                  );
+                                  setCurrentPage(1);
+                                }}
+                                className="size-5 accent-black"
+                              />
+                              <span>
+                                {fabric} ({count})
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        No fabric options yet. Add a fabric to {departmentName} products in
+                        admin.
+                      </p>
+                    ))}
+
+                  {filterSection === "size" && (
+                    <div className="space-y-5">
+                      {sizeOptions.map((size) => {
+                        const count = departmentProducts.filter((product) =>
+                          product.sizes?.includes(size)
+                        ).length;
+                        return (
+                          <label
+                            key={size}
+                            className="flex cursor-pointer items-center gap-4 text-sm tracking-wide text-[#555]"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedSizes.includes(size)}
+                              onChange={() => {
+                                setSelectedSizes((selected) =>
+                                  selected.includes(size)
+                                    ? selected.filter((item) => item !== size)
+                                    : [...selected, size]
+                                );
+                                setCurrentPage(1);
+                              }}
+                              className="size-5 accent-black"
+                            />
+                            <span>
+                              {size} ({count})
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {filterSection === "price" && (
+                    <div className="pt-5">
+                      <p className="mb-8 text-sm tracking-wide text-[#555]">
+                        The highest price is Rs.{" "}
+                        {highestDepartmentPrice.toLocaleString()}
+                      </p>
+                      <div className="grid grid-cols-2">
+                        <label className="sr-only" htmlFor="girls-price-from">
+                          Price from
+                        </label>
+                        <input
+                          id="girls-price-from"
+                          type="number"
+                          min={0}
+                          max={priceRange}
+                          value={minimumPrice || ""}
+                          onChange={(event) => {
+                            setMinimumPrice(
+                              Math.max(0, Number(event.target.value) || 0)
+                            );
+                            setCurrentPage(1);
+                          }}
+                          placeholder="From"
+                          className="h-14 min-w-0 border border-r-0 border-[#777] px-4 text-base outline-none focus:border-black"
+                        />
+                        <label className="sr-only" htmlFor="girls-price-to">
+                          Price to
+                        </label>
+                        <input
+                          id="girls-price-to"
+                          type="number"
+                          min={minimumPrice}
+                          max={highestDepartmentPrice || undefined}
+                          value={priceRange >= 100000 ? "" : priceRange}
+                          onChange={(event) => {
+                            setPriceRange(
+                              Number(event.target.value) || highestDepartmentPrice
+                            );
+                            setCurrentPage(1);
+                          }}
+                          placeholder="To"
+                          className="h-14 min-w-0 border border-[#777] px-4 text-base outline-none focus:border-black"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <nav aria-label="Product filter categories" className="px-6 pt-8">
+                  {[
+                    { id: "season", title: "Season" },
+                    { id: "fabric", title: "Fabric" },
+                    { id: "size", title: "Size" },
+                    { id: "price", title: "Price" },
+                  ].map((section) => (
+                    <button
+                      key={section.id}
+                      type="button"
+                      onClick={() => setFilterSection(section.id)}
+                      className="flex min-h-[74px] w-full items-center justify-between text-left text-sm uppercase tracking-wide text-[#171717]"
+                    >
+                      {section.title}
+                      <ChevronRight size={21} strokeWidth={1.5} />
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </div>
+
+            <footer className="grid h-[88px] shrink-0 grid-cols-2 items-center gap-4 border-t border-[#e7e7e7] px-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSeasons([]);
+                  setSelectedFabrics([]);
+                  setSelectedSizes([]);
+                  setMinimumPrice(0);
+                  setPriceRange(Math.max(100000, highestDepartmentPrice));
+                  setCurrentPage(1);
+                  setFilterSection("");
+                }}
+                className="justify-self-center text-sm text-[#444] underline underline-offset-4"
+              >
+                Remove all
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilters(false)}
+                className="h-11 bg-[#111] text-sm font-medium text-white transition hover:bg-[#333]"
+              >
+                Apply
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

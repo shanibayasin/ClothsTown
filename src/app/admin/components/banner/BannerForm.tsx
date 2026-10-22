@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
+import { prepareImageForUpload } from "@/lib/image-upload";
 
 export interface Banner {
   _id?: string;
@@ -85,17 +86,21 @@ export default function BannerForm({
 
     setUploading(true);
     const formData = new FormData();
-    formData.append("file", file);
 
     try {
+      formData.append("file", await prepareImageForUpload(file));
       const res = await adminFetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
       if (res.status === 401) return;
-      if (!res.ok) throw new Error(`Image upload failed (${res.status}).`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || data.message || `Image upload failed (${res.status}).`);
+      }
       const data = await res.json();
+      if (!data?.url) throw new Error("The image upload response did not include an image URL.");
 
       setForm((prev) => ({
         ...prev,
@@ -103,8 +108,10 @@ export default function BannerForm({
       }));
     } catch (err) {
       console.error("Image uploading context error:", err);
+      alert(err instanceof Error ? err.message : "Image upload failed.");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   }
 

@@ -34,7 +34,7 @@ export default function ProductsPage() {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-3">
 
       <ProductForm
         editing={editing}

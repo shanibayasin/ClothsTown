@@ -2,7 +2,19 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import {
+  Check,
+  Image as ImageIcon,
+  Layers,
+  Package,
+  Ruler,
+  Settings2,
+  Shapes,
+  Tag,
+  UploadCloud,
+} from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
+import { prepareImageForUpload } from "@/lib/image-upload";
 
 interface Category {
   _id: string;
@@ -26,6 +38,8 @@ interface ProductFormState {
   slug: string;
   shortDescription: string;
   description: string;
+  season: string;
+  fabric: string;
   price: string;
   discountPrice: string;
   stock: string;
@@ -45,6 +59,8 @@ const initialState: ProductFormState = {
   slug: "",
   shortDescription: "",
   description: "",
+  season: "",
+  fabric: "",
   price: "",
   discountPrice: "",
   stock: "",
@@ -145,6 +161,8 @@ export default function ProductForm({
     if (editing) {
       setForm({
         ...editing,
+        season: editing.season || "",
+        fabric: editing.fabric || "",
         category: editing.category?._id || editing.category || "",
         collection: editing.collection?._id || editing.collection || "",
         price: String(editing.price || ""),
@@ -191,35 +209,35 @@ export default function ProductForm({
 
     try {
       for (const file of Array.from(files)) {
-        if (file.size > 5 * 1024 * 1024) {
-          alert(`${file.name} is larger than 5MB.`);
-          continue;
+        try {
+          const formData = new FormData();
+          formData.append("file", await prepareImageForUpload(file));
+
+          const res = await adminFetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (!res.ok) {
+            if (res.status === 401) return;
+            throw new Error(data.error || data.message || `Upload failed (${res.status}).`);
+          }
+          uploaded.push(data.url);
+        } catch (error) {
+          console.error(error);
+          alert(
+            `${file.name}: ${
+              error instanceof Error ? error.message : "Image upload failed."
+            }`
+          );
         }
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const res = await adminFetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          if (res.status === 401) return;
-          alert(data.message || `Upload failed (${res.status}).`);
-          continue;
-        }
-        uploaded.push(data.url);
       }
 
       setForm((prev) => ({
         ...prev,
         images: [...prev.images, ...uploaded],
       }));
-    } catch (error) {
-      console.error(error);
-      alert("Image upload failed.");
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -286,28 +304,50 @@ export default function ProductForm({
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 sm:space-y-8">
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 shadow-[0_4px_24px_rgba(15,23,42,0.04)] sm:space-y-6 sm:p-6 lg:p-8">
-        <div className="flex flex-col justify-between gap-4 rounded-2xl bg-[#142536] px-4 py-5 text-white sm:flex-row sm:items-center sm:px-6">
+    <div className="w-full">
+      <form onSubmit={handleSubmit} className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e9e5df] bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:px-5 lg:col-span-2">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">Product management</p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-white sm:text-2xl">
-              {editing ? "Edit Product Details" : "Add New Product"}
+            <p className="text-xs font-medium text-slate-500">Products / {editing ? "Edit product" : "New product"}</p>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-[#24211e] sm:text-2xl">
+              {editing ? "Edit Product" : "Add New Product"}
             </h2>
-            <p className="mt-1 text-xs text-slate-300 sm:text-sm">
-              Add product details, pricing, inventory, and images.
+            <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+              Create a new product and make it available in your store.
             </p>
           </div>
-          <span className="w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-slate-100">
-            {editing ? "Edit mode" : "New listing"}
-          </span>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Clear all entered information?")) {
+                  setForm(initialState);
+                }
+              }}
+              className="min-h-10 rounded-lg border border-[#e7e2dc] bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f8f6f3]"
+            >
+              Reset Form
+            </button>
+            <button
+              type="submit"
+              disabled={saving || uploading}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#33291f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#4a3b2e] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Check size={15} aria-hidden="true" />
+              {saving ? "Saving Product..." : editing ? "Update Product" : "Save Product"}
+            </button>
+          </div>
         </div>
 
+        <div className="min-w-0 space-y-3">
         {/* 📝 BASIC INFORMATION SECTION */}
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-[#142536] sm:text-lg">Basic Information</h3>
+        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
+            <Package size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
+            <div>
+            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Basic Information</h3>
             <p className="mt-1 text-xs text-slate-500">Product name and customer-facing descriptions</p>
+            </div>
           </div>
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
             <div>
@@ -375,10 +415,15 @@ export default function ProductForm({
         </div>
 
         {/* 📂 ORGANIZATION SECTION */}
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-[#142536] sm:text-lg">Organization</h3>
-            <p className="mt-1 text-xs text-slate-500">Choose where this product appears in your store</p>
+        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
+            <Shapes size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
+            <div>
+            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Organization</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Choose where this product appears. Season and Fabric values are used as storefront filter options.
+            </p>
+            </div>
           </div>
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
             <div>
@@ -409,14 +454,41 @@ export default function ProductForm({
                 ))}
               </select>
             </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Season</label>
+              <input
+                type="text"
+                name="season"
+                value={form.season}
+                onChange={handleChange}
+                placeholder="e.g., Winter"
+                maxLength={60}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Fabric</label>
+              <input
+                type="text"
+                name="fabric"
+                value={form.fabric}
+                onChange={handleChange}
+                placeholder="e.g., Cambric"
+                maxLength={60}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              />
+            </div>
           </div>
         </div>
 
         {/* 💰 PRICING & INVENTORY SECTION */}
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-[#142536] sm:text-lg">Pricing & Inventory</h3>
+        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
+            <Tag size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
+            <div>
+            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Pricing & Inventory</h3>
             <p className="mt-1 text-xs text-slate-500">Set your price, discount, available quantity, and SKU</p>
+            </div>
           </div>
           <div className="grid gap-4 sm:gap-5 md:grid-cols-3">
             <div>
@@ -467,10 +539,13 @@ export default function ProductForm({
         </div>
 
         {/* 📏 SIZES SECTION */}
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-[#142536] sm:text-lg">Available Sizes</h3>
+        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
+            <Ruler size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
+            <div>
+            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Sizes & Colors</h3>
             <p className="mt-1 text-xs text-slate-500">Select all sizes available for this product</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-3">
             {sizeOptions.map((sz) => (
@@ -488,45 +563,45 @@ export default function ProductForm({
               </button>
             ))}
           </div>
-        </div>
-
         {/* 🎨 COLOR SECTION */}
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-[#142536] sm:text-lg">Available Colors</h3>
-            <p className="mt-1 text-xs text-slate-500">Choose the color options customers can select</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-700">Available Colors</p>
+          <div className="flex flex-wrap gap-2">
             {colorOptions.map((clr) => (
               <button
                 type="button"
                 key={clr}
                 onClick={() => toggleArray("colors", clr)}
-                className={`rounded-xl px-5 py-2.5 text-xs font-medium transition ${
+                aria-pressed={form.colors.includes(clr)}
+                className={`rounded-xl px-3 py-2 text-xs font-medium transition ${
                   form.colors.includes(clr)
-                    ? "bg-heading text-white shadow-md"
-                    : "bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100"
+                    ? "border border-[#51483e] bg-[#f4f0eb] text-[#29231e]"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                 }`}
               >
                 {clr}
               </button>
             ))}
           </div>
+          </div>
         </div>
 
         {/* MEDIA MANAGEMENT */}
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-[#142536] sm:text-lg">Product Images</h3>
-            <p className="mt-1 text-xs text-slate-500">Upload clear product photos; the first image is the primary image</p>
+        <div className="space-y-3 rounded-xl border border-[#e9e5df] bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex items-start gap-2.5 border-b border-slate-100 pb-2.5">
+            <ImageIcon size={16} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
+            <div>
+            <h3 className="text-xs font-bold text-[#24211e] sm:text-sm">Product Images</h3>
+            <p className="mt-0.5 text-[11px] text-slate-500">Upload clear product photos; the first image is the primary image</p>
+            </div>
           </div>
           <label
             htmlFor="images"
-            className={`flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 px-4 py-8 text-center transition hover:border-primary hover:bg-[#fff8fa] sm:min-h-48 ${uploading ? "pointer-events-none opacity-60" : ""}`}
+            className={`flex h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-[#faf9f7] px-3 text-center transition hover:border-[#8a7966] hover:bg-[#f7f4f0] sm:h-28 ${uploading ? "pointer-events-none opacity-60" : ""}`}
           >
-            <span className="mb-3 flex size-12 items-center justify-center rounded-xl bg-white text-2xl shadow-sm">📷</span>
-            <h4 className="text-sm font-semibold text-[#142536] sm:text-base">{uploading ? "Uploading images..." : "Upload product images"}</h4>
-            <p className="mt-1 text-xs text-slate-500">JPG, PNG, or WEBP · Up to 5MB each</p>
+            <UploadCloud size={18} className="mb-1.5 text-[#655b50]" aria-hidden="true" />
+            <h4 className="text-[11px] font-semibold text-[#24211e]">{uploading ? "Uploading images..." : "Upload product images"}</h4>
+            <p className="mt-0.5 text-[10px] text-slate-500">JPG, PNG, or WEBP · Max 5MB each</p>
           </label>
           <input
             id="images"
@@ -545,27 +620,27 @@ export default function ProductForm({
           )}
 
           {form.images.length > 0 && (
-            <div className="mt-6">
-              <h4 className="mb-4 font-semibold text-sm text-gray-700">Uploaded Images ({form.images.length})</h4>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
+            <div className="mt-3">
+              <h4 className="mb-2 text-xs font-semibold text-gray-700">Uploaded Images ({form.images.length})</h4>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {form.images.map((img, index) => (
-                  <div key={img} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div key={img} className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white">
                     <Image
                       src={img}
                       alt="Preview"
                       width={400}
                       height={400}
                       unoptimized
-                      className="aspect-square h-auto w-full object-cover transition duration-500 group-hover:scale-105"
+                      className="aspect-square h-auto w-full object-cover transition duration-300 group-hover:scale-105"
                     />
-                    <div className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-[10px] font-bold text-white">
+                    <div className="absolute left-1.5 top-1.5 rounded-full bg-[#33291f] px-2 py-1 text-[9px] font-bold text-white">
                       {index === 0 ? "Primary" : `Image ${index + 1}`}
                     </div>
                     <button
                       type="button"
                       onClick={() => removeImage(img)}
                       aria-label={`Remove product image ${index + 1}`}
-                      className="absolute right-2 top-2 rounded-lg bg-[#142536]/90 px-2.5 py-1.5 text-[10px] font-semibold text-white opacity-100 transition hover:bg-[#6f1d46] sm:opacity-0 sm:group-hover:opacity-100"
+                      className="absolute right-1 top-1 rounded-md bg-black/75 px-2 py-1 text-[9px] font-semibold text-white opacity-100 transition hover:bg-black sm:opacity-0 sm:group-hover:opacity-100"
                     >
                       Delete
                     </button>
@@ -577,10 +652,13 @@ export default function ProductForm({
         </div>
 
         {/* ⚙️ SETTINGS SECTION */}
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-[#142536] sm:text-lg">Publishing Settings</h3>
+        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
+            <Settings2 size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
+            <div>
+            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Publishing Settings</h3>
             <p className="mt-1 text-xs text-slate-500">Control product visibility and homepage placement</p>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
@@ -598,118 +676,104 @@ export default function ProductForm({
           </div>
         </div>
 
-        {/* FORM ACTION CONTROL BUTTONS */}
-        <div className="sticky bottom-0 z-10 -mx-3 flex flex-col-reverse gap-2 border-t border-slate-200 bg-white/95 px-3 py-3 backdrop-blur sm:-mx-6 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 lg:-mx-8 lg:px-8">
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("Clear all entered information?")) {
-                setForm(initialState);
-              }
-            }}
-            className="min-h-11 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-primary hover:bg-slate-50 sm:min-w-32"
-          >
-            Reset Form
-          </button>
-
-          <button
-            type="submit"
-            disabled={saving || uploading}
-            className="min-h-11 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-primary-dark hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-44"
-          >
-            {saving ? "Saving Product..." : editing ? "Update Product" : "Save Product"}
-          </button>
         </div>
-      </form>
 
-      {/* --------------------------------- Product Preview Section */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-4 sm:px-6">
-          <h3 className="text-base font-bold text-[#142536] sm:text-lg">Live Product Preview</h3>
-          <p className="mt-1 text-xs text-slate-500">A preview of how this listing may appear in your store</p>
-        </div>
-        <div className="grid gap-5 p-4 sm:p-6 lg:grid-cols-2 lg:gap-8">
-          {/* Image Block */}
-          <div>
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-              <Image
-                src={form.images[0] || "https://placehold.co/700x900?text=No+Image"}
-                alt="Preview"
-                width={700}
-                height={900}
-                unoptimized
-                className="aspect-[4/5] max-h-[520px] w-full object-cover"
-              />
+        <aside className="space-y-3 lg:sticky lg:top-5">
+          <div className="overflow-hidden rounded-xl border border-[#e9e5df] bg-white p-3 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <ImageIcon size={15} className="text-[#51483e]" aria-hidden="true" />
+              <h3 className="text-xs font-bold text-[#24211e]">Live Product Preview</h3>
             </div>
-          </div>
-
-          {/* Content Details Block */}
-          <div>
-            <h2 className="text-2xl font-bold text-[#142536] sm:text-3xl">{form.name || "Product Name"}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{form.shortDescription || "Short description will appear here."}</p>
-            
-            <div className="mt-6 flex items-center gap-4">
-              {form.discountPrice ? (
-                <>
-                  <span className="text-3xl font-bold text-primary">Rs. {form.discountPrice}</span>
-                  <span className="text-xl text-gray-400 line-through">Rs. {form.price || 0}</span>
-                </>
+            <div className="relative overflow-hidden rounded-lg bg-[#f1efec]">
+              {form.images[0] ? (
+                <Image
+                  src={form.images[0]}
+                  alt="Preview"
+                  width={700}
+                  height={900}
+                  unoptimized
+                  className="aspect-[4/4.3] w-full object-cover"
+                />
               ) : (
-                <span className="text-3xl font-bold text-primary">Rs. {form.price || 0}</span>
-              )}
-            </div>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Category</p>
-                <p className="mt-2 text-sm font-semibold text-slate-800">
-                  {resolvedCategories.find((c) => c._id === form.category)?.name || "-"}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Collection</p>
-                <p className="mt-2 text-sm font-semibold text-slate-800">
-                  {resolvedCollections.find((c) => c._id === form.collection)?.title || "-"}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Stock</p>
-                <p className="mt-2 text-sm font-semibold text-slate-800">{form.stock || 0} Pieces</p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">SKU</p>
-                <p className="mt-2 break-all text-sm font-semibold text-slate-800">{form.sku || "-"}</p>
-              </div>
-            </div>
-
-            {/* Badges Layout Container */}
-            <div className="mt-8 flex flex-wrap gap-3">
-              {form.featured && (
-                <span className="rounded-full bg-[#fff6e5] px-3 py-1.5 text-xs font-semibold text-[#8a5b12]">
-                  ⭐ Featured
-                </span>
+                <div className="flex aspect-[4/4.3] flex-col items-center justify-center gap-2 text-slate-400">
+                  <ImageIcon size={24} aria-hidden="true" />
+                  <span className="text-[11px]">Product image preview</span>
+                </div>
               )}
               {form.newArrival && (
-                <span className="rounded-full bg-[#f8edf2] px-3 py-1.5 text-xs font-semibold text-[#6f1d46]">
-                  🆕 New Arrival
-                </span>
-              )}
-              {form.status ? (
-                <span className="rounded-full bg-[#edf3f8] px-3 py-1.5 text-xs font-semibold text-[#142536]">
-                  ✔ Active
-                </span>
-              ) : (
-                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
-                  Inactive
+                <span className="absolute left-2 top-2 rounded-full bg-[#51483e] px-2.5 py-1 text-[10px] font-semibold text-white">
+                  New
                 </span>
               )}
             </div>
+            <div className="px-0.5 pt-3">
+              <h4 className="truncate text-sm font-bold text-[#24211e]">{form.name || "Product Name"}</h4>
+              <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-4 text-slate-500">
+                {form.shortDescription || "Your product description will appear here."}
+              </p>
+              <p className="mt-2 text-base font-bold text-[#33291f]">
+                Rs. {form.discountPrice || form.price || 0}
+                {form.discountPrice && (
+                  <span className="ml-2 text-xs font-normal text-slate-400 line-through">
+                    Rs. {form.price || 0}
+                  </span>
+                )}
+              </p>
+              <div className="mt-2 flex items-center gap-1 text-[11px] text-[#8a6b36]">
+                <span aria-hidden="true">★</span>
+                <span className="text-slate-500">0.0 (0 reviews)</span>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-[#eeeae4] p-2">
+                <p className="text-[10px] text-slate-500">Category</p>
+                <p className="mt-1 truncate text-[11px] font-semibold text-slate-700">
+                  {resolvedCategories.find((c) => c._id === form.category)?.name || "—"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-[#eeeae4] p-2">
+                <p className="text-[10px] text-slate-500">Collection</p>
+                <p className="mt-1 truncate text-[11px] font-semibold text-slate-700">
+                  {resolvedCollections.find((c) => c._id === form.collection)?.title || "—"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-[#eeeae4] p-2">
+                <p className="text-[10px] text-slate-500">Colors</p>
+                <p className="mt-1 truncate text-[11px] font-semibold text-slate-700">
+                  {form.colors.length ? form.colors.join(", ") : "—"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-[#eeeae4] p-2">
+                <p className="text-[10px] text-slate-500">Sizes</p>
+                <p className="mt-1 truncate text-[11px] font-semibold text-slate-700">
+                  {form.sizes.length ? form.sizes.join(", ") : "—"}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+
+          <div className="rounded-xl border border-[#e9e5df] bg-white p-3 shadow-sm">
+            <h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-[#24211e]">
+              <Layers size={14} aria-hidden="true" />
+              Quick Tips
+            </h3>
+            <ul className="space-y-2 text-[11px] leading-4 text-slate-600">
+              {[
+                "Use high-quality images (at least 5).",
+                "Keep product name short and clear.",
+                "Write a detailed description.",
+                "Set accurate price and stock.",
+                "Use relevant categories and collections.",
+              ].map((tip) => (
+                <li key={tip} className="flex gap-2">
+                  <Check size={13} className="mt-0.5 shrink-0 text-[#54745d]" aria-hidden="true" />
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </form>
     </div>
   );
 }

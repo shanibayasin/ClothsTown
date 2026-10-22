@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
 const CategorySchema = new Schema(
   {
@@ -20,6 +20,20 @@ const CategorySchema = new Schema(
       default: "",
     },
 
+    sectionTiles: {
+      type: [
+        new Schema(
+          {
+            title: { type: String, required: true, trim: true },
+            image: { type: String, required: true },
+            category: { type: String, default: "", trim: true },
+          },
+          { _id: false }
+        ),
+      ],
+      default: [],
+    },
+
     status: {
       type: Boolean,
       default: true,
@@ -30,4 +44,12 @@ const CategorySchema = new Schema(
   }
 );
 
-export default models.Category || model("Category", CategorySchema);
+const CategoryModel = models.Category || model("Category", CategorySchema);
+
+if (!CategoryModel.schema.path("sectionTiles")) {
+  CategoryModel.schema.add({
+    sectionTiles: CategorySchema.obj.sectionTiles,
+  });
+}
+
+export default CategoryModel;

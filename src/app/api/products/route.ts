@@ -55,6 +55,8 @@ export async function POST(req: Request) {
 
       shortDescription: body.shortDescription,
       description: body.description,
+      season: body.season,
+      fabric: body.fabric,
 
       price: body.price,
       discountPrice: body.discountPrice,

@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
 export async function POST(request: Request) {
   const unauthorized = requireAdmin(request);
   if (unauthorized) return unauthorized;
@@ -11,12 +13,26 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
 
-    const file = formData.get("file") as File;
+    const file = formData.get("file");
 
-    if (!file) {
+    if (!(file instanceof File) || file.size === 0) {
       return NextResponse.json(
         { error: "No file uploaded" },
         { status: 400 }
+      );
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json(
+        { error: "Please upload an image file." },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { error: "Image is too large. Please choose a smaller image." },
+        { status: 413 }
       );
     }
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { adminFetch } from "@/lib/admin-fetch";
+import { prepareImageForUpload } from "@/lib/image-upload";
 
 interface Category {
   _id: string;
@@ -64,7 +65,7 @@ export default function CategoryForm({
 
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", await prepareImageForUpload(file));
 
       const res = await adminFetch("/api/upload", {
         method: "POST",
@@ -72,7 +73,10 @@ export default function CategoryForm({
       });
 
       if (res.status === 401) return;
-      if (!res.ok) throw new Error(`Image upload failed (${res.status}).`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || data.message || `Image upload failed (${res.status}).`);
+      }
 
       const text = await res.text();
       const data = text ? JSON.parse(text) : null;
@@ -90,6 +94,7 @@ export default function CategoryForm({
       alert(error instanceof Error ? error.message : "Image upload failed.");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   }
 

@@ -5,6 +5,7 @@ import Image from "next/image";
 import slugify from "slugify";
 import { X, Upload, Loader2, FolderPlus, Edit3 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
+import { prepareImageForUpload } from "@/lib/image-upload";
 
 interface Collection {
   _id?: string;
@@ -83,16 +84,19 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
 
     setUploading(true);
     const formData = new FormData();
-    formData.append("file", file);
 
     try {
+      formData.append("file", await prepareImageForUpload(file));
       const res = await adminFetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
       if (res.status === 401) return;
-      if (!res.ok) throw new Error(`Upload failed (${res.status}).`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || data.message || `Upload failed (${res.status}).`);
+      }
 
       const data = await res.json();
       
@@ -106,9 +110,10 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
       }
     } catch (error) {
       console.error(error);
-      alert("Image upload failed. Please check your backend /api/upload route.");
+      alert(error instanceof Error ? error.message : "Image upload failed.");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   }
 

@@ -23,6 +23,17 @@ type Collection = {
   slug: string;
 };
 
+type DepartmentCategory = {
+  title: string;
+  category: string;
+};
+
+type StoreCategory = {
+  name: string;
+  slug?: string;
+  sectionTiles?: DepartmentCategory[];
+};
+
 export default function Navbar() {
   const pathname = usePathname() || "";
   const isAccountPage = pathname === "/login" || pathname === "/register";
@@ -32,11 +43,16 @@ export default function Navbar() {
   const { wishlistCount } = useWishlist();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedDepartment, setExpandedDepartment] = useState("");
+  const [showDepartmentMenu, setShowDepartmentMenu] = useState("");
   const [showCollectionMenu, setShowCollectionMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const currentYear = new Date().getFullYear();
   
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [departmentCategories, setDepartmentCategories] = useState<
+    Record<string, DepartmentCategory[]>
+  >({});
 
   // Derive structural dynamic item count safely from raw elements array matrix
   const totalCartItems = useMemo(() => {
@@ -58,7 +74,35 @@ export default function Navbar() {
       }
     }
 
+    async function loadDepartmentCategories() {
+      try {
+        const response = await fetch("/api/categories", { cache: "no-store" });
+        const categories = await readJsonResponse<StoreCategory[]>(response, []);
+        const sections: Record<string, DepartmentCategory[]> = {};
+        for (const sectionName of ["Girls", "Women"]) {
+          const sectionPattern =
+            sectionName === "Girls" ? /\bgirls?\b/ : /\bwomen\b|womens/;
+          const sectionCategories = categories.filter((category) =>
+            sectionPattern.test(
+              `${category.name.trim().toLowerCase()} ${category.slug?.trim().toLowerCase() ?? ""}`
+            )
+          );
+          const sectionCategory =
+            sectionCategories.find(
+              (category) => (category.sectionTiles?.length ?? 0) > 0
+            ) ?? sectionCategories[0];
+          sections[sectionName] = (sectionCategory?.sectionTiles ?? []).filter(
+            (tile) => tile.title?.trim() && tile.category?.trim()
+          );
+        }
+        setDepartmentCategories(sections);
+      } catch (error) {
+        console.error("Department categories fetch error:", error);
+      }
+    }
+
     loadCollections();
+    loadDepartmentCategories();
     window.addEventListener("scroll", handleScroll);
 
     return () => {
@@ -228,6 +272,61 @@ export default function Navbar() {
                 );
               }
 
+              if (link.name === "Girls" || link.name === "Women") {
+                const sectionName = link.name;
+                const menuOpen = showDepartmentMenu === sectionName;
+                return (
+                  <div
+                    key={link.name}
+                    className="relative flex h-full items-center"
+                    onMouseEnter={() => setShowDepartmentMenu(sectionName)}
+                    onMouseLeave={() => setShowDepartmentMenu("")}
+                    onFocus={() => setShowDepartmentMenu(sectionName)}
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                        setShowDepartmentMenu("");
+                      }
+                    }}
+                  >
+                    <Link
+                      href={link.href}
+                      aria-haspopup="true"
+                      aria-expanded={menuOpen}
+                      className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
+                    >
+                      {sectionName}
+                      <ChevronDown size={14} strokeWidth={2.2} />
+                      {active && (
+                        <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[#102633] lg:bottom-[7px]" />
+                      )}
+                    </Link>
+                    {menuOpen && (
+                      <div className="absolute left-0 top-full z-50 w-64 rounded-b-xl border border-gray-200 bg-white py-2 shadow-xl">
+                        <Link
+                          href={`/shop?category=${sectionName}`}
+                          onClick={() => setShowDepartmentMenu("")}
+                          className="block border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-[#172a33] transition hover:bg-gray-50 hover:text-primary"
+                        >
+                          All {sectionName} Wear
+                        </Link>
+                        <div className="max-h-72 overflow-y-auto py-1">
+                          {(departmentCategories[sectionName] ?? []).map((category, index) => (
+                            <Link
+                              key={`${category.category}-${index}`}
+                              href={`/shop?category=${encodeURIComponent(category.category)}`}
+                              onClick={() => setShowDepartmentMenu("")}
+                              className="block px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50 hover:text-primary"
+                            >
+                              {category.title}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
                 <Link
                   key={link.name}
@@ -275,6 +374,54 @@ export default function Navbar() {
                     link.href === "/"
                       ? pathname === "/"
                       : pathname === link.href || pathname.startsWith(link.href + "/");
+
+                  if (link.name === "Girls" || link.name === "Women") {
+                    const sectionName = link.name;
+                    const menuExpanded = expandedDepartment === sectionName;
+                    return (
+                      <div key={link.name} className="border-b">
+                        <button
+                          type="button"
+                          aria-expanded={menuExpanded}
+                          onClick={() => setExpandedDepartment(menuExpanded ? "" : sectionName)}
+                          className={`flex w-full items-center justify-between py-4 text-left text-base transition-colors ${
+                            active || menuExpanded
+                              ? "font-semibold text-primary"
+                              : "text-gray-700 hover:text-primary"
+                          }`}
+                        >
+                          <span>{sectionName}</span>
+                          <ChevronDown
+                            size={17}
+                            className={`transition-transform ${
+                              menuExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                        {menuExpanded && (
+                          <div className="mb-3 ml-3 border-l border-[#e5e7eb] pl-4">
+                            <Link
+                              href={`/shop?category=${sectionName}`}
+                              onClick={() => setIsOpen(false)}
+                              className="block py-2 text-sm font-medium text-[#172a33] hover:text-primary"
+                            >
+                              All {sectionName} Wear
+                            </Link>
+                            {(departmentCategories[sectionName] ?? []).map((category, index) => (
+                              <Link
+                                key={`${category.category}-${index}`}
+                                href={`/shop?category=${encodeURIComponent(category.category)}`}
+                                onClick={() => setIsOpen(false)}
+                                className="block py-2 text-sm text-gray-600 hover:text-primary"
+                              >
+                                {category.title}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
 
                   return (
                     <Link

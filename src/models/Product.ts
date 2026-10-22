@@ -23,6 +23,18 @@ const ProductSchema = new Schema(
       default: "",
     },
 
+    season: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    fabric: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     price: {
       type: Number,
       required: true,
@@ -93,4 +105,13 @@ const ProductSchema = new Schema(
   }
 );
 
-export default models.Product || model("Product", ProductSchema);
+const ProductModel = models.Product || model("Product", ProductSchema);
+
+if (!ProductModel.schema.path("season")) {
+  ProductModel.schema.add({
+    season: ProductSchema.obj.season,
+    fabric: ProductSchema.obj.fabric,
+  });
+}
+
+export default ProductModel;
