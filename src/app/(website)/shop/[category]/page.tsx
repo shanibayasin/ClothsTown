@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
-import { getActiveProductFilter } from "@/lib/products";
+import { getActiveProductFilter, getOnSaleProductFilter } from "@/lib/products";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
 import ProductCard, { type StoreProductCardData } from "@/app/components/product/ProductCard";
+import UrlProductFilters from "@/app/components/shop/UrlProductFilters";
+import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
+import { EMPTY_PRODUCT_FILTERS } from "@/app/components/shop/ProductFilterDrawer";
+import CategoryPageBanner from "@/app/components/shop/CategoryPageBanner";
 
 const CATEGORY_NAMES: Record<string, RegExp> = {
   men: /^(men(?:'s|s)?(?:\s*(?:wear|clothing))?|menswear)$/i,
@@ -21,6 +25,9 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function values(value: string | string[] | undefined) {
+  return (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
+}
 function pageHref(
   category: string,
   searchParams: Record<string, string | string[] | undefined>,
@@ -45,28 +52,36 @@ export default async function StoreCategoryPage({
 }) {
   const [{ category: categoryParam }, query] = await Promise.all([params, searchParams]);
   const categorySlug = categoryParam.toLowerCase();
-  const categoryPattern = CATEGORY_NAMES[categorySlug];
-  if (!categoryPattern) notFound();
-
   await connectDB();
-  const matchingCategories = await Category.find({
+  const category =
+    await Category.findOne({ slug: categorySlug, status: true }).lean() ??
+    (CATEGORY_NAMES[categorySlug]
+      ? await Category.findOne({
+          status: true,
+          name: { $regex: CATEGORY_NAMES[categorySlug] },
+        }).lean()
+      : null);
+  if (!category) notFound();
+  const departmentSubcategories = await Category.find({
     status: true,
-    $or: [
-      { slug: categorySlug },
-      { name: { $regex: categoryPattern } },
-    ],
+    parentCategory: category._id,
   })
     .sort({ name: 1 })
+    .select("_id name slug")
     .lean();
-  const category =
-    matchingCategories.find(
-      (item) =>
-        item.slug?.toLowerCase() === categorySlug ||
-        item.name?.trim().toLowerCase() === categorySlug
-    ) ?? matchingCategories[0];
-  if (!category) notFound();
-
-  const filter: Record<string, unknown> = { category: category._id };
+  const categoryIds = [category._id, ...departmentSubcategories.map((item) => item._id)];
+  const selectedSubcategories = values(query.subcategory);
+  const filter: Record<string, unknown> = {
+    category: selectedSubcategories.length
+      ? {
+          $in: departmentSubcategories
+            .filter((item) => selectedSubcategories.includes(item.slug))
+            .map((item) => item._id),
+        }
+      : categoryIds.length > 1
+        ? { $in: categoryIds }
+        : categoryIds[0],
+  };
   const minimumPrice = Number(first(query.minPrice));
   const maximumPrice = Number(first(query.maxPrice));
   if (Number.isFinite(minimumPrice) && minimumPrice > 0) {
@@ -77,8 +92,27 @@ export default async function StoreCategoryPage({
   }
   const size = first(query.size);
   const color = first(query.color);
-  if (size) filter.sizes = size;
-  if (color) filter.colors = color;
+  const brand = first(query.brand);
+  const fabric = first(query.fabric);
+  const selectedSizes = values(query.size);
+  const selectedColors = values(query.color);
+  const selectedBrands = values(query.brand);
+  const selectedFabrics = values(query.fabric);
+  const productType = first(query.productType);
+  const selectedProductTypes = values(query.productType);
+  const sale = first(query.sale) === "true";
+  const available = first(query.available) === "true";
+  if (selectedSizes.length) filter.sizes = { $in: selectedSizes };
+  if (selectedColors.length) filter.colors = { $in: selectedColors };
+  if (selectedBrands.length) filter.brand = { $in: selectedBrands };
+  if (selectedFabrics.length) filter.fabric = { $in: selectedFabrics };
+  if (selectedProductTypes.length) {
+    filter.productType = { $in: selectedProductTypes };
+  }
+  if (sale) {
+    filter.$and = [getOnSaleProductFilter()];
+  }
+  if (available) filter.stock = { $gt: 0 };
 
   const sort = first(query.sort) ?? "newest";
   const sortOrder: Record<string, 1 | -1> =
@@ -87,11 +121,18 @@ export default async function StoreCategoryPage({
         sort === "name" ? { name: 1 } : { createdAt: -1 };
   const page = Math.max(1, Number.parseInt(first(query.page) ?? "1", 10) || 1);
   const activeFilter = getActiveProductFilter(filter);
-  const [total, sizes, colors, categoryCount] = await Promise.all([
+  const [total, sizes, colors, brands, fabrics, productTypes, categoryCount, highestPrice] = await Promise.all([
     Product.countDocuments(activeFilter),
-    Product.distinct("sizes", getActiveProductFilter({ category: category._id })),
-    Product.distinct("colors", getActiveProductFilter({ category: category._id })),
-    Product.countDocuments(getActiveProductFilter({ category: category._id })),
+    Product.distinct("sizes", getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.distinct("colors", getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.distinct("brand", getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.distinct("fabric", getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.distinct("productType", getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.countDocuments(getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.findOne(getActiveProductFilter({ category: { $in: categoryIds } }))
+      .sort({ price: -1 })
+      .select("price")
+      .lean(),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -108,15 +149,72 @@ export default async function StoreCategoryPage({
         <span className="mx-2">/</span>
         <Link href="/shop" className="hover:text-slate-900">Shop</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium capitalize text-slate-700">{categorySlug}</span>
+        <span className="font-medium text-slate-700">{category.name}</span>
       </nav>
-      <header className="mb-6 rounded-xl bg-[#f7f5f2] px-5 py-7 sm:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7b654b]">ClothesTown collection</p>
-        <h1 className="mt-2 text-3xl font-bold capitalize text-[#173246] sm:text-4xl">{category.name}</h1>
-        <p className="mt-2 text-sm text-slate-600">{categoryCount} available products</p>
-      </header>
+      <CategoryPageBanner
+        name={category.name}
+        image={category.bannerImage || category.image}
+        title={category.bannerTitle}
+        description={category.bannerDescription}
+        position={category.bannerPosition}
+      />
+      <p className="-mt-4 mb-6 text-sm text-slate-600">{categoryCount} available products</p>
 
-      <form method="get" className="mb-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
+      {departmentSubcategories.length > 0 && (
+        <nav aria-label={`${category.name} subcategories`} className="mb-6 flex flex-wrap gap-2">
+          {departmentSubcategories.map((subcategory) => (
+            <Link
+              key={subcategory._id.toString()}
+              href={`/shop/${category.slug}/${subcategory.slug}`}
+              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-[#173246] hover:text-[#173246]"
+            >
+              {subcategory.name}
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <UrlProductFilters
+          options={{
+            category: departmentSubcategories.map((item) => ({
+              value: item.slug,
+              label: item.name,
+            })),
+            size: sizes.filter((item): item is string => typeof item === "string").map((value) => ({ value, label: value })),
+            color: colors.filter((item): item is string => typeof item === "string").map((value) => ({ value, label: value })),
+            brand: brands.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
+            productType: productTypes.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
+            fabric: fabrics.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
+          }}
+          value={{
+            ...EMPTY_PRODUCT_FILTERS,
+            category: selectedSubcategories,
+            size: selectedSizes,
+            color: selectedColors,
+            brand: selectedBrands,
+            productType: selectedProductTypes,
+            fabric: selectedFabrics,
+            minPrice: Number(first(query.minPrice)) || 0,
+            maxPrice: Number(first(query.maxPrice)) || 0,
+            availability: available,
+            onSale: sale,
+          }}
+          priceCeiling={Math.max(1, Number(highestPrice?.price) || 100000)}
+          showCategory={departmentSubcategories.length > 0}
+        />
+        <ProductSortSelect
+          value={sort}
+          options={[
+            ["newest", "Newest"],
+            ["price-low", "Price: low to high"],
+            ["price-high", "Price: high to low"],
+            ["name", "Name"],
+          ]}
+        />
+      </div>
+
+      <form method="get" className="hidden">
         <label className="text-xs font-medium text-slate-600">
           Minimum price
           <input type="number" name="minPrice" min="0" defaultValue={first(query.minPrice)} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
@@ -139,6 +237,39 @@ export default async function StoreCategoryPage({
             {colors.filter((item): item is string => typeof item === "string").sort().map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
+        {categorySlug === "men" && (
+          <>
+            <label className="text-xs font-medium text-slate-600">
+              Brand
+              <select name="brand" defaultValue={brand ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+                <option value="">Any brand</option>
+                {brands.filter((item): item is string => typeof item === "string" && item.length > 0).sort().map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Fabric / material
+              <select name="fabric" defaultValue={fabric ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+                <option value="">Any fabric</option>
+                {fabrics.filter((item): item is string => typeof item === "string" && item.length > 0).sort().map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Product type
+              <select name="productType" defaultValue={productType ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+                <option value="">Any type</option>
+                {productTypes.filter((item): item is string => typeof item === "string" && item.length > 0).sort().map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 self-end pb-2 text-xs font-medium text-slate-600">
+              <input type="checkbox" name="sale" value="true" defaultChecked={sale} />
+              Sale items only
+            </label>
+            <label className="flex items-center gap-2 self-end pb-2 text-xs font-medium text-slate-600">
+              <input type="checkbox" name="available" value="true" defaultChecked={available} />
+              In stock only
+            </label>
+          </>
+        )}
         <label className="text-xs font-medium text-slate-600">
           Sort
           <select name="sort" defaultValue={sort} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">

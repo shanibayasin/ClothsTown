@@ -10,7 +10,12 @@ interface Category {
   name: string;
   slug: string;
   image: string;
+  bannerImage?: string;
+  bannerTitle?: string;
+  bannerDescription?: string;
+  bannerPosition?: "left" | "center" | "right";
   status: boolean;
+  parentCategory?: string | null;
 }
 
 export default function CategoriesPage() {

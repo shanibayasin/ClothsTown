@@ -9,7 +9,12 @@ interface Category {
   name: string;
   slug: string;
   image: string;
+  bannerImage?: string;
+  bannerTitle?: string;
+  bannerDescription?: string;
+  bannerPosition?: "left" | "center" | "right";
   status: boolean;
+  parentCategory?: string | null;
 }
 
 interface Props {
@@ -96,6 +101,8 @@ export default function CategoryTable({
         .includes(search.toLowerCase())
     );
   }, [categories, search]);
+  const parentName = (category: Category) =>
+    categories.find((parent) => parent._id === category.parentCategory)?.name;
 
   return (
     <div className="rounded-2xl bg-white shadow">
@@ -153,7 +160,15 @@ export default function CategoryTable({
               </th>
 
               <th className="p-4 text-left">
+                Parent
+              </th>
+
+              <th className="p-4 text-left">
                 Slug
+              </th>
+
+              <th className="p-4 text-left">
+                Page Banner
               </th>
 
               <th className="p-4 text-left">
@@ -175,7 +190,7 @@ export default function CategoryTable({
               <tr>
 
                 <td
-                  colSpan={5}
+                  colSpan={7}
                   className="p-10 text-center"
                 >
                   Loading...
@@ -187,7 +202,7 @@ export default function CategoryTable({
 
             {!loading && loadError && (
               <tr>
-                <td colSpan={5} className="p-10 text-center text-red-700">
+                <td colSpan={7} className="p-10 text-center text-red-700">
                   {loadError}
                 </td>
               </tr>
@@ -200,7 +215,7 @@ export default function CategoryTable({
                 <tr>
 
                   <td
-                    colSpan={5}
+                    colSpan={7}
                     className="p-10 text-center text-gray-500"
                   >
                     No Categories Found
@@ -235,11 +250,23 @@ export default function CategoryTable({
                   </td>
 
                   <td className="p-4 font-medium">
-                    {item.name}
+                    {parentName(item) ? <span className="pl-4">↳ {item.name}</span> : item.name}
+                  </td>
+
+                  <td className="p-4 text-gray-500">
+                    {parentName(item) ?? "Top-level"}
                   </td>
 
                   <td className="p-4 text-gray-500">
                     {item.slug}
+                  </td>
+
+                  <td className="p-4 text-xs text-gray-500">
+                    {item.bannerImage ? (
+                      <span className="font-medium text-green-700">Configured</span>
+                    ) : (
+                      "Not set"
+                    )}
                   </td>
 
                   <td className="p-4">

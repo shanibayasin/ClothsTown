@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -9,6 +9,7 @@ import {
   Search,
   Eye,
   Copy,
+  Image as ImageIcon,
 } from "lucide-react";
 
 interface Collection {
@@ -37,31 +38,44 @@ export default function CollectionTable({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCollections();
-  }, [refresh]);
-
-  async function fetchCollections() {
-    setLoading(true);
-
+  const loadCollections = useCallback(async () => {
     const res = await fetch("/api/collections", {
       cache: "no-store",
     });
+    if (!res.ok) throw new Error(`Failed to fetch collections (${res.status}).`);
 
-    const data = await res.json();
+    return (await res.json()) as Collection[];
+  }, []);
 
-    setCollections(data);
-    setLoading(false);
-  }
+  useEffect(() => {
+    let active = true;
+    loadCollections()
+      .then((data) => {
+        if (!active) return;
+        setCollections(data);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load collections:", error);
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [loadCollections, refresh]);
 
   async function deleteCollection(id: string) {
     if (!window.confirm("Delete this collection?")) return;
 
-    await fetch(`/api/collections/${id}`, {
+    const response = await fetch(`/api/collections/${id}`, {
       method: "DELETE",
     });
+    if (!response.ok) {
+      throw new Error(`Failed to delete collection (${response.status}).`);
+    }
 
-    fetchCollections();
+    setCollections(await loadCollections());
   }
 
   async function copySlug(slug: string) {
@@ -195,15 +209,17 @@ export default function CollectionTable({
 
                   <td className="p-4">
 
-                    <div className="relative h-16 w-16 overflow-hidden rounded-xl">
-
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                      />
-
+                    <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-slate-400">
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <ImageIcon size={22} aria-label="No collection image uploaded" />
+                      )}
                     </div>
 
                   </td>

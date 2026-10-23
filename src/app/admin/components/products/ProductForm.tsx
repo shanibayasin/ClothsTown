@@ -15,11 +15,16 @@ import {
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
 import { prepareImageForUpload } from "@/lib/image-upload";
+import {
+  createProductSlug,
+  getCanonicalProductFields,
+} from "@/lib/products";
 import type { AdminProduct } from "./ProductTable";
 
 interface Category {
   _id: string;
   name: string;
+  parentCategory?: string | null;
 }
 
 interface Collection {
@@ -43,6 +48,10 @@ interface ProductFormState {
   description: string;
   season: string;
   fabric: string;
+  brand: string;
+  productType: string;
+  fragranceType: string;
+  bottleSize: string;
   price: string;
   discountPrice: string;
   stock: string;
@@ -66,6 +75,10 @@ const initialState: ProductFormState = {
   description: "",
   season: "",
   fabric: "",
+  brand: "",
+  productType: "",
+  fragranceType: "",
+  bottleSize: "",
   price: "",
   discountPrice: "",
   stock: "",
@@ -95,6 +108,8 @@ function createFormState(
     };
   }
 
+  const productFields = getCanonicalProductFields(editing);
+
   return {
     ...initialState,
     name: editing.name ?? "",
@@ -103,6 +118,10 @@ function createFormState(
     description: editing.description ?? "",
     season: editing.season ?? "",
     fabric: editing.fabric ?? "",
+    brand: editing.brand ?? "",
+    productType: editing.productType ?? "",
+    fragranceType: editing.fragranceType ?? "",
+    bottleSize: editing.bottleSize ?? "",
     price: String(editing.price ?? ""),
     discountPrice: String(editing.discountPrice ?? ""),
     stock: String(editing.stock ?? ""),
@@ -111,49 +130,24 @@ function createFormState(
       typeof editing.category === "object"
         ? editing.category?._id ?? ""
         : editing.category ?? "",
-    collections: Array.from(
-      new Set([
-        ...(editing.collections ?? []).map((collection) =>
-          typeof collection === "string" ? collection : collection._id
-        ),
-        ...(editing.collection
-          ? [
-              typeof editing.collection === "string"
-                ? editing.collection
-                : editing.collection._id,
-            ]
-          : []),
-      ])
-    ),
+    collections: productFields.collectionIds,
     images: editing.images ?? [],
     sizes: editing.sizes ?? [],
     colors: editing.colors ?? [],
-    featured: editing.featured ?? editing.isFeatured ?? false,
+    featured: productFields.featured,
     onSale:
       editing.onSale === true ||
       (editing.onSale === undefined &&
         Number(editing.discountPrice) > 0 &&
         Number(editing.discountPrice) < Number(editing.price)),
-    newArrival: forceNewArrival || editing.newArrival === true || editing.isNewArrival === true,
-    status:
-      editing.publicationStatus === "active" ||
-      (editing.publicationStatus === undefined && editing.status !== false),
-    publicationStatus:
-      editing.publicationStatus ??
-      (editing.status === false ? "inactive" : "active"),
+    newArrival: forceNewArrival || productFields.newArrival,
+    status: productFields.publicationStatus === "active",
+    publicationStatus: productFields.publicationStatus,
   };
 }
 
 const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL"];
 const colorOptions = ["Black", "White", "Brown", "Beige", "Navy", "Grey", "Olive", "Maroon"];
-
-function createSlug(text: string) {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w-]+/g, "");
-}
 
 export default function ProductForm({
   editing,
@@ -438,12 +432,12 @@ export default function ProductForm({
 
         <div className="min-w-0 space-y-3">
         {/* 📝 BASIC INFORMATION SECTION */}
-        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+        <div className="order-1 space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
             <Package size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
             <div>
             <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Basic Information</h3>
-            <p className="mt-1 text-xs text-slate-500">Product name and customer-facing descriptions</p>
+            <p className="mt-1 text-xs text-slate-500">Start with the details needed to publish this product.</p>
             </div>
           </div>
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
@@ -458,70 +452,13 @@ export default function ProductForm({
                   setForm({
                     ...form,
                     name: value,
-                    slug: createSlug(value),
+                    slug: createProductSlug(value),
                   });
                 }}
                 placeholder="e.g., Classic Winter Coat"
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
               />
             </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Slug URL Path</label>
-              <input
-                type="text"
-                name="slug"
-                value={form.slug}
-                onChange={handleChange}
-                placeholder="classic-winter-coat"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-500 outline-none sm:text-sm"
-                readOnly
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Short Description</label>
-              <input
-                type="text"
-                name="shortDescription"
-                value={form.shortDescription}
-                onChange={handleChange}
-                maxLength={160}
-                placeholder="Brief line about the fabric or cut..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
-              />
-              <div className="mt-2 text-right text-xs text-gray-400">
-                {form.shortDescription.length}/160 Characters
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Detailed Description</label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                maxLength={1000}
-                rows={4}
-                placeholder="Describe the product material, design, care instructions..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
-              />
-              <div className="mt-2 text-right text-xs text-gray-400">
-                {form.description.length}/1000 Characters
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 📂 ORGANIZATION SECTION */}
-        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
-            <Shapes size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
-            <div>
-            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Organization</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Choose where this product appears. Season and Fabric values are used as storefront filter options.
-            </p>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Category</label>
               <select
@@ -532,10 +469,92 @@ export default function ProductForm({
               >
                 <option value="">Select Category</option>
                 {resolvedCategories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  <option key={cat._id} value={cat._id}>
+                    {cat.parentCategory
+                      ? `${resolvedCategories.find((parent) => parent._id === cat.parentCategory)?.name ?? "Department"} / ${cat.name}`
+                      : cat.name}
+                  </option>
                 ))}
               </select>
             </div>
+            <label className="block">
+              <span className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Publication status</span>
+              <select
+                name="publicationStatus"
+                value={form.publicationStatus}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    publicationStatus: event.target.value as ProductFormState["publicationStatus"],
+                    status: event.target.value === "active",
+                  }))
+                }
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <details className="order-6 rounded-xl border border-[#e9e5df] bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5">
+            <Shapes size={18} className="shrink-0 text-[#51483e]" aria-hidden="true" />
+            <span>
+              <span className="block text-sm font-bold text-[#24211e] sm:text-base">Advanced Options</span>
+              <span className="mt-1 block text-xs text-slate-500">
+                Slug, descriptions, collections, materials, product type, and fragrance details.
+              </span>
+            </span>
+          </summary>
+          <div className="space-y-4 border-t border-slate-100 p-4 sm:p-5">
+            <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Slug URL Path</label>
+                <input
+                  type="text"
+                  name="slug"
+                  value={form.slug}
+                  onChange={handleChange}
+                  placeholder="classic-winter-coat"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-500 outline-none sm:text-sm"
+                  readOnly
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Short Description</label>
+                <input
+                  type="text"
+                  name="shortDescription"
+                  value={form.shortDescription}
+                  onChange={handleChange}
+                  maxLength={160}
+                  placeholder="Brief line about the fabric or cut..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+                />
+                <div className="mt-2 text-right text-xs text-gray-400">
+                  {form.shortDescription.length}/160 Characters
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Detailed Description</label>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  maxLength={1000}
+                  rows={4}
+                  placeholder="Describe the product material, design, care instructions..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+                />
+                <div className="mt-2 text-right text-xs text-gray-400">
+                  {form.description.length}/1000 Characters
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
             <div>
               <span className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">
                 Collections
@@ -588,11 +607,60 @@ export default function ProductForm({
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
               />
             </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Brand</label>
+              <input
+                type="text"
+                name="brand"
+                value={form.brand}
+                onChange={handleChange}
+                maxLength={120}
+                placeholder="Brand (optional)"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Product type</label>
+              <input
+                type="text"
+                name="productType"
+                value={form.productType}
+                onChange={handleChange}
+                maxLength={120}
+                placeholder="e.g., Kurta, perfume, footwear"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Fragrance type</label>
+              <input
+                type="text"
+                name="fragranceType"
+                value={form.fragranceType}
+                onChange={handleChange}
+                maxLength={120}
+                placeholder="e.g., Eau de parfum, attar"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Bottle size</label>
+              <input
+                type="text"
+                name="bottleSize"
+                value={form.bottleSize}
+                onChange={handleChange}
+                maxLength={120}
+                placeholder="e.g., 50 ml"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              />
+            </div>
           </div>
-        </div>
+          </div>
+        </details>
 
         {/* 💰 PRICING & INVENTORY SECTION */}
-        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+        <div className="order-3 space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
             <Tag size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
             <div>
@@ -649,12 +717,12 @@ export default function ProductForm({
         </div>
 
         {/* 📏 SIZES SECTION */}
-        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+        <div className="order-4 space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
             <Ruler size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
             <div>
-            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Sizes & Colors</h3>
-            <p className="mt-1 text-xs text-slate-500">Select all sizes available for this product</p>
+            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Variants</h3>
+            <p className="mt-1 text-xs text-slate-500">Select the available sizes and colors.</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -697,11 +765,11 @@ export default function ProductForm({
         </div>
 
         {/* MEDIA MANAGEMENT */}
-        <div className="space-y-3 rounded-xl border border-[#e9e5df] bg-white p-3 shadow-sm sm:p-4">
+        <div className="order-2 space-y-3 rounded-xl border border-[#e9e5df] bg-white p-3 shadow-sm sm:p-4">
           <div className="flex items-start gap-2.5 border-b border-slate-100 pb-2.5">
             <ImageIcon size={16} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
             <div>
-            <h3 className="text-xs font-bold text-[#24211e] sm:text-sm">Product Images</h3>
+            <h3 className="text-xs font-bold text-[#24211e] sm:text-sm">Media</h3>
             <p className="mt-0.5 text-[11px] text-slate-500">Upload clear product photos; the first image is the primary image</p>
             </div>
           </div>
@@ -762,11 +830,11 @@ export default function ProductForm({
         </div>
 
         {/* ⚙️ SETTINGS SECTION */}
-        <div className="space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+        <div className="order-5 space-y-4 rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
             <Settings2 size={18} className="mt-0.5 shrink-0 text-[#51483e]" aria-hidden="true" />
             <div>
-            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Publishing Settings</h3>
+            <h3 className="text-sm font-bold text-[#24211e] sm:text-base">Publishing & Visibility</h3>
             <p className="mt-1 text-xs text-slate-500">Control product visibility and homepage placement</p>
             </div>
           </div>
@@ -798,25 +866,6 @@ export default function ProductForm({
                 <span className="text-xs font-medium text-slate-700 sm:text-sm">New Arrival</span>
               </label>
             )}
-            <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
-              <span className="text-xs font-medium text-slate-700 sm:text-sm">Publication status</span>
-              <select
-                name="publicationStatus"
-                value={form.publicationStatus}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    publicationStatus: event.target.value as ProductFormState["publicationStatus"],
-                    status: event.target.value === "active",
-                  }))
-                }
-                className="ml-auto min-h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700"
-              >
-                <option value="active">Active</option>
-                <option value="draft">Draft</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </label>
           </div>
         </div>
 

@@ -16,13 +16,16 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
   Truck,
   X,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import ProductFilterDrawer, {
+  EMPTY_PRODUCT_FILTERS,
+  type ProductFilterValues,
+} from "@/app/components/shop/ProductFilterDrawer";
 
 interface ProductCategory {
   _id?: string;
@@ -44,6 +47,8 @@ interface ArrivalProduct {
   category?: ProductCategory | string | null;
   sizes?: string[];
   colors?: string[];
+  brand?: string;
+  productType?: string;
   stock?: number;
   featured?: boolean;
   newArrival?: boolean;
@@ -58,9 +63,12 @@ interface StoreBanner {
 }
 
 interface StoreCategory {
+  _id: string;
   name: string;
   slug?: string;
   image?: string;
+  status?: boolean;
+  parentCategory?: string | null;
   sectionTiles?: {
     title: string;
     image: string;
@@ -69,18 +77,6 @@ interface StoreCategory {
 }
 
 const ITEMS_PER_PAGE = 12;
-const DEFAULT_COLORS = [
-  { name: "Black", hex: "#202020" },
-  { name: "Navy", hex: "#19364e" },
-  { name: "White", hex: "#f8f7f4" },
-  { name: "Beige", hex: "#cdbb9d" },
-  { name: "Brown", hex: "#805640" },
-  { name: "Green", hex: "#526d57" },
-  { name: "Gray", hex: "#92999d" },
-  { name: "Red", hex: "#a13e42" },
-  { name: "Blue", hex: "#527eaa" },
-];
-
 const benefits = [
   { Icon: Sparkles, title: "Trendy Styles", detail: "Freshly selected for you" },
   { Icon: Truck, title: "Nationwide Delivery", detail: "Across Pakistan" },
@@ -108,12 +104,19 @@ function productPrice(product: ArrivalProduct) {
 
 function colorHex(color: string) {
   const normalized = color.trim().toLowerCase();
-  const match = DEFAULT_COLORS.find(
-    (item) => item.name.toLowerCase() === normalized
-  );
-  if (match) return match.hex;
   if (/^#(?:[0-9a-f]{3}){1,2}$/i.test(normalized)) return normalized;
-  return "#9aa3a9";
+  const colorMap: Record<string, string> = {
+    beige: "#cdbb9d",
+    black: "#202020",
+    blue: "#527eaa",
+    brown: "#805640",
+    gray: "#92999d",
+    green: "#526d57",
+    navy: "#19364e",
+    red: "#a13e42",
+    white: "#f8f7f4",
+  };
+  return colorMap[normalized] ?? "#9aa3a9";
 }
 
 function getGender(name: string) {
@@ -153,6 +156,7 @@ export default function NewArrivalsPage() {
   const [products, setProducts] = useState<ArrivalProduct[]>([]);
   const [heroImage, setHeroImage] = useState("");
   const [sectionTiles, setSectionTiles] = useState<StoreCategory["sectionTiles"]>([]);
+  const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
@@ -161,10 +165,14 @@ export default function NewArrivalsPage() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState(0);
+  const [minPrice, setMinPrice] = useState(0);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
+  const [availableOnly, setAvailableOnly] = useState(false);
+  const [saleOnly, setSaleOnly] = useState(false);
   const [sort, setSort] = useState("latest");
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedProductColors, setSelectedProductColors] = useState<
     Record<string, string>
   >({});
@@ -213,11 +221,13 @@ export default function NewArrivalsPage() {
         if (categoryResponse.ok) {
           const categoryData: unknown = await categoryResponse.json();
           if (Array.isArray(categoryData)) {
-            arrivalsCategory = (categoryData as StoreCategory[]).find(
+            const allCategories = categoryData as StoreCategory[];
+            arrivalsCategory = allCategories.find(
               (category) =>
                 category.name.trim().toLowerCase() === "new arrivals" ||
                 category.slug?.trim().toLowerCase() === "new-arrivals"
             );
+            if (active) setStoreCategories(allCategories.filter((category) => category.status !== false));
           }
         } else {
           console.error(
@@ -275,6 +285,35 @@ export default function NewArrivalsPage() {
       Array.from(new Set(products.flatMap((product) => product.colors ?? []))).sort(),
     [products]
   );
+  const genders = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => getGender(categoryName(product)))
+            .filter(Boolean)
+        )
+      ),
+    [products]
+  );
+  const brands = useMemo(
+    () =>
+      Array.from(new Set(products.map((product) => product.brand?.trim()).filter(
+        (brand): brand is string => Boolean(brand)
+      ))).sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
+  const productTypes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => product.productType?.trim())
+            .filter((type): type is string => Boolean(type))
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
   const priceCeiling = useMemo(
     () => Math.max(1000, ...products.map((product) => productPrice(product))),
     [products]
@@ -297,7 +336,14 @@ export default function NewArrivalsPage() {
           selectedSizes.some((size) => product.sizes?.includes(size))) &&
         (selectedColors.length === 0 ||
           selectedColors.some((color) => product.colors?.includes(color))) &&
-        (maxPrice === 0 || productPrice(product) <= maxPrice)
+        (selectedBrands.length === 0 ||
+          selectedBrands.includes(product.brand ?? "")) &&
+        (selectedProductTypes.length === 0 ||
+          selectedProductTypes.includes(product.productType ?? "")) &&
+        (minPrice === 0 || productPrice(product) >= minPrice) &&
+        (maxPrice === 0 || productPrice(product) <= maxPrice) &&
+        (!availableOnly || (product.stock ?? 0) > 0) &&
+        (!saleOnly || productIsOnSale(product))
       );
     });
 
@@ -322,7 +368,12 @@ export default function NewArrivalsPage() {
     selectedGenders,
     selectedSizes,
     selectedColors,
+    selectedBrands,
+    selectedProductTypes,
+    minPrice,
     maxPrice,
+    availableOnly,
+    saleOnly,
     sort,
   ]);
 
@@ -332,29 +383,75 @@ export default function NewArrivalsPage() {
     page * ITEMS_PER_PAGE
   );
 
-  function toggleSelection(
-    value: string,
-    current: string[],
-    setter: (next: string[]) => void
-  ) {
-    setter(
-      current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value]
-    );
-    setPage(1);
-  }
-
   function clearFilters() {
     setSearch("");
     setSelectedCategories([]);
     setSelectedGenders([]);
     setSelectedSizes([]);
     setSelectedColors([]);
+    setSelectedBrands([]);
+    setSelectedProductTypes([]);
+    setMinPrice(0);
     setMaxPrice(0);
+    setAvailableOnly(false);
+    setSaleOnly(false);
     setSort("latest");
     setPage(1);
   }
+
+  function applyDrawerFilters(filters: ProductFilterValues) {
+    setSelectedCategories(filters.category);
+    setSelectedGenders(filters.gender);
+    setSelectedSizes(filters.size);
+    setSelectedColors(filters.color);
+    setSelectedBrands(filters.brand);
+    setSelectedProductTypes(filters.productType);
+    setMinPrice(filters.minPrice);
+    setMaxPrice(filters.maxPrice >= priceCeiling ? 0 : filters.maxPrice);
+    setAvailableOnly(filters.availability);
+    setSaleOnly(filters.onSale);
+    setPage(1);
+  }
+
+  const activeFilters: ProductFilterValues = {
+    ...EMPTY_PRODUCT_FILTERS,
+    category: selectedCategories,
+    gender: selectedGenders,
+    size: selectedSizes,
+    color: selectedColors,
+    brand: selectedBrands,
+    productType: selectedProductTypes,
+    minPrice,
+    maxPrice,
+    availability: availableOnly,
+    onSale: saleOnly,
+  };
+
+  const filterOptions = {
+    category: categories.map((category) => ({ value: category, label: category })),
+    gender: genders.map((gender) => ({ value: gender, label: gender })),
+    size: sizes.map((size) => ({ value: size, label: size })),
+    color: colors.map((color) => ({ value: color, label: color })),
+    brand: brands.map((brand) => ({ value: brand, label: brand })),
+    productType: productTypes.map((productType) => ({
+      value: productType,
+      label: productType,
+    })),
+  };
+  const categoryHrefForTile = (tileCategory: string) => {
+    const match = storeCategories.find((category) =>
+      [category.name, category.slug].some(
+        (value) => value?.trim().toLowerCase() === tileCategory.trim().toLowerCase()
+      )
+    );
+    if (!match) return `/shop?category=${encodeURIComponent(tileCategory)}`;
+    const parent = storeCategories.find(
+      (category) => category._id === match.parentCategory
+    );
+    return parent?.slug
+      ? `/shop/${parent.slug}/${match.slug}`
+      : `/shop/${match.slug}`;
+  };
 
   function addProductToCart(product: ArrivalProduct) {
     const color = selectedProductColors[product._id] ?? product.colors?.[0];
@@ -370,103 +467,6 @@ export default function NewArrivalsPage() {
       quantity: 1,
     });
   }
-
-  const sidebar = (
-    <div className="space-y-7">
-      {categories.length > 0 && (
-        <FilterGroup title="Category">
-          {categories.map((category) => (
-            <FilterCheckbox
-              key={category}
-              label={category}
-              checked={selectedCategories.includes(category)}
-              onChange={() =>
-                toggleSelection(category, selectedCategories, setSelectedCategories)
-              }
-            />
-          ))}
-        </FilterGroup>
-      )}
-
-      <FilterGroup title="Gender">
-        {["Men", "Women", "Girls", "Boys"].map((gender) => (
-          <FilterCheckbox
-            key={gender}
-            label={gender}
-            checked={selectedGenders.includes(gender)}
-            onChange={() =>
-              toggleSelection(gender, selectedGenders, setSelectedGenders)
-            }
-          />
-        ))}
-      </FilterGroup>
-
-      <section className="border-b border-[#e8e2dc] pb-6">
-        <h3 className="mb-4 text-sm font-semibold text-[#102d40]">Price range</h3>
-        <label htmlFor="price-filter" className="sr-only">
-          Maximum price in rupees
-        </label>
-        <input
-          id="price-filter"
-          type="range"
-          min="0"
-          max={priceCeiling}
-          step={Math.max(100, Math.round(priceCeiling / 100))}
-          value={maxPrice || priceCeiling}
-          onChange={(event) => {
-            setMaxPrice(Number(event.target.value));
-            setPage(1);
-          }}
-          className="w-full accent-[#102d40]"
-        />
-        <div className="mt-2 flex justify-between text-xs text-[#64727b]">
-          <span>Rs. 0</span>
-          <span>Up to Rs. {(maxPrice || priceCeiling).toLocaleString()}</span>
-        </div>
-      </section>
-
-      {sizes.length > 0 && (
-        <FilterGroup title="Size">
-          <div className="flex flex-wrap gap-2">
-            {sizes.map((size) => (
-              <button
-                key={size}
-                type="button"
-                aria-pressed={selectedSizes.includes(size)}
-                onClick={() => toggleSelection(size, selectedSizes, setSelectedSizes)}
-                className={`min-w-9 rounded border px-2.5 py-1.5 text-xs transition ${
-                  selectedSizes.includes(size)
-                    ? "border-[#102d40] bg-[#102d40] text-white"
-                    : "border-[#ddd8d2] bg-white text-[#465560] hover:border-[#102d40]"
-                }`}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-        </FilterGroup>
-      )}
-
-      {colors.length > 0 && (
-        <FilterGroup title="Color">
-          <div className="space-y-2">
-            {colors.map((color) => (
-              <FilterCheckbox
-                key={color}
-                label={color}
-                checked={selectedColors.includes(color)}
-                onChange={() =>
-                  toggleSelection(color, selectedColors, setSelectedColors)
-                }
-                swatch={colorHex(color)}
-              />
-            ))}
-          </div>
-        </FilterGroup>
-      )}
-
-    </div>
-  );
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#fffdfa] text-[#172f3f]">
@@ -522,7 +522,7 @@ export default function NewArrivalsPage() {
               {sectionTiles.map((tile, index) => (
                 <Link
                   key={`${tile.title}-${index}`}
-                  href={`/shop?category=${encodeURIComponent(tile.category)}`}
+                  href={categoryHrefForTile(tile.category)}
                   className="group flex w-full max-w-48 flex-col items-center text-center"
                 >
                   <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f5f2ed] sm:w-36 lg:w-40">
@@ -619,16 +619,14 @@ export default function NewArrivalsPage() {
 
         <div className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(true)}
-                aria-expanded={filtersOpen}
-                aria-controls="new-arrivals-filter-drawer"
-                className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#172a33] hover:text-primary"
-              >
-                <SlidersHorizontal size={15} aria-hidden="true" />
-                Filter
-              </button>
+              <ProductFilterDrawer
+                options={filterOptions}
+                value={activeFilters}
+                priceCeiling={priceCeiling}
+                onApply={applyDrawerFilters}
+                showGender={genders.length > 0}
+                showCategory={categories.length > 0}
+              />
               <div className="ml-auto flex flex-wrap items-center gap-3 sm:gap-5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-600 sm:text-xs">
                   {isLoading ? "Loading products…" : `${filteredProducts.length} products`}
@@ -830,58 +828,6 @@ export default function NewArrivalsPage() {
         </div>
       </section>
 
-      {filtersOpen && (
-        <div className="fixed inset-0 z-[1000]">
-          <button
-            type="button"
-            aria-label="Close filters"
-            onClick={() => setFiltersOpen(false)}
-            className="absolute inset-0 bg-black/30"
-          />
-          <section
-            id="new-arrivals-filter-drawer"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="new-arrivals-filter-title"
-            className="absolute inset-0 flex h-full w-full flex-col bg-white shadow-2xl sm:left-auto sm:w-[min(100%,560px)]"
-          >
-            <header className="flex h-14 shrink-0 items-center justify-center border-b border-[#e7e7e7]">
-              <h2
-                id="new-arrivals-filter-title"
-                className="text-base font-semibold text-[#171717]"
-              >
-                Filter
-              </h2>
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(false)}
-                aria-label="Close filters"
-                className="absolute right-4 top-3 flex size-8 items-center justify-center text-[#333] hover:text-black"
-              >
-                <X size={25} strokeWidth={1.4} />
-              </button>
-            </header>
-            <div className="flex-1 overflow-y-auto px-6 py-5">{sidebar}</div>
-            <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-[#e7e7e7] bg-white px-5 py-4">
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="min-h-11 border border-[#222] text-xs font-semibold uppercase tracking-wide text-[#222]"
-              >
-                Remove all
-              </button>
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(false)}
-                className="min-h-11 bg-[#222] text-xs font-semibold uppercase tracking-wide text-white"
-              >
-                Apply
-              </button>
-            </footer>
-          </section>
-        </div>
-      )}
-
       <section className="mx-auto grid max-w-[1440px] gap-4 px-4 pb-14 sm:grid-cols-2 sm:px-7 lg:grid-cols-[1fr_1fr_0.85fr] lg:px-14">
         <CollectionPromo
           title="Modern Menswear"
@@ -954,52 +900,6 @@ export default function NewArrivalsPage() {
   );
 }
 
-function FilterGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="border-b border-[#e8e2dc] pb-6">
-      <h3 className="mb-4 text-sm font-semibold text-[#102d40]">{title}</h3>
-      <div className="space-y-2.5">{children}</div>
-    </section>
-  );
-}
-
-function FilterCheckbox({
-  label,
-  checked,
-  onChange,
-  swatch,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-  swatch?: string;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2.5 text-xs text-[#55636b]">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="size-3.5 accent-[#102d40]"
-      />
-      {swatch && (
-        <span
-          aria-hidden="true"
-          className="size-3.5 rounded-full border border-black/10"
-          style={{ backgroundColor: swatch }}
-        />
-      )}
-      {label}
-    </label>
-  );
-}
-
 function ProductCard({
   product,
   layout,
@@ -1027,14 +927,14 @@ function ProductCard({
       className={`group min-w-0 overflow-hidden ${
         layout === "list"
           ? "grid grid-cols-[38%_1fr] gap-4 border-b border-[#e8e2dc] bg-white pb-4 sm:grid-cols-[220px_1fr] sm:gap-6"
-          : "rounded-xl border border-[#e3eaf0] bg-white p-2 shadow-[0_2px_10px_rgba(25,55,78,0.04)] transition hover:-translate-y-0.5 hover:shadow-md sm:p-3"
+          : "rounded-lg bg-white p-1.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(30,41,59,0.12)] sm:p-2"
       }`}
     >
       <div
         className={`relative overflow-hidden ${
           layout === "list"
             ? "aspect-[0.82] rounded-sm bg-[#f0ece6]"
-            : "aspect-[0.88] rounded-lg bg-[#f5f7f8]"
+            : "aspect-[1/1.08] rounded-md bg-[#f3efec]"
         }`}
       >
         {image ? (
@@ -1052,7 +952,7 @@ function ProductCard({
                   ? "(max-width: 640px) 38vw, 220px"
                   : "(max-width: 640px) 48vw, (max-width: 1280px) 30vw, 270px"
               }
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
             />
           </Link>
         ) : (
@@ -1061,7 +961,7 @@ function ProductCard({
           </div>
         )}
         {(onSale || product.newArrival) && (
-          <span className="absolute left-2 top-2 rounded-sm bg-red-600 px-2 py-1 text-[9px] font-bold uppercase text-white">
+          <span className="absolute left-2 top-2 rounded-sm bg-[#d94d68] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
             {onSale ? "Sale" : "New"}
           </span>
         )}
@@ -1074,7 +974,7 @@ function ProductCard({
               : `Add ${product.name} to wishlist`
           }
           aria-pressed={wished}
-          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm transition hover:text-red-500"
+          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:scale-105 hover:text-red-500"
         >
           <Heart
             size={16}
@@ -1084,14 +984,14 @@ function ProductCard({
         </button>
       </div>
 
-      <div className={`px-1 pb-1 pt-3 ${layout === "list" ? "sm:pt-2" : ""}`}>
+      <div className={`px-1 pb-1 pt-2.5 ${layout === "list" ? "sm:pt-2" : ""}`}>
         <Link
           href={`/product/${product.slug}`}
-          className="line-clamp-1 text-xs font-semibold text-[#20394c] hover:text-[#2867b2] sm:text-sm"
+          className="line-clamp-1 text-[11px] font-semibold leading-4 text-[#39312f] hover:text-[#2867b2] sm:text-xs"
         >
           {product.name}
         </Link>
-        <p className="mt-1 text-[10px] text-slate-500">
+        <p className="mt-0.5 text-[9px] text-[#817975]">
           {categoryName(product)}
           {product.sizes?.length ? ` · ${product.sizes.join(", ")}` : ""}
         </p>
@@ -1101,11 +1001,11 @@ function ProductCard({
           </p>
         )}
         <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-xs font-bold text-[#142d40] sm:text-sm">
+          <span className="text-xs font-bold text-[#332c2a] sm:text-sm">
             Rs. {price.toLocaleString()}
           </span>
           {onSale && (
-            <span className="text-[10px] text-slate-400 line-through">
+            <span className="text-[10px] text-[#a7a09c] line-through">
               Rs. {product.price.toLocaleString()}
             </span>
           )}
@@ -1141,7 +1041,7 @@ function ProductCard({
           type="button"
           disabled={product.stock === 0}
           onClick={onAddToCart}
-          className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-[#102f43] px-2 text-[10px] font-semibold text-white transition hover:bg-[#1c4d69] disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-xs"
+          className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-sm bg-[#33291f] px-2 text-[10px] font-semibold text-white transition-colors hover:bg-[#574331] disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-xs"
         >
           {product.stock === 0 ? (
             "Out of stock"

@@ -13,21 +13,14 @@ interface Category {
   slug: string;
   image: string;
   status: boolean;
+  parentCategory?: string | null;
+  fallbackImage?: string;
+  href?: string;
 }
 
 export default function CategoriesSection() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-
-  function categoryHref(category: Category) {
-    const value = `${category.name} ${category.slug}`.toLowerCase();
-    if (/\bmen\b|\bmenswear\b/.test(value)) return "/shop/men";
-    if (/\bwomen\b|\bwomenswear\b/.test(value)) return "/shop/women";
-    if (/\bgirls?\b/.test(value)) return "/shop/girls";
-    if (/\bboys?\b/.test(value)) return "/shop/boys";
-    if (/\baccessor(y|ies)\b/.test(value)) return "/shop/accessories";
-    return `/category/${category._id}`;
-  }
 
   useEffect(() => {
     async function fetchCategories() {
@@ -36,7 +29,27 @@ export default function CategoriesSection() {
           cache: "no-store",
         });
         const data = await readJsonResponse<Category[]>(res, []);
-        setCategories(data.filter((category) => category.status).slice(0, 6));
+        const activeCategories = data.filter((category) => category.status);
+        const categoriesById = new Map(
+          activeCategories.map((category) => [category._id, category])
+        );
+        const categoryHref = (category: Category) => {
+          const parent = category.parentCategory
+            ? categoriesById.get(category.parentCategory)
+            : undefined;
+          return parent
+            ? `/shop/${parent.slug}/${category.slug}`
+            : `/shop/${category.slug}`;
+        };
+        setCategories(
+          activeCategories.slice(0, 6).map((category) => ({
+            ...category,
+            href: categoryHref(category),
+            fallbackImage: category.parentCategory
+              ? categoriesById.get(category.parentCategory)?.image ?? ""
+              : "",
+          }))
+        );
       } catch (error) {
         console.error("Categories fetch error:", error);
       } finally {
@@ -87,12 +100,13 @@ export default function CategoriesSection() {
                   className="w-max min-w-[104px] shrink-0 sm:min-w-[120px] lg:w-auto lg:min-w-0"
                 >
                   <Link
-                    href={categoryHref(category)}
+                    href={category.href ?? `/shop/${category.slug}`}
                     className="group flex w-full flex-col items-center text-center text-[#102d40]"
                   >
                     <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-xl bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">
                       <CategoryImage
                         src={category.image}
+                        fallbackSrc={category.fallbackImage}
                         alt={category.name}
                         sizes="(max-width: 379px) 76px, (max-width: 639px) 84px, (max-width: 1023px) 104px, 128px"
                         className="object-cover transition-transform duration-300 group-hover:scale-105"

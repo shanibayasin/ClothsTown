@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/admin-auth";
+import {
+  getActiveProductFilter,
+  getFeaturedProductFilter,
+  getNewArrivalProductFilter,
+} from "@/lib/products";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 
@@ -14,7 +19,7 @@ export async function GET(request: Request) {
     // ============================
     // COUNTS
     // ============================
-    const totalProducts = await Product.countDocuments({ status: true });
+    const totalProducts = await Product.countDocuments(getActiveProductFilter());
     const totalOrders = await Order.countDocuments();
     const customers = await Order.distinct("email");
 
@@ -205,7 +210,9 @@ export async function GET(request: Request) {
     // ============================
     // FEATURED PRODUCTS
     // ============================
-    const featuredProducts = await Product.find({ featured: true, status: true })
+    const featuredProducts = await Product.find(
+      getActiveProductFilter(getFeaturedProductFilter())
+    )
       .sort({ createdAt: -1 })
       .limit(5)
       .select("name slug images price stock");
@@ -213,7 +220,9 @@ export async function GET(request: Request) {
     // ============================
     // NEW ARRIVALS
     // ============================
-    const newArrivals = await Product.find({ newArrival: true, status: true })
+    const newArrivals = await Product.find(
+      getActiveProductFilter(getNewArrivalProductFilter())
+    )
       .sort({ createdAt: -1 })
       .limit(5)
       .select("name slug images price stock");

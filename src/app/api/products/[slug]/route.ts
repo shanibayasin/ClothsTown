@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getActiveProductFilter } from "@/lib/products";
+import { getActiveProductFilter, normalizeProductAliases } from "@/lib/products";
 import { ProductInputError, saveProduct } from "@/lib/product-management";
 import Product from "@/models/Product";
 
@@ -41,7 +41,10 @@ export async function GET(_request: Request, { params }: RouteContext) {
       .lean();
 
     return NextResponse.json(
-      { product, related },
+      {
+        product: normalizeProductAliases(product),
+        related: related.map(normalizeProductAliases),
+      },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {

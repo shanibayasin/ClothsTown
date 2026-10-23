@@ -14,7 +14,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Bulk action data must be an object." }, { status: 400 });
     }
 
-    const input = body as { ids?: unknown; action?: unknown; status?: unknown };
+    const input = body as {
+      ids?: unknown;
+      action?: unknown;
+      status?: unknown;
+      enabled?: unknown;
+    };
     if (
       !Array.isArray(input.ids) ||
       input.ids.length === 0 ||
@@ -47,6 +52,21 @@ export async function POST(request: Request) {
             status: input.status === "active",
           },
         }
+      );
+      return NextResponse.json({ updated: result.modifiedCount });
+    }
+
+    if (
+      (input.action === "featured" || input.action === "newArrival") &&
+      typeof input.enabled === "boolean"
+    ) {
+      const fields =
+        input.action === "featured"
+          ? { featured: input.enabled, isFeatured: input.enabled }
+          : { newArrival: input.enabled, isNewArrival: input.enabled };
+      const result = await Product.updateMany(
+        { _id: { $in: ids } },
+        { $set: fields }
       );
       return NextResponse.json({ updated: result.modifiedCount });
     }

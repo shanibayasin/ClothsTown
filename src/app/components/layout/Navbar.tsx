@@ -13,7 +13,7 @@ import {
   Search,
   Snowflake,
 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
@@ -35,11 +35,24 @@ type AccessoriesMenuGroup = {
 };
 
 type StoreCategory = {
+  _id: string;
   name: string;
   slug?: string;
   image?: string;
+  status?: boolean;
+  parentCategory?: string | null;
   sectionTiles?: DepartmentCategory[];
   menuGroups?: AccessoriesMenuGroup[];
+};
+
+type MegaMenuLink = {
+  label: string;
+  href: string;
+};
+
+type MegaMenuGroup = {
+  title: string;
+  links: MegaMenuLink[];
 };
 
 export default function Navbar() {
@@ -54,17 +67,39 @@ export default function Navbar() {
   const [expandedDepartment, setExpandedDepartment] = useState("");
   const [showDepartmentMenu, setShowDepartmentMenu] = useState("");
   const [showCollectionMenu, setShowCollectionMenu] = useState(false);
+  const [openMegaMenu, setOpenMegaMenu] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
   const currentYear = new Date().getFullYear();
   
   const [collections, setCollections] = useState<Collection[]>([]);
   const [departmentCategories, setDepartmentCategories] = useState<
     Record<string, DepartmentCategory[]>
   >({});
+  const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [accessoriesMenuGroups, setAccessoriesMenuGroups] = useState<
     AccessoriesMenuGroup[]
   >([]);
   const [accessoriesMenuImage, setAccessoriesMenuImage] = useState("");
+
+  const categoryRoute = useCallback((category: StoreCategory, fallback?: string) => {
+    const parent = storeCategories.find(
+      (item) => item._id === category.parentCategory
+    );
+    return category.slug
+      ? parent?.slug
+        ? `/shop/${parent.slug}/${category.slug}`
+        : `/shop/${category.slug}`
+      : fallback ?? "/shop";
+  }, [storeCategories]);
+  const categoryRouteByName = useCallback((name: string, fallback: string) => {
+    const match = storeCategories.find((category) =>
+      [category.name, category.slug].some(
+        (value) => value?.trim().toLowerCase() === name.trim().toLowerCase()
+      )
+    );
+    return match ? categoryRoute(match) : fallback;
+  }, [categoryRoute, storeCategories]);
 
   // Derive structural dynamic item count safely from raw elements array matrix
   const totalCartItems = useMemo(() => {
@@ -90,6 +125,7 @@ export default function Navbar() {
       try {
         const response = await fetch("/api/categories", { cache: "no-store" });
         const categories = await readJsonResponse<StoreCategory[]>(response, []);
+        setStoreCategories(categories.filter((category) => category.status !== false));
         const sections: Record<string, DepartmentCategory[]> = {};
         for (const sectionName of ["Men", "Women", "Girls", "Boys"]) {
           const sectionPattern =
@@ -143,14 +179,140 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    const openCollectionsMenu = () => setShowCollectionMenu(true);
-    window.addEventListener("open-collections-menu", openCollectionsMenu);
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) {
+        setOpenMegaMenu("");
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenMegaMenu("");
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
 
     return () => {
-      window.removeEventListener("open-collections-menu", openCollectionsMenu);
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
     };
   }, []);
 
+  const navigationItems = useMemo(
+    () => [
+      { name: "NEW IN", href: "/new-arrivals", key: "NEW IN" },
+      { name: "WOMEN", href: "/shop/women", key: "WOMEN" },
+      { name: "MEN", href: "/shop/men", key: "MEN" },
+      { name: "GIRLS", href: "/shop/girls", key: "GIRLS" },
+      { name: "BOYS", href: "/shop/boys", key: "BOYS" },
+      { name: "SALE", href: "/shop?sale=true", key: "SALE" },
+      { name: "ACCESSORIES", href: "/shop/accessories", key: "ACCESSORIES" },
+    ],
+    []
+  );
+
+  const megaMenus = useMemo<Record<string, MegaMenuGroup[]>>(() => {
+    const categoryFor = (name: string) =>
+      storeCategories.find((category) =>
+        [category.name, category.slug].some(
+          (value) => value?.trim().toLowerCase() === name.toLowerCase()
+        )
+      );
+    const collectionLinks = collections.map((collection) => ({
+      label: collection.title,
+      href: `/collections/${collection.slug}`,
+    }));
+    const department = (name: string, href: string): MegaMenuGroup[] => {
+      const rootCategory = categoryFor(name.toLowerCase());
+      const childLinks = rootCategory
+        ? storeCategories
+            .filter((category) => category.parentCategory === rootCategory._id)
+            .map((category) => ({
+              label: category.name,
+              href: categoryRoute(category),
+            }))
+        : [];
+      const links = childLinks.length
+        ? childLinks
+        : (departmentCategories[name] ?? [])
+            .filter((item) => item.title.trim() && item.category.trim())
+            .map((item) => ({
+              label: item.title,
+              href: categoryRouteByName(
+                item.category,
+                `/shop?category=${encodeURIComponent(item.category)}`
+              ),
+            }));
+      const groups: MegaMenuGroup[] = [
+        { title: `Shop ${name}`, links: [{ label: `All ${name}`, href }] },
+      ];
+      if (links.length) groups.push({ title: "Shop by category", links });
+      if (collectionLinks.length) {
+        groups.push({ title: "Collections", links: collectionLinks });
+      }
+      return groups;
+    };
+    const accessoryCategory = categoryFor("accessories");
+    const accessoryGroups = (accessoryCategory?.menuGroups ?? [])
+      .map((group) => ({
+        title: group.title,
+        links: group.categories
+          .filter((item) => item.title.trim() && item.category.trim())
+          .map((item) => ({
+            label: item.title,
+            href: categoryRouteByName(
+              item.category,
+              `/shop?category=${encodeURIComponent(item.category)}`
+            ),
+          })),
+      }))
+      .filter((group) => group.links.length);
+    const saleCollections = collectionLinks.filter((item) =>
+      /\b(sale|discount|clearance|offer)\b/i.test(item.label)
+    );
+    return {
+      "NEW IN": [
+        {
+          title: "Just in",
+          links: [
+            { label: "New Arrivals", href: "/new-arrivals" },
+            { label: "Latest Products", href: "/shop?view=all" },
+          ],
+        },
+      ],
+      WOMEN: department("Women", "/shop/women"),
+      MEN: department("Men", "/shop/men"),
+      GIRLS: department("Girls", "/shop/girls"),
+      BOYS: department("Boys", "/shop/boys"),
+      SALE: [
+        {
+          title: "Shop Sale",
+          links: [
+            { label: "Sale Products", href: "/shop?sale=true" },
+            { label: "Discounted Items", href: "/shop?sale=true" },
+            ...saleCollections,
+          ],
+        },
+      ],
+      ACCESSORIES: [
+        { title: "Shop Accessories", links: [{ label: "All Accessories", href: "/shop/accessories" }] },
+        ...accessoryGroups,
+        ...(collectionLinks.length
+          ? [{ title: "Collections", links: collectionLinks }]
+          : []),
+      ],
+    };
+  }, [categoryRoute, categoryRouteByName, collections, departmentCategories, storeCategories]);
+
+  const mobileLinks = useMemo(
+    () => [
+      { name: "Home", href: "/" },
+      ...navigationItems.map((item) => ({ name: item.name, href: item.href })),
+      { name: "Collections", href: "/collections" },
+    ],
+    [navigationItems]
+  );
   const links = useMemo(
     () => [
       { name: "Home", href: "/" },
@@ -169,6 +331,7 @@ export default function Navbar() {
   return (
     <>
       <header
+        ref={headerRef}
         className={`sticky top-0 z-100 border-b border-gray-200 transition-all duration-300 ${
           scrolled
             ? "bg-white/95 shadow-md backdrop-blur-xl"
@@ -256,7 +419,7 @@ export default function Navbar() {
           </button>
         </form>
 
-        <nav aria-label="Main navigation" className={`hidden border-t border-gray-100 md:block ${isAccountPage ? "!hidden" : ""}`}>
+        <nav aria-label="Legacy navigation" className="hidden">
           <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-start gap-5 overflow-visible px-6 lg:h-[67px] lg:gap-9 lg:px-10">
             {links.map((link) => {
               const active = link.href === "/"
@@ -351,7 +514,10 @@ export default function Navbar() {
                                 {group.categories.map((category, categoryIndex) => (
                                   <Link
                                     key={`${category.category}-${categoryIndex}`}
-                                    href={`/shop?category=${encodeURIComponent(category.category)}`}
+                                    href={categoryRouteByName(
+                                      category.category,
+                                      `/shop?category=${encodeURIComponent(category.category)}`
+                                    )}
                                     onClick={() => setShowDepartmentMenu("")}
                                     className="block text-sm text-[#444] transition hover:text-primary"
                                   >
@@ -429,7 +595,7 @@ export default function Navbar() {
                     {menuOpen && (
                       <div className="absolute left-0 top-full z-50 w-64 rounded-b-xl border border-gray-200 bg-white py-2 shadow-xl">
                         <Link
-                          href={`/shop?category=${sectionName}`}
+                          href={link.href}
                           onClick={() => setShowDepartmentMenu("")}
                           className="block border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-[#172a33] transition hover:bg-gray-50 hover:text-primary"
                         >
@@ -439,7 +605,10 @@ export default function Navbar() {
                           {(departmentCategories[sectionName] ?? []).map((category, index) => (
                             <Link
                               key={`${category.category}-${index}`}
-                              href={`/shop?category=${encodeURIComponent(category.category)}`}
+                              href={categoryRouteByName(
+                                category.category,
+                                `/shop?category=${encodeURIComponent(category.category)}`
+                              )}
                               onClick={() => setShowDepartmentMenu("")}
                               className="block px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50 hover:text-primary"
                             >
@@ -467,12 +636,87 @@ export default function Navbar() {
             })}
           </div>
         </nav>
+
+        {!isAccountPage && (
+          <nav aria-label="Main navigation" className="relative z-30 hidden border-t border-white/10 bg-black text-white md:block">
+            <div className="mx-auto flex h-11 max-w-[1440px] items-center justify-center gap-4 overflow-x-auto px-4 sm:gap-7 lg:h-[58px] lg:gap-12">
+              {navigationItems.map((item) => {
+                const isOpen = openMegaMenu === item.key;
+                const active = pathname === item.href || pathname.startsWith(`${item.href.split("?")[0]}/`);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    aria-haspopup="true"
+                    aria-expanded={isOpen}
+                    aria-controls="navbar-mega-menu"
+                    onClick={() =>
+                      setOpenMegaMenu((current) =>
+                        current === item.key ? "" : item.key
+                      )
+                    }
+                    className={`flex h-full shrink-0 items-center gap-1 border-b-2 px-1 text-[10px] font-semibold tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:text-xs lg:text-[13px] ${
+                      item.key === "SALE"
+                        ? "border-transparent text-red-500 hover:text-red-400"
+                        : isOpen || active
+                          ? "border-white text-white"
+                          : "border-transparent text-white hover:text-gray-300"
+                    }`}
+                  >
+                    {item.name}
+                    <ChevronDown
+                      size={13}
+                      aria-hidden="true"
+                      className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        )}
+
+        {!isAccountPage && (
+          <div
+            id="navbar-mega-menu"
+            aria-hidden={!openMegaMenu}
+            className={`absolute left-0 right-0 top-full z-50 w-full bg-white text-black transition-[opacity,transform,visibility] duration-100 ${
+              openMegaMenu
+                ? "visible translate-y-0 opacity-100"
+                : "invisible -translate-y-2 opacity-0"
+            }`}
+          >
+            <div className="mx-auto grid max-h-[min(70vh,560px)] w-full max-w-[1440px] grid-cols-1 gap-x-10 gap-y-8 overflow-y-auto px-6 py-8 sm:grid-cols-2 sm:px-8 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-14 lg:px-12 lg:py-10">
+              {(megaMenus[openMegaMenu] ?? []).map((group) => (
+                <section key={group.title} aria-label={group.title}>
+                  <h2 className="mb-5 border-b border-black pb-3 text-xs font-bold uppercase tracking-[0.14em] sm:text-sm">
+                    {group.title}
+                  </h2>
+                  <ul className="space-y-4">
+                    {group.links.map((menuLink) => (
+                      <li key={`${menuLink.href}-${menuLink.label}`}>
+                        <Link
+                          href={menuLink.href}
+                          onClick={() => setOpenMegaMenu("")}
+                          tabIndex={openMegaMenu ? 0 : -1}
+                          className="inline-block text-sm leading-6 text-neutral-800 transition-colors hover:text-black focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black sm:text-[15px]"
+                        >
+                          {menuLink.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Mobile Drawer Panel */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-999 bg-black/50 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 z-999 bg-black/50 md:hidden transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
         >
           <div
@@ -494,78 +738,56 @@ export default function Navbar() {
               </div>
 
               {/* Mobile Links Map */}
-              <nav className="px-6 mt-4">
-                {links.map((link) => {
+              <nav aria-label="Mobile navigation" className="mt-4 px-6">
+                {mobileLinks.map((link) => {
                   const active =
                     link.href === "/"
                       ? pathname === "/"
-                      : pathname === link.href || pathname.startsWith(link.href + "/");
+                      : pathname === link.href || pathname.startsWith(`${link.href.split("?")[0]}/`);
+                  const menuExpanded = expandedDepartment === link.name;
+                  const groups = megaMenus[link.name] ?? [];
 
-                  if (["Men", "Girls", "Women", "Boys", "Accessories"].includes(link.name)) {
-                    const sectionName = link.name;
-                    const menuExpanded = expandedDepartment === sectionName;
+                  if (groups.length) {
                     return (
                       <div key={link.name} className="border-b">
                         <button
                           type="button"
+                          aria-haspopup="true"
                           aria-expanded={menuExpanded}
-                          onClick={() => setExpandedDepartment(menuExpanded ? "" : sectionName)}
+                          aria-controls={`mobile-menu-${link.name.toLowerCase().replaceAll(" ", "-")}`}
+                          onClick={() => setExpandedDepartment(menuExpanded ? "" : link.name)}
                           className={`flex w-full items-center justify-between py-4 text-left text-base transition-colors ${
                             active || menuExpanded
                               ? "font-semibold text-primary"
                               : "text-gray-700 hover:text-primary"
                           }`}
                         >
-                          <span>{sectionName}</span>
+                          <span>{link.name}</span>
                           <ChevronDown
                             size={17}
-                            className={`transition-transform ${
-                              menuExpanded ? "rotate-180" : ""
-                            }`}
+                            aria-hidden="true"
+                            className={`transition-transform ${menuExpanded ? "rotate-180" : ""}`}
                           />
                         </button>
                         {menuExpanded && (
-                          <div className="mb-3 ml-3 border-l border-[#e5e7eb] pl-4">
-                            <Link
-                              href={`/shop?category=${sectionName}`}
-                              onClick={() => setIsOpen(false)}
-                              className="block py-2 text-sm font-medium text-[#172a33] hover:text-primary"
-                            >
-                              {sectionName === "Accessories"
-                                ? "Shop All Accessories"
-                                : `All ${sectionName} Wear`}
-                            </Link>
-                            {sectionName === "Accessories"
-                              ? accessoriesMenuGroups.flatMap((group, groupIndex) => [
-                                  <span
-                                    key={`accessories-group-${groupIndex}`}
-                                    className="block pt-3 text-xs font-bold uppercase tracking-wide text-[#333]"
-                                  >
-                                    {group.title}
-                                  </span>,
-                                  ...group.categories.map((category, index) => (
+                          <div id={`mobile-menu-${link.name.toLowerCase().replaceAll(" ", "-")}`} className="mb-4 ml-3 space-y-4 border-l border-[#e5e7eb] pl-4">
+                            {groups.map((group) => (
+                              <section key={group.title}>
+                                <h2 className="pb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                                  {group.title}
+                                </h2>
+                                {group.links.map((menuLink) => (
                                     <Link
-                                      key={`${category.category}-${groupIndex}-${index}`}
-                                      href={`/shop?category=${encodeURIComponent(category.category)}`}
+                                      key={`${menuLink.href}-${menuLink.label}`}
+                                      href={menuLink.href}
                                       onClick={() => setIsOpen(false)}
-                                      className="block py-2 text-sm text-gray-600 hover:text-primary"
+                                      className="block py-2 text-sm text-gray-700 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                     >
-                                      {category.title}
+                                      {menuLink.label}
                                     </Link>
-                                  )),
-                                ])
-                              : (departmentCategories[sectionName] ?? []).map(
-                                  (category, index) => (
-                                    <Link
-                                      key={`${category.category}-${index}`}
-                                      href={`/shop?category=${encodeURIComponent(category.category)}`}
-                                      onClick={() => setIsOpen(false)}
-                                      className="block py-2 text-sm text-gray-600 hover:text-primary"
-                                    >
-                                      {category.title}
-                                    </Link>
-                                  )
-                                )}
+                                ))}
+                              </section>
+                            ))}
                           </div>
                         )}
                       </div>

@@ -9,13 +9,16 @@ import {
   ChevronRight,
   Heart,
   ShoppingCart,
-  SlidersHorizontal,
   Star,
   X,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
+import ProductFilterDrawer, {
+  EMPTY_PRODUCT_FILTERS,
+  type ProductFilterValues,
+} from "@/app/components/shop/ProductFilterDrawer";
 
 interface Product {
   _id: string;
@@ -44,6 +47,8 @@ interface Product {
   colors?: string[];
   season?: string;
   fabric?: string;
+  productType?: string;
+  brand?: string;
   stock: number;
 }
 
@@ -52,6 +57,7 @@ interface Category {
   name: string;
   slug?: string;
   image?: string;
+  parentCategory?: string | null;
   sectionTiles?: {
     title: string;
     image: string;
@@ -65,15 +71,6 @@ interface Collection {
 }
 
 const ITEMS_PER_PAGE = 9;
-const COLOR_OPTIONS = [
-  { name: "Black", value: "#171717" },
-  { name: "Navy", value: "#193655" },
-  { name: "Gray", value: "#9ca3af" },
-  { name: "Beige", value: "#cbb79b" },
-  { name: "Green", value: "#47745b" },
-  { name: "Brown", value: "#81513a" },
-  { name: "White", value: "#ffffff" },
-];
 
 function getProductImage(product: Product) {
   return product.images?.[0] || product.image || "/images/placeholder-product.jpg";
@@ -83,6 +80,15 @@ function getProductPrice(product: Product) {
   return product.discountPrice && product.discountPrice > 0
     ? product.discountPrice
     : product.price;
+}
+
+function getProductGender(name: string) {
+  const value = name.toLowerCase();
+  if (/\bmen\b|men's|mens/.test(value)) return "Men";
+  if (/\bwomen\b|women's|womens|ladies/.test(value)) return "Women";
+  if (/\bgirls?\b/.test(value)) return "Girls";
+  if (/\bboys?\b/.test(value)) return "Boys";
+  return "";
 }
 
 function ShopLoading() {
@@ -155,6 +161,9 @@ function ShopContent({
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSeasons, setSelectedSeasons] = useState<string[]>([]);
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
+  const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState(100000);
   const [minimumPrice, setMinimumPrice] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -246,6 +255,12 @@ function ShopContent({
       });
     }
 
+    if (selectedGenders.length > 0) {
+      data = data.filter((item) =>
+        selectedGenders.includes(getProductGender(item.category?.name ?? ""))
+      );
+    }
+
     if (selectedCollection) {
       data = data.filter(
         (item) =>
@@ -284,6 +299,18 @@ function ShopContent({
       );
     }
 
+    if (selectedBrands.length > 0) {
+      data = data.filter((item) =>
+        selectedBrands.includes(item.brand?.trim() ?? "")
+      );
+    }
+
+    if (selectedProductTypes.length > 0) {
+      data = data.filter((item) =>
+        selectedProductTypes.includes(item.productType?.trim() ?? "")
+      );
+    }
+
     data = data.filter(
       (item) =>
         getProductPrice(item) >= minimumPrice &&
@@ -313,12 +340,15 @@ function ShopContent({
     products,
     search,
     selectedCategory,
+    selectedGenders,
     selectedCollection,
     selectedSize,
     selectedSizes,
     selectedColor,
     selectedSeasons,
     selectedFabrics,
+    selectedBrands,
+    selectedProductTypes,
     priceRange,
     minimumPrice,
     inStockOnly,
@@ -372,7 +402,12 @@ function ShopContent({
     )
   );
   const menLandingCategory =
-    menCategories.find((item) => (item.sectionTiles?.length ?? 0) > 0) ||
+    menCategories.find(
+      (item) =>
+        item.name.trim().toLowerCase() === "men" ||
+        item.slug?.trim().toLowerCase() === "men"
+    ) ||
+    menCategories.find((item) => Boolean(item.image)) ||
     menCategories.find(
       (item) =>
         /\bmen('?s)?\s+wear|\bmens?\s+wear|\bmenswear\b/.test(item.name.trim().toLowerCase()) ||
@@ -380,7 +415,9 @@ function ShopContent({
           item.slug?.trim().toLowerCase() ?? ""
         )
     ) ||
-    menCategories[0];
+    [...menCategories].sort((first, second) =>
+      first.name.localeCompare(second.name)
+    )[0];
   const boysCategories = categories.filter((item) =>
     /\bboys?\b/.test(
       `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
@@ -556,8 +593,119 @@ function ShopContent({
           (tile) => tile.title && tile.image && tile.category
         ) ?? []
       : [];
+  const categoryHrefForTile = (tileCategory: string) => {
+    const match = categories.find((item) =>
+      [item.name, item.slug].some(
+        (value) => value?.trim().toLowerCase() === tileCategory.trim().toLowerCase()
+      )
+    );
+    if (!match) return `/shop?category=${encodeURIComponent(tileCategory)}`;
+    const parent = categories.find((item) => item._id === match.parentCategory);
+    return parent?.slug
+      ? `/shop/${parent.slug}/${match.slug}`
+      : `/shop/${match.slug}`;
+  };
   const isDepartmentLanding =
     isDepartmentProductListing && !viewAllQuery;
+
+  const sizeFilterOptions = Array.from(
+    new Set(products.flatMap((product) => product.sizes ?? []))
+  ).sort((a, b) => a.localeCompare(b));
+  const colorFilterOptions = Array.from(
+    new Set(products.flatMap((product) => product.colors ?? []))
+  ).sort((a, b) => a.localeCompare(b));
+  const COLOR_OPTIONS = colorFilterOptions.map((name) => ({
+    name,
+    value: /^#(?:[\da-f]{3}){1,2}$/i.test(name)
+      ? name
+      : ({
+          black: "#171717",
+          navy: "#193655",
+          gray: "#9ca3af",
+          grey: "#9ca3af",
+          beige: "#cbb79b",
+          green: "#47745b",
+          brown: "#81513a",
+          white: "#ffffff",
+        } as Record<string, string>)[name.toLowerCase()] ?? "#cbd5e1",
+  }));
+  const brandFilterOptions = Array.from(
+    new Set(products.map((product) => product.brand?.trim()).filter(
+      (brand): brand is string => Boolean(brand)
+    ))
+  ).sort((a, b) => a.localeCompare(b));
+  const productTypeFilterOptions = Array.from(
+    new Set(products.map((product) => product.productType?.trim()).filter(
+      (productType): productType is string => Boolean(productType)
+    ))
+  ).sort((a, b) => a.localeCompare(b));
+  const genderFilterOptions = Array.from(
+    new Set(products.map((product) => getProductGender(product.category?.name ?? "")).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+  const activeCategoryFilter =
+    categories.find(
+      (category) =>
+        category._id === selectedCategory ||
+        matchesCategoryQuery(category, selectedCategory)
+    )?._id ?? selectedCategory;
+  const activeFilterValues: ProductFilterValues = {
+    ...EMPTY_PRODUCT_FILTERS,
+    category: activeCategoryFilter ? [activeCategoryFilter] : [],
+    collection: selectedCollection ? [selectedCollection] : [],
+    gender: selectedGenders,
+    size: selectedSizes.length
+      ? selectedSizes
+      : selectedSize
+        ? [selectedSize]
+        : [],
+    color: selectedColor ? [selectedColor] : [],
+    brand: selectedBrands,
+    productType: selectedProductTypes,
+    fabric: selectedFabrics,
+    season: selectedSeasons,
+    minPrice: minimumPrice,
+    maxPrice: priceRange >= 100000 ? 0 : priceRange,
+    availability: inStockOnly,
+    onSale: saleOnly,
+  };
+  const shopFilterOptions = {
+    category: categories.map((category) => ({
+      value: category._id,
+      label: category.name,
+    })),
+    collection: collections.map((collection) => ({
+      value: collection._id,
+      label: collection.title,
+    })),
+    gender: genderFilterOptions.map((gender) => ({ value: gender, label: gender })),
+    size: sizeFilterOptions.map((size) => ({ value: size, label: size })),
+    color: colorFilterOptions.map((color) => ({ value: color, label: color })),
+    brand: brandFilterOptions.map((brand) => ({ value: brand, label: brand })),
+    productType: productTypeFilterOptions.map((productType) => ({
+      value: productType,
+      label: productType,
+    })),
+    fabric: fabricOptions.map((fabric) => ({ value: fabric, label: fabric })),
+    season: seasonOptions.map((season) => ({ value: season, label: season })),
+  };
+
+  function applyDrawerFilters(filters: ProductFilterValues) {
+    setSelectedCategory(filters.category[0] ?? "");
+    setSelectedCollection(filters.collection[0] ?? "");
+    setSelectedGenders(filters.gender);
+    setSelectedSize("");
+    setSelectedSizes(filters.size);
+    setSelectedColor(filters.color[0] ?? "");
+    setSelectedBrands(filters.brand);
+    setSelectedProductTypes(filters.productType);
+    setSelectedFabrics(filters.fabric);
+    setSelectedSeasons(filters.season);
+    setMinimumPrice(filters.minPrice);
+    setPriceRange(filters.maxPrice || 100000);
+    setInStockOnly(filters.availability);
+    setSaleOnly(filters.onSale || isSaleListing);
+    setCurrentPage(1);
+  }
 
   function resetFilters() {
     setSearch("");
@@ -568,6 +716,9 @@ function ShopContent({
     setSelectedColor("");
     setSelectedSeasons([]);
     setSelectedFabrics([]);
+    setSelectedBrands([]);
+    setSelectedProductTypes([]);
+    setSelectedGenders([]);
     setPriceRange(100000);
     setMinimumPrice(0);
     setInStockOnly(false);
@@ -616,6 +767,7 @@ function ShopContent({
                 }
                 fill
                 priority
+                unoptimized
                 sizes="100vw"
                 className="object-contain"
               />
@@ -717,7 +869,7 @@ function ShopContent({
               {departmentSectionTiles.map((tile, index) => (
                 <Link
                   key={`${tile.title}-${index}`}
-                  href={`/shop?category=${encodeURIComponent(tile.category)}`}
+                  href={categoryHrefForTile(tile.category)}
                   className="group flex w-full max-w-48 flex-col items-center text-center"
                 >
                   <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f5f2ed] sm:w-36 lg:w-40">
@@ -786,33 +938,33 @@ function ShopContent({
                   return (
                     <article
                       key={product._id}
-                      className="group min-w-0 overflow-hidden rounded-md border border-[#e7edf1] bg-white"
+                      className="group min-w-0 overflow-hidden rounded-lg bg-white transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(30,41,59,0.12)]"
                     >
                       <Link
                         href={`/product/${product.slug}`}
-                        className="relative block aspect-[1.35] overflow-hidden bg-[#f3f4f5]"
+                        className="relative block aspect-[1/1.08] overflow-hidden rounded-md bg-[#f3efec]"
                       >
                         <Image
                           src={image}
                           alt={product.name}
                           fill
                           sizes="(max-width: 639px) 50vw, 25vw"
-                          className="object-contain p-2 transition-transform duration-300 group-hover:scale-[1.04] sm:p-3"
+                          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
                         />
                         {(onSale || product.newArrival) && (
                           <span
-                            className={`absolute left-1.5 top-1.5 rounded-sm px-1.5 py-0.5 text-[8px] font-bold uppercase text-white sm:left-2 sm:top-2 ${
-                              onSale ? "bg-[#df2638]" : "bg-[#27975a]"
+                            className={`absolute left-1.5 top-1.5 rounded-sm px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm sm:left-2 sm:top-2 ${
+                              onSale ? "bg-[#d94d68]" : "bg-[#7fa6a0]"
                             }`}
                           >
                             {onSale ? "Sale" : "New"}
                           </span>
                         )}
                       </Link>
-                      <div className="p-2 sm:p-2.5">
+                      <div className="px-1.5 pb-2 pt-2 sm:px-2 sm:pb-2.5">
                         <Link
                           href={`/product/${product.slug}`}
-                          className="block truncate text-[10px] font-semibold text-[#263238] hover:text-primary sm:text-xs"
+                          className="block truncate text-[11px] font-semibold leading-4 text-[#39312f] hover:text-primary sm:text-xs"
                         >
                           {product.name}
                         </Link>
@@ -868,19 +1020,10 @@ function ShopContent({
       ) : (
       <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         {!isDepartmentProductListing && !isSaleListing && (
-        <div className="mb-4 flex items-center justify-between lg:hidden">
+        <div className="mb-4 flex items-center justify-end lg:hidden">
           <p className="text-sm font-semibold">
             {filteredProducts.length} Products
           </p>
-          <button
-            type="button"
-            onClick={() => setShowFilters((open) => !open)}
-            aria-expanded={showFilters}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium"
-          >
-            <SlidersHorizontal size={16} />
-            {showFilters ? "Hide filters" : "Filters"}
-          </button>
         </div>
         )}
 
@@ -897,7 +1040,7 @@ function ShopContent({
         >
           {!isDepartmentProductListing && !isSaleListing && (
           <aside
-            className="hidden space-y-5 lg:sticky lg:top-6 lg:block lg:self-start"
+            className="hidden"
           >
             <div className="border-b border-slate-200 pb-4">
               <h2 className="mb-3 text-sm font-bold">Categories</h2>
@@ -1100,25 +1243,22 @@ function ShopContent({
 
           <section aria-label={`${heroTitle} products`} className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-              {isDepartmentProductListing || isSaleListing ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterSection("");
-                    setShowFilters(true);
-                  }}
-                  aria-expanded={showFilters}
-                  aria-controls={isSaleListing ? "sale-filter-drawer" : "department-filter-drawer"}
-                  className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#172a33] hover:text-primary"
-                >
-                  <SlidersHorizontal size={15} aria-hidden="true" />
-                  Filter
-                </button>
-              ) : (
-                <p className="text-sm font-semibold">
-                  All Products <span className="text-slate-500">({filteredProducts.length})</span>
-                </p>
-              )}
+              <div className="flex items-center gap-4">
+                <ProductFilterDrawer
+                  options={shopFilterOptions}
+                  value={activeFilterValues}
+                  priceCeiling={100000}
+                  onApply={applyDrawerFilters}
+                  showCategory={categories.length > 0}
+                  showGender={genderFilterOptions.length > 0}
+                  singleSelectKeys={["category", "collection"]}
+                />
+                {!isDepartmentProductListing && !isSaleListing && (
+                  <p className="hidden text-sm font-semibold sm:block">
+                    All Products <span className="text-slate-500">({filteredProducts.length})</span>
+                  </p>
+                )}
+              </div>
               <div className="ml-auto flex flex-wrap items-center gap-3 sm:gap-5">
                 {(isDepartmentProductListing || isSaleListing) && (
                   <p className="text-[11px] font-medium uppercase tracking-wide text-slate-600 sm:text-xs">
@@ -1181,24 +1321,24 @@ function ShopContent({
                     return (
                       <article
                         key={product._id}
-                        className="group overflow-hidden rounded-xl border border-[#e3eaf0] bg-white p-2 shadow-[0_2px_10px_rgba(25,55,78,0.04)] transition hover:-translate-y-0.5 hover:shadow-md sm:p-3"
+                        className="group overflow-hidden rounded-lg bg-white p-1.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(30,41,59,0.12)] sm:p-2"
                       >
                         <div className="relative">
                           <Link
                             href={`/product/${product.slug}`}
                             aria-label={`View ${product.name}`}
-                            className="relative block aspect-[0.88] overflow-hidden rounded-lg bg-[#f5f7f8]"
+                            className="relative block aspect-[1/1.08] overflow-hidden rounded-md bg-[#f3efec]"
                           >
                             <Image
                               src={image}
                               alt={product.name}
                               fill
                               sizes="(max-width: 640px) 46vw, (max-width: 1280px) 30vw, 360px"
-                              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
                             />
                           </Link>
                           {(onSale || product.newArrival) && (
-                            <span className="absolute left-2 top-2 rounded-sm bg-red-600 px-2 py-1 text-[9px] font-bold uppercase text-white">
+                            <span className="absolute left-2 top-2 rounded-sm bg-[#d94d68] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
                               {onSale ? "Sale" : "New"}
                             </span>
                           )}
@@ -1215,29 +1355,29 @@ function ShopContent({
                             }
                             aria-label={wished ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
                             aria-pressed={wished}
-                            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm transition hover:text-red-500"
+                            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:scale-105 hover:text-red-500"
                           >
                             <Heart size={15} className={wished ? "fill-red-500 text-red-500" : ""} />
                           </button>
                         </div>
 
-                        <div className="px-1 pb-1 pt-3">
+                        <div className="px-1 pb-1 pt-2.5">
                           <Link
                             href={`/product/${product.slug}`}
-                            className="line-clamp-1 text-xs font-semibold text-[#20394c] hover:text-[#2867b2] sm:text-sm"
+                            className="line-clamp-1 text-[11px] font-semibold leading-4 text-[#39312f] hover:text-[#2867b2] sm:text-xs"
                           >
                             {product.name}
                           </Link>
-                          <p className="mt-1 text-[10px] text-slate-500">
+                          <p className="mt-0.5 text-[9px] text-[#817975]">
                             {product.category?.name}
                             {product.sizes?.length ? ` · ${product.sizes.join(", ")}` : ""}
                           </p>
                           <div className="mt-2 flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#142d40] sm:text-sm">
+                            <span className="text-xs font-bold text-[#332c2a] sm:text-sm">
                               Rs. {price.toLocaleString()}
                             </span>
                             {onSale && (
-                              <span className="text-[10px] text-slate-400 line-through">
+                              <span className="text-[10px] text-[#a7a09c] line-through">
                                 Rs. {product.price.toLocaleString()}
                               </span>
                             )}
@@ -1255,7 +1395,7 @@ function ShopContent({
                                 quantity: 1,
                               })
                             }
-                            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md bg-[#102f43] py-2 text-[10px] font-semibold text-white transition hover:bg-[#1c4d69] disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-xs"
+                            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-sm bg-[#33291f] py-2 text-[10px] font-semibold text-white transition-colors hover:bg-[#574331] disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-xs"
                           >
                             <ShoppingCart size={13} />
                             {product.stock > 0 ? "Add to Cart" : "Out of Stock"}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import slugify from "slugify";
 import { X, Upload, Loader2, FolderPlus, Edit3 } from "lucide-react";
@@ -37,20 +37,12 @@ const initialState: Collection = {
 };
 
 export default function CollectionForm({ editing, onSuccess }: Props) {
-  const [form, setForm] = useState<Collection>(initialState);
-  const [editingId, setEditingId] = useState("");
+  const [form, setForm] = useState<Collection>(() =>
+    editing ? { ...initialState, ...editing } : initialState
+  );
+  const [editingId, setEditingId] = useState(editing?._id ?? "");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    if (editing) {
-      setForm(editing);
-      setEditingId(editing._id || "");
-    } else {
-      setForm(initialState);
-      setEditingId("");
-    }
-  }, [editing]);
 
   // Handle generalized text elements, check toggles, and sync safe URLs via slugify
   const handleChange = (
@@ -126,8 +118,8 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!form.title || !form.slug || !form.subtitle || !form.description || !form.image) {
-      alert("Please fill all required fields (Title, Slug, Subtitle, Description, and Image).");
+    if (!form.title || !form.slug || !form.subtitle || !form.description) {
+      alert("Please fill all required fields (Title, Slug, Subtitle, and Description).");
       return;
     }
 
@@ -148,7 +140,6 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
       if (!response.ok) throw new Error("Something went wrong.");
 
       setForm(initialState);
-      setEditingId("");
       onSuccess();
     } catch (error) {
       console.error(error);
@@ -288,7 +279,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
         {/* Image Upload Canvas */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-slate-700">
-            Collection Canvas Banner <span className="text-rose-500">*</span>
+            Collection Canvas Banner <span className="text-xs font-normal text-slate-400">(optional)</span>
           </label>
 
           {!form.image ? (

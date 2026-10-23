@@ -5,6 +5,7 @@ import { useState } from "react";
 
 interface CategoryImageProps {
   src?: string | null;
+  fallbackSrc?: string | null;
   alt: string;
   sizes?: string;
   className?: string;
@@ -13,34 +14,56 @@ interface CategoryImageProps {
 
 export default function CategoryImage({
   src,
+  fallbackSrc,
   alt,
   sizes = "100vw",
   className = "object-cover",
   fallbackClassName = "text-xs text-[#71808a]",
 }: CategoryImageProps) {
-  const [hasError, setHasError] = useState(false);
+  const [primaryImageFailed, setPrimaryImageFailed] = useState(false);
+  const [fallbackImageFailed, setFallbackImageFailed] = useState(false);
+  const usableFallback =
+    fallbackSrc && fallbackSrc !== src && !fallbackImageFailed
+      ? fallbackSrc
+      : null;
+  const imageSrc =
+    src && !primaryImageFailed
+      ? src
+      : usableFallback;
 
-  if (!src || hasError) {
+  if (!imageSrc) {
     return (
       <span
         role="img"
         aria-label={alt}
-        className={`absolute inset-0 flex items-center justify-center bg-[#eceff1] px-3 text-center ${fallbackClassName}`}
+        className={`absolute inset-0 flex items-center justify-center overflow-hidden bg-[#f3eee8] px-3 text-center ${fallbackClassName}`}
       >
-        {alt}
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(111,29,70,0.08),_transparent_68%)]"
+        />
+        <span className="relative max-w-full font-medium uppercase tracking-[0.12em] text-[#765d68]">
+          {alt}
+        </span>
       </span>
     );
   }
 
   return (
     <Image
-      src={src}
+      src={imageSrc}
       alt={alt}
       fill
       unoptimized
       sizes={sizes}
       className={className}
-      onError={() => setHasError(true)}
+      onError={() => {
+        if (imageSrc === fallbackSrc) {
+          setFallbackImageFailed(true);
+        } else {
+          setPrimaryImageFailed(true);
+        }
+      }}
     />
   );
 }

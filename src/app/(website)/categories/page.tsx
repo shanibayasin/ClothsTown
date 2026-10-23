@@ -12,6 +12,9 @@ export default async function CategoriesPage() {
   })
     .sort({ createdAt: -1 })
     .lean();
+  const categoriesById = new Map(
+    categories.map((category) => [category._id.toString(), category])
+  );
 
   return (
     <section className="bg-[#FCF8F6] py-20">
@@ -48,7 +51,12 @@ export default async function CategoriesPage() {
 
               <Link
                 key={category._id.toString()}
-                href={`/category/${category.slug}`}
+                href={
+                  category.parentCategory &&
+                  categoriesById.get(category.parentCategory.toString())?.slug
+                    ? `/shop/${categoriesById.get(category.parentCategory.toString())?.slug}/${category.slug}`
+                    : `/shop/${category.slug}`
+                }
                 className="group overflow-hidden rounded-[30px] bg-white shadow-lg transition duration-500 hover:-translate-y-2 hover:shadow-2xl"
               >
 

@@ -14,6 +14,7 @@ interface Category {
   name: string;
   slug?: string;
   image?: string;
+  parentCategory?: string | null;
   sectionTiles?: SectionTile[];
   menuGroups?: AccessoriesMenuGroup[];
 }
@@ -39,16 +40,105 @@ interface Collection {
   title: string;
 }
 
+type ManagedSection =
+  | "Girls"
+  | "Women"
+  | "Men"
+  | "Boys"
+  | "Accessories"
+  | "New Arrivals";
+
+const SECTION_CATEGORY_KEYS: Record<
+  ManagedSection,
+  { preferred: string[]; aliases: string[] }
+> = {
+  Men: {
+    preferred: ["men"],
+    aliases: ["mens", "men-s", "menswear", "men-wear", "mens-wear"],
+  },
+  Women: {
+    preferred: ["women"],
+    aliases: ["womens", "women-s", "womenswear", "women-wear", "womens-wear"],
+  },
+  Girls: {
+    preferred: ["girls"],
+    aliases: ["girl", "girls-wear", "girl-wear"],
+  },
+  Boys: {
+    preferred: ["boys"],
+    aliases: ["boy", "boys-wear", "boy-wear"],
+  },
+  Accessories: {
+    preferred: ["accessories"],
+    aliases: ["accessory"],
+  },
+  "New Arrivals": {
+    preferred: ["new-arrivals"],
+    aliases: ["new-arrival"],
+  },
+};
+
+function normalizeCategoryKey(value: string | undefined) {
+  return (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function resolveSectionCategory(
+  categories: Category[],
+  sectionName: ManagedSection
+): { category: Category | null; error: string } {
+  const keys = SECTION_CATEGORY_KEYS[sectionName];
+  const normalized = categories.map((category) => ({
+    category,
+    name: normalizeCategoryKey(category.name),
+    slug: normalizeCategoryKey(category.slug),
+  }));
+
+  for (const preferredKey of keys.preferred) {
+    const slugMatch = normalized.filter((item) => item.slug === preferredKey);
+    if (slugMatch.length === 1) return { category: slugMatch[0].category, error: "" };
+    if (slugMatch.length > 1) {
+      return {
+        category: null,
+        error: `More than one category uses the ${sectionName} slug. Resolve the duplicate in Categories.`,
+      };
+    }
+
+    const nameMatch = normalized.filter((item) => item.name === preferredKey);
+    if (nameMatch.length === 1) return { category: nameMatch[0].category, error: "" };
+    if (nameMatch.length > 1) {
+      return {
+        category: null,
+        error: `More than one category is named ${sectionName}. Resolve the duplicate in Categories.`,
+      };
+    }
+  }
+
+  const aliasKeys = new Set(keys.aliases);
+  const aliasMatches = normalized.filter(
+    (item) => aliasKeys.has(item.slug) || aliasKeys.has(item.name)
+  );
+  if (aliasMatches.length === 1) {
+    return { category: aliasMatches[0].category, error: "" };
+  }
+  if (aliasMatches.length > 1) {
+    return {
+      category: null,
+      error: `Multiple categories match ${sectionName}. Use one canonical ${sectionName} category or rename the duplicates.`,
+    };
+  }
+
+  return { category: null, error: "" };
+}
+
 export default function CategorySectionManager({
   sectionName,
 }: {
-  sectionName:
-    | "Girls"
-    | "Women"
-    | "Men"
-    | "Boys"
-    | "Accessories"
-    | "New Arrivals";
+  sectionName: ManagedSection;
 }) {
   const [sectionCategory, setSectionCategory] = useState<Category | null>(null);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
@@ -59,8 +149,11 @@ export default function CategorySectionManager({
   const [loading, setLoading] = useState(true);
   const [setupRevision, setSetupRevision] = useState(0);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [categoryResolutionError, setCategoryResolutionError] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [bannerImage, setBannerImage] = useState("");
+  const [bannerDimensions, setBannerDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [bannerSaved, setBannerSaved] = useState(false);
   const [sectionTiles, setSectionTiles] = useState<SectionTile[]>([]);
   const [accessoriesMenuGroups, setAccessoriesMenuGroups] = useState<
     AccessoriesMenuGroup[]
@@ -70,6 +163,12 @@ export default function CategorySectionManager({
   const [savingBanner, setSavingBanner] = useState(false);
   const [savingTiles, setSavingTiles] = useState(false);
   const [error, setError] = useState("");
+  const menSubcategories =
+    (sectionName === "Men" || sectionName === "Women") && sectionCategory
+      ? allCategories.filter(
+          (category) => category.parentCategory === sectionCategory._id
+        )
+      : [];
 
   useEffect(() => {
     let active = true;
@@ -99,74 +198,9 @@ export default function CategorySectionManager({
 
         setLoadFailed(false);
         setAllCategories(categories);
-        const sectionPattern =
-          sectionName === "New Arrivals"
-            ? /^new[-\s]?arrivals?$/
-            : sectionName === "Girls"
-              ? /\bgirls?\b/
-              : sectionName === "Women"
-                ? /\bwomen\b|womens/
-                : sectionName === "Men"
-                  ? /\bmen\b|\bmens\b|\bmenswear\b/
-                    : sectionName === "Boys"
-                      ? /\bboys?\b/
-                      : /\baccessor(y|ies)\b/;
-        const sectionCategories = categories.filter((item: Category) =>
-          sectionName === "New Arrivals"
-            ? sectionPattern.test(item.name?.trim().toLowerCase() ?? "") ||
-              sectionPattern.test(item.slug?.trim().toLowerCase() ?? "")
-            : sectionPattern.test(
-                `${item.name?.trim().toLowerCase() ?? ""} ${item.slug?.trim().toLowerCase() ?? ""}`
-              )
-        );
-        const category =
-          sectionName === "New Arrivals"
-            ? sectionCategories.find(
-                (item: Category) =>
-                  item.name?.trim().toLowerCase() === "new arrivals" ||
-                  item.slug?.trim().toLowerCase() === "new-arrivals"
-              ) ?? null
-            : sectionName === "Accessories"
-              ? sectionCategories.find(
-                  (item: Category) =>
-                    /^(accessory|accessories)$/.test(
-                      item.name?.trim().toLowerCase() ?? ""
-                    ) ||
-                    /^(accessory|accessories)$/.test(
-                      item.slug?.trim().toLowerCase() ?? ""
-                    )
-                ) ?? null
-            : sectionCategories.find(
-                (item: Category) => (item.sectionTiles?.length ?? 0) > 0
-              ) ??
-              sectionCategories.find((item: Category) =>
-                sectionName === "Girls"
-                  ? /girls?\s+wear/.test(item.name?.trim().toLowerCase() ?? "") ||
-                    /girls?-wear/.test(item.slug?.trim().toLowerCase() ?? "")
-                  : sectionName === "Women"
-                    ? /women('?s)?\s+wear|womens?\s+wear/.test(
-                        item.name?.trim().toLowerCase() ?? ""
-                      ) || /women('?s)?-wear|womens?-wear/.test(
-                        item.slug?.trim().toLowerCase() ?? ""
-                      )
-                    : sectionName === "Men"
-                      ? /\bmen('?s)?\s+wear|\bmens?\s+wear|\bmenswear\b/.test(
-                          item.name?.trim().toLowerCase() ?? ""
-                        ) || /\bmen('?s)?-wear|\bmens?-wear|\bmenswear\b/.test(
-                          item.slug?.trim().toLowerCase() ?? ""
-                        )
-                      : /\bboys?\s+wear/.test(
-                          item.name?.trim().toLowerCase() ?? ""
-                        ) || /\bboys?-wear/.test(
-                          item.slug?.trim().toLowerCase() ?? ""
-                        )
-              ) ??
-              sectionCategories.find(
-                (item: Category) =>
-                  item.name?.trim().toLowerCase() === sectionName.toLowerCase()
-              ) ??
-              sectionCategories[0] ??
-              null;
+        const resolution = resolveSectionCategory(categories, sectionName);
+        setCategoryResolutionError(resolution.error);
+        const category = resolution.category;
         setSectionCategory(category);
         setBannerImage(category?.image ?? "");
         setSectionTiles(category?.sectionTiles ?? []);
@@ -210,6 +244,7 @@ export default function CategorySectionManager({
       }
 
       setSectionCategory(data);
+      setCategoryResolutionError("");
       setBannerImage(data.image ?? "");
       setSectionTiles(data.sectionTiles ?? []);
       setAccessoriesMenuGroups(data.menuGroups ?? []);
@@ -230,6 +265,8 @@ export default function CategorySectionManager({
 
     setUploadingBanner(true);
     setError("");
+    setBannerSaved(false);
+    setBannerDimensions(null);
 
     try {
       const formData = new FormData();
@@ -275,9 +312,13 @@ export default function CategorySectionManager({
       if (!response.ok) {
         throw new Error(data.message || `Could not save the ${sectionName} banner.`);
       }
+      if (data._id !== sectionCategory._id || data.image !== bannerImage) {
+        throw new Error(`The ${sectionName} banner was not confirmed as saved. Please try again.`);
+      }
 
       setSectionCategory(data);
       setBannerImage(data.image ?? "");
+      setBannerSaved(true);
     } catch (saveError) {
       console.error(`Failed to save ${sectionName} hero banner:`, saveError);
       setError(
@@ -427,14 +468,38 @@ export default function CategorySectionManager({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-[#e9e5df] bg-white p-5 shadow-sm">
-        <p className="text-xs font-medium text-slate-500">Store sections / {sectionName}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#24211e]">
-          {sectionName} Products
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Add and manage products shown in the {sectionName} section of your store.
-        </p>
+      <section className="flex flex-col gap-4 rounded-xl border border-[#e9e5df] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <nav aria-label="Breadcrumb" className="text-xs font-medium text-slate-500">
+            <Link href="/admin" className="transition hover:text-[#2867b2]">Home</Link>
+            <span className="mx-2">/</span>
+            <Link href="/admin" className="transition hover:text-[#2867b2]">Store Sections</Link>
+            <span className="mx-2">/</span>
+            <span className="text-slate-700">{sectionName}</span>
+          </nav>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#24211e]">
+            {sectionName} Products
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {sectionName === "Men"
+              ? "Manage all products displayed in the Men section of the storefront."
+              : `Add and manage products shown in the ${sectionName} section of your store.`}
+          </p>
+        </div>
+        {(sectionName === "Men" || sectionName === "Women") && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setIsProductFormOpen((open) => !open);
+            }}
+            disabled={loading || !sectionCategory}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#2867b2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Plus size={16} aria-hidden="true" />
+            {isProductFormOpen ? "Close Product Form" : "Add Product"}
+          </button>
+        )}
       </section>
 
       {error && (
@@ -447,8 +512,16 @@ export default function CategorySectionManager({
       )}
 
       {loading ? (
-        <div className="rounded-xl border border-[#e9e5df] bg-white p-8 text-center text-sm text-slate-500">
-          Loading {sectionName} products...
+        <div aria-label={`Loading ${sectionName} section`} className="animate-pulse space-y-4">
+          <div className="rounded-xl border border-[#e9e5df] bg-white p-5">
+            <div className="h-5 w-40 rounded bg-slate-100" />
+            <div className="mt-3 aspect-[16/6] rounded-lg bg-slate-100" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div key={`section-summary-${index}`} className="h-20 rounded-xl border border-[#e9e5df] bg-white" />
+            ))}
+          </div>
         </div>
       ) : loadFailed ? (
         <section className="rounded-xl border border-[#e9e5df] bg-white p-8 text-center shadow-sm">
@@ -475,59 +548,168 @@ export default function CategorySectionManager({
                 This image appears in the {sectionName} storefront hero section.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-end">
-              <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-600 transition hover:border-[#2867b2] hover:bg-slate-50">
-                <UploadCloud size={18} className="shrink-0 text-[#2867b2]" />
-                <span className="min-w-0 flex-1 truncate">
-                  {uploadingBanner
-                    ? "Uploading banner..."
-                    : bannerImage
-                      ? "Choose a different banner image"
-                      : "Choose a banner image"}
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={uploadingBanner || savingBanner}
-                  onChange={(event) => {
-                    void uploadSectionBanner(event.target.files?.[0]);
-                    event.target.value = "";
-                  }}
-                  className="sr-only"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={saveSectionBanner}
-                disabled={!bannerImage || uploadingBanner || savingBanner}
-                className="min-h-12 rounded-lg bg-[#2867b2] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {savingBanner ? "Saving banner..." : "Save hero banner"}
-              </button>
-            </div>
-            {bannerImage && (
-              <div
-                className={`relative mt-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 ${
-                  sectionName === "New Arrivals"
-                    ? "aspect-[3.2/1]"
-                    : "h-40 sm:h-52"
-                }`}
-              >
-                <Image
-                  src={bannerImage}
-                  alt={`${sectionName} hero banner preview`}
-                  fill
-                  unoptimized
-                  sizes="(max-width: 640px) 100vw, 800px"
-                  className={
-                    sectionName === "New Arrivals"
-                      ? "object-contain"
-                      : "object-cover"
-                  }
-                />
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,1fr)]">
+              <div>
+                <div className="relative aspect-[16/6] min-h-36 overflow-hidden rounded-xl border border-slate-200 bg-[#f5f7fa]">
+                  {bannerImage ? (
+                    <Image
+                      src={bannerImage}
+                      alt={`${sectionName} hero banner preview`}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 1024px) 100vw, 800px"
+                      onLoad={(event) => {
+                        const image = event.currentTarget;
+                        setBannerDimensions({
+                          width: image.naturalWidth,
+                          height: image.naturalHeight,
+                        });
+                      }}
+                      className="object-cover"
+                    />
+                  ) : categoryResolutionError ? (
+                    <section
+                      role="alert"
+                      className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center shadow-sm"
+                    >
+                      <h2 className="text-base font-semibold text-amber-900">
+                        Could not resolve the {sectionName} category
+                      </h2>
+                      <p className="mx-auto mt-2 max-w-xl text-sm text-amber-800">
+                        {categoryResolutionError}
+                      </p>
+                      <Link
+                        className="mt-4 inline-block text-sm font-semibold text-[#2867b2] underline"
+                        href="/admin/categories"
+                      >
+                        Review categories
+                      </Link>
+                    </section>
+                  ) : (
+                    <div className="flex h-full items-center justify-center px-4 text-center text-sm text-slate-500">
+                      No hero banner uploaded yet
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  {bannerDimensions
+                    ? `Image dimensions: ${bannerDimensions.width} × ${bannerDimensions.height}px`
+                    : "Recommended aspect ratio: 16:6 (wide landscape)"}
+                </p>
               </div>
-            )}
+              <div className="flex flex-col justify-center gap-3">
+                <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-600 transition hover:border-[#2867b2] hover:bg-slate-50">
+                  <UploadCloud size={18} className="shrink-0 text-[#2867b2]" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {uploadingBanner
+                      ? "Uploading banner..."
+                      : bannerImage
+                        ? "Choose a different banner image"
+                        : "Choose a banner image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingBanner || savingBanner}
+                    onChange={(event) => {
+                      void uploadSectionBanner(event.target.files?.[0]);
+                      event.target.value = "";
+                    }}
+                    className="sr-only"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={saveSectionBanner}
+                    disabled={
+                      !bannerImage ||
+                      uploadingBanner ||
+                      savingBanner ||
+                      bannerImage === sectionCategory.image
+                    }
+                    className="min-h-11 rounded-lg bg-[#2867b2] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {savingBanner ? "Saving..." : "Save Banner"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerImage(sectionCategory.image ?? "");
+                      setBannerDimensions(null);
+                      setBannerSaved(false);
+                      setError("");
+                    }}
+                    disabled={
+                      uploadingBanner ||
+                      savingBanner ||
+                      bannerImage === (sectionCategory.image ?? "")
+                    }
+                    className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel Changes
+                  </button>
+                </div>
+                {bannerSaved && (
+                  <p role="status" className="text-sm font-medium text-emerald-700">
+                    Hero banner saved successfully.
+                  </p>
+                )}
+              </div>
+            </div>
           </section>
+          {(sectionName === "Men" || sectionName === "Women") && (
+            <>
+              <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                  <div>
+                    <h2 className="text-base font-bold text-[#24211e]">{sectionName.toUpperCase()} subcategories</h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {menSubcategories.length} department subcategories. Manage hierarchy and status in Categories.
+                    </p>
+                  </div>
+                  <Link
+                    href="/admin/categories"
+                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Manage categories
+                  </Link>
+                </div>
+                {menSubcategories.length > 0 ? (
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {menSubcategories.map((category) => (
+                      <li key={category._id} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
+                        {category.name}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-slate-500">
+                    Add {sectionName.toUpperCase()} subcategories from Categories by selecting {sectionName} as the parent department.
+                  </p>
+                )}
+              </section>
+              {isProductFormOpen && (
+                <ProductForm
+                  key={editing?._id ?? "new"}
+                  editing={editing}
+                  categories={[sectionCategory, ...menSubcategories]}
+                  collections={collections}
+                  preselectedCategoryId={sectionCategory._id}
+                  onSuccess={() => setRefresh((current) => current + 1)}
+                />
+              )}
+              <ProductTable
+                refresh={refresh}
+                sectionName={sectionName}
+                categoryIds={[sectionCategory._id, ...menSubcategories.map((category) => category._id)]}
+                onEdit={(product) => {
+                  setEditing(product);
+                  setIsProductFormOpen(true);
+                }}
+              />
+            </>
+          )}
           <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
@@ -910,7 +1092,7 @@ export default function CategorySectionManager({
               </div>
             </section>
           )}
-          <div className="flex justify-end">
+          {sectionName !== "Men" && sectionName !== "Women" && <div className="flex justify-end">
             <button
               type="button"
               onClick={() => {
@@ -922,8 +1104,8 @@ export default function CategorySectionManager({
               <Plus size={16} aria-hidden="true" />
               {isProductFormOpen ? "Close Product Form" : "New Product"}
             </button>
-          </div>
-          {isProductFormOpen && (
+          </div>}
+          {sectionName !== "Men" && sectionName !== "Women" && isProductFormOpen && (
             <ProductForm
               key={editing?._id ?? "new"}
               editing={editing}
@@ -942,8 +1124,9 @@ export default function CategorySectionManager({
               }}
             />
           )}
-          <ProductTable
+          {sectionName !== "Men" && sectionName !== "Women" && <ProductTable
             refresh={refresh}
+            sectionName={sectionName}
             categoryId={
               sectionName === "New Arrivals" || sectionName === "Accessories"
                 ? undefined
@@ -974,7 +1157,7 @@ export default function CategorySectionManager({
               setEditing(product);
               setIsProductFormOpen(true);
             }}
-          />
+          />}
         </>
       ) : (
         <section className="rounded-xl border border-[#e9e5df] bg-white p-8 text-center shadow-sm">

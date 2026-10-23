@@ -35,11 +35,33 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const body = await request.json();
+    const body: unknown = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json(
+        { message: "Collection data must be an object." },
+        { status: 400 }
+      );
+    }
+    const data = body as Record<string, unknown>;
+    const requiredFields = ["title", "slug", "subtitle", "description"] as const;
+    for (const field of requiredFields) {
+      if (typeof data[field] !== "string" || !data[field].trim()) {
+        return NextResponse.json(
+          { message: `${field} is required.` },
+          { status: 400 }
+        );
+      }
+    }
+    if (data.image !== undefined && typeof data.image !== "string") {
+      return NextResponse.json(
+        { message: "Image must be a string." },
+        { status: 400 }
+      );
+    }
 
     // Validation Check: Kya yeh slug pehle se database me majood hai?
     const exists = await Collection.findOne({
-      slug: body.slug,
+      slug: (data.slug as string).trim(),
     });
 
     if (exists) {
@@ -51,14 +73,14 @@ export async function POST(request: NextRequest) {
 
     // Explicit payload structure mapping for security purposes
     const collection = await Collection.create({
-      title: body.title,
-      slug: body.slug,
-      subtitle: body.subtitle,
-      description: body.description,
-      buttonText: body.buttonText,
-      buttonLink: body.buttonLink,
-      image: body.image,
-      status: body.status,
+      title: (data.title as string).trim(),
+      slug: (data.slug as string).trim(),
+      subtitle: (data.subtitle as string).trim(),
+      description: (data.description as string).trim(),
+      buttonText: data.buttonText,
+      buttonLink: data.buttonLink,
+      image: data.image ?? "",
+      status: data.status,
     });
 
     return NextResponse.json(collection, {

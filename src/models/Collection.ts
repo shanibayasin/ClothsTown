@@ -38,7 +38,7 @@ const CollectionSchema = new Schema(
 
     image: {
       type: String,
-      required: true,
+      default: "",
     },
 
     status: {

@@ -1,7 +1,15 @@
+import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
+import Product from "@/models/Product";
 import { requireAdmin } from "@/lib/admin-auth";
+
+const MAX_BANNER_IMAGE_LENGTH = 6_000_000;
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 // GET SINGLE CATEGORY
 
@@ -44,20 +52,103 @@ export async function PUT(
     await connectDB();
 
     const { id } = await params;
-    const body = await request.json();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ message: "Invalid category ID." }, { status: 400 });
+    }
+    const body: unknown = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json({ message: "Category data must be an object." }, { status: 400 });
+    }
+    const input = body as Record<string, unknown>;
 
-    if (body.name) {
-      body.slug = body.name
+    let name: string | undefined;
+    let slug: string | undefined;
+    if (input.name !== undefined) {
+      if (typeof input.name !== "string" || !input.name.trim()) {
+        return NextResponse.json({ message: "Category name is required." }, { status: 400 });
+      }
+      name = input.name.trim();
+      slug = name
+        .replace(/['’]/g, "")
         .toLowerCase()
-        .trim()
         .replace(/\s+/g, "-")
-        .replace(/[^\w-]+/g, "");
+        .replace(/[^\w-]+/g, "")
+        .replace(/^-|-$/g, "");
+    } else if (input.slug !== undefined) {
+      if (typeof input.slug !== "string" || !input.slug.trim()) {
+        return NextResponse.json({ message: "Category slug is required." }, { status: 400 });
+      }
+      slug = input.slug.trim().toLowerCase();
+    }
+
+    if (slug !== undefined && !slug) {
+      return NextResponse.json({ message: "Category name must produce a valid slug." }, { status: 400 });
+    }
+    if (slug && await Category.exists({ slug, _id: { $ne: id } })) {
+      return NextResponse.json({ message: "A category with this name or slug already exists." }, { status: 409 });
+    }
+    if (input.image !== undefined && typeof input.image !== "string") {
+      return NextResponse.json({ message: "Category image must be a string." }, { status: 400 });
+    }
+    for (const field of ["bannerImage", "bannerTitle", "bannerDescription"] as const) {
+      if (input[field] !== undefined && typeof input[field] !== "string") {
+        return NextResponse.json({ message: `Category ${field} must be a string.` }, { status: 400 });
+      }
+    }
+    if (
+      (typeof input.bannerImage === "string" && input.bannerImage.length > MAX_BANNER_IMAGE_LENGTH) ||
+      (typeof input.bannerTitle === "string" && input.bannerTitle.trim().length > 160) ||
+      (typeof input.bannerDescription === "string" && input.bannerDescription.trim().length > 500)
+    ) {
+      return NextResponse.json({ message: "Category banner fields exceed the allowed length." }, { status: 400 });
+    }
+    if (
+      input.bannerPosition !== undefined &&
+      !["left", "center", "right"].includes(String(input.bannerPosition))
+    ) {
+      return NextResponse.json({ message: "Banner position must be left, center, or right." }, { status: 400 });
+    }
+    if (input.status !== undefined && typeof input.status !== "boolean") {
+      return NextResponse.json({ message: "Category status must be a boolean." }, { status: 400 });
+    }
+
+    const update: Record<string, unknown> = {};
+    if (name !== undefined) update.name = name;
+    if (slug !== undefined) update.slug = slug;
+    if (input.image !== undefined) update.image = input.image;
+    if (input.bannerImage !== undefined) update.bannerImage = input.bannerImage;
+    if (input.bannerTitle !== undefined) update.bannerTitle = input.bannerTitle;
+    if (input.bannerDescription !== undefined) update.bannerDescription = input.bannerDescription;
+    if (input.bannerPosition !== undefined) update.bannerPosition = input.bannerPosition;
+    if (input.status !== undefined) update.status = input.status;
+    if (Array.isArray(input.sectionTiles)) update.sectionTiles = input.sectionTiles;
+    if (Array.isArray(input.menuGroups)) update.menuGroups = input.menuGroups;
+    if (input.parentCategory !== undefined) {
+      if (input.parentCategory === null || input.parentCategory === "") {
+        update.parentCategory = null;
+      } else if (
+        typeof input.parentCategory !== "string" ||
+        !mongoose.Types.ObjectId.isValid(input.parentCategory) ||
+        input.parentCategory === id
+      ) {
+        return NextResponse.json({ message: "Select a valid parent category." }, { status: 400 });
+      } else {
+        const [parent, isParentOfOther, hasChildren] = await Promise.all([
+          Category.findById(input.parentCategory).select("_id parentCategory"),
+          Category.exists({ _id: input.parentCategory, parentCategory: id }),
+          Category.exists({ parentCategory: id }),
+        ]);
+        if (!parent || parent.parentCategory || isParentOfOther || hasChildren) {
+          return NextResponse.json({ message: "Subcategories must be assigned directly to a top-level category." }, { status: 400 });
+        }
+        update.parentCategory = parent._id;
+      }
     }
 
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
-      body,
-      { new: true }
+      update,
+      { new: true, runValidators: true }
     );
 
     if (!updatedCategory) {
@@ -69,12 +160,20 @@ export async function PUT(
 
     return NextResponse.json(updatedCategory);
   } catch (error) {
+    const duplicateKey =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000;
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Failed to update category",
+        message: duplicateKey
+          ? "A category with this name or slug already exists."
+          : error instanceof Error
+            ? error.message
+            : "Failed to update category",
       },
-      { status: 500 }
+      { status: duplicateKey ? 409 : 500 }
     );
   }
 }
@@ -92,6 +191,54 @@ export async function DELETE(
     await connectDB();
 
     const { id } = await params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { message: "Invalid category ID." },
+        { status: 400 }
+      );
+    }
+
+    const category = await Category.findById(id).select("_id name slug");
+    if (!category) {
+      return NextResponse.json(
+        { message: "Category not found" },
+        { status: 404 }
+      );
+    }
+
+    const categoryReference = new RegExp(
+      `^${escapeRegex(category.name)}$`,
+      "i"
+    );
+    const slugReference = new RegExp(
+      `^${escapeRegex(category.slug)}$`,
+      "i"
+    );
+    const [hasProducts, hasChildren, hasNavigationReferences] = await Promise.all([
+      Product.exists({ category: category._id }),
+      Category.exists({ parentCategory: category._id }),
+      Category.exists({
+        _id: { $ne: category._id },
+        $or: [
+          { "sectionTiles.category": categoryReference },
+          { "sectionTiles.category": slugReference },
+          { "sectionTiles.category": id },
+          { "menuGroups.categories.category": categoryReference },
+          { "menuGroups.categories.category": slugReference },
+          { "menuGroups.categories.category": id },
+        ],
+      }),
+    ]);
+    if (hasProducts || hasNavigationReferences || hasChildren) {
+      return NextResponse.json(
+        {
+          message:
+            "This category is used by products, child categories, or category navigation. Reassign those references before deleting it.",
+        },
+        { status: 409 }
+      );
+    }
+
     const deletedCategory = await Category.findByIdAndDelete(id);
 
     if (!deletedCategory) {

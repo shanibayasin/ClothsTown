@@ -35,6 +35,30 @@ const ProductSchema = new Schema(
       trim: true,
     },
 
+    brand: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    productType: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    fragranceType: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    bottleSize: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     price: {
       type: Number,
       required: true,
@@ -139,6 +163,12 @@ if (!ProductModel.schema.path("season")) {
     season: ProductSchema.obj.season,
     fabric: ProductSchema.obj.fabric,
   });
+}
+
+for (const field of ["brand", "productType", "fragranceType", "bottleSize"] as const) {
+  if (!ProductModel.schema.path(field)) {
+    ProductModel.schema.add({ [field]: ProductSchema.obj[field] });
+  }
 }
 
 if (!ProductModel.schema.path("collections")) {

@@ -15,9 +15,42 @@ const CategorySchema = new Schema(
       lowercase: true,
     },
 
+    parentCategory: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      default: null,
+      index: true,
+    },
+
     image: {
       type: String,
       default: "",
+    },
+
+    bannerImage: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    bannerTitle: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 160,
+    },
+
+    bannerDescription: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 500,
+    },
+
+    bannerPosition: {
+      type: String,
+      enum: ["left", "center", "right"],
+      default: "left",
     },
 
     sectionTiles: {
@@ -80,6 +113,23 @@ if (!CategoryModel.schema.path("menuGroups")) {
   CategoryModel.schema.add({
     menuGroups: CategorySchema.obj.menuGroups,
   });
+}
+
+if (!CategoryModel.schema.path("parentCategory")) {
+  CategoryModel.schema.add({
+    parentCategory: CategorySchema.obj.parentCategory,
+  });
+}
+
+for (const path of [
+  "bannerImage",
+  "bannerTitle",
+  "bannerDescription",
+  "bannerPosition",
+] as const) {
+  if (!CategoryModel.schema.path(path)) {
+    CategoryModel.schema.add({ [path]: CategorySchema.obj[path] });
+  }
 }
 
 export default CategoryModel;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Image as ImageIcon } from "lucide-react";
 import { connectDB } from "@/lib/mongodb";
 import Collection from "@/models/Collection";
 
@@ -63,22 +64,28 @@ export default async function CollectionsPage() {
           </div>
         ) : (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {collections.map((collection: any) => (
+            {collections.map((collection) => (
               <Link
                 key={collection._id}
                 href={`/collections/${collection.slug}`}
                 className="group overflow-hidden rounded-3xl bg-white shadow-sm transition hover:-translate-y-2 hover:shadow-xl"
               >
                 <div className="relative h-80 overflow-hidden bg-gray-100">
-                  <Image
-                    src={
-                      collection.image ||
-                      "/images/placeholder-collection.jpg"
-                    }
-                    alt={collection.title}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-110"
-                  />
+                  {collection.image ? (
+                    <Image
+                      src={collection.image}
+                      alt={collection.title}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400"
+                      aria-label="No collection image uploaded"
+                    >
+                      <ImageIcon size={48} strokeWidth={1.25} aria-hidden="true" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-7">

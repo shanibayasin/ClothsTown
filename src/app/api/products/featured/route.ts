@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { getActiveProductFilter } from "@/lib/products";
+import {
+  getActiveProductFilter,
+  getFeaturedProductFilter,
+  normalizeProductAliases,
+} from "@/lib/products";
 import Product from "@/models/Product";
 
 export async function GET() {
@@ -8,9 +12,7 @@ export async function GET() {
     await connectDB();
 
     const products = await Product.find(
-      getActiveProductFilter({
-        $or: [{ featured: true }, { isFeatured: true }],
-      })
+      getActiveProductFilter(getFeaturedProductFilter())
     )
       .populate("category")
       .populate("collection")
@@ -19,7 +21,7 @@ export async function GET() {
       .limit(8)
       .lean();
 
-    return NextResponse.json(products);
+    return NextResponse.json(products.map(normalizeProductAliases));
   } catch (error) {
     console.error(error);
 

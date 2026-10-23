@@ -53,9 +53,31 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json(
+        { message: "Collection data must be an object." },
+        { status: 400 }
+      );
+    }
+    const requiredFields = ["title", "slug", "subtitle", "description"] as const;
+    for (const field of requiredFields) {
+      if (typeof body[field] !== "string" || !body[field].trim()) {
+        return NextResponse.json(
+          { message: `${field} is required.` },
+          { status: 400 }
+        );
+      }
+    }
+    if (body.image !== undefined && typeof body.image !== "string") {
+      return NextResponse.json(
+        { message: "Image must be a string." },
+        { status: 400 }
+      );
+    }
+
     // Verification: Check if another document already claims this specific slug path
     const exists = await Collection.findOne({
-      slug: body.slug,
+      slug: body.slug.trim(),
       _id: { $ne: id }, // Exclude the current editing collection ID
     });
 
@@ -70,13 +92,13 @@ export async function PUT(
     const updatedCollection = await Collection.findByIdAndUpdate(
       id,
       {
-        title: body.title,
-        slug: body.slug,
-        subtitle: body.subtitle,
-        description: body.description,
+        title: body.title.trim(),
+        slug: body.slug.trim(),
+        subtitle: body.subtitle.trim(),
+        description: body.description.trim(),
         buttonText: body.buttonText,
         buttonLink: body.buttonLink,
-        image: body.image,
+        ...(body.image !== undefined ? { image: body.image } : {}),
         status: body.status,
       },
       { new: true } // Returns the fresh updated state record

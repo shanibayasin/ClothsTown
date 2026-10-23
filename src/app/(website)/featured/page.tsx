@@ -2,16 +2,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { getActiveProductFilter } from "@/lib/products";
+import { getActiveProductFilter, getFeaturedProductFilter } from "@/lib/products";
 import Product from "@/models/Product";
 
 export default async function FeaturedPage() {
   await connection();
   await connectDB();
 
-  const products = await Product.find(getActiveProductFilter({
-    $or: [{ featured: true }, { isFeatured: true }],
-  }))
+  const products = await Product.find(
+    getActiveProductFilter(getFeaturedProductFilter())
+  )
     .sort({ createdAt: -1 })
     .lean();
 

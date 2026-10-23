@@ -1,7 +1,10 @@
+import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import { requireAdmin } from "@/lib/admin-auth";
+
+const MAX_BANNER_IMAGE_LENGTH = 6_000_000;
 
 // GET ALL CATEGORIES
 
@@ -29,24 +32,99 @@ export async function POST(request: Request) {
   try {
     await connectDB();
 
-    const body = await request.json();
-
-    body.slug = body.name
+    const body: unknown = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json({ message: "Category data must be an object." }, { status: 400 });
+    }
+    const input = body as Record<string, unknown>;
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    if (!name) {
+      return NextResponse.json({ message: "Category name is required." }, { status: 400 });
+    }
+    const slug = (typeof input.slug === "string" && input.slug.trim()
+      ? input.slug
+      : name.replace(/['’]/g, ""))
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-")
-      .replace(/[^\w-]+/g, "");
+      .replace(/[^\w-]+/g, "")
+      .replace(/^-|-$/g, "");
+    if (!slug) {
+      return NextResponse.json({ message: "Category name must produce a valid slug." }, { status: 400 });
+    }
+    if (await Category.exists({ slug })) {
+      return NextResponse.json({ message: "A category with this name or slug already exists." }, { status: 409 });
+    }
 
-    const category = await Category.create(body);
+    let parentCategory: mongoose.Types.ObjectId | null = null;
+    if (input.parentCategory !== undefined && input.parentCategory !== null && input.parentCategory !== "") {
+      if (
+        typeof input.parentCategory !== "string" ||
+        !mongoose.Types.ObjectId.isValid(input.parentCategory)
+      ) {
+        return NextResponse.json({ message: "Select a valid parent category." }, { status: 400 });
+      }
+      const parent = await Category.findById(input.parentCategory).select("_id parentCategory");
+      if (!parent || parent.parentCategory) {
+        return NextResponse.json({ message: "Subcategories must be assigned directly to a top-level category." }, { status: 400 });
+      }
+      parentCategory = parent._id;
+    }
+    if (input.image !== undefined && typeof input.image !== "string") {
+      return NextResponse.json({ message: "Category image must be a string." }, { status: 400 });
+    }
+    for (const field of ["bannerImage", "bannerTitle", "bannerDescription"] as const) {
+      if (input[field] !== undefined && typeof input[field] !== "string") {
+        return NextResponse.json({ message: `Category ${field} must be a string.` }, { status: 400 });
+      }
+    }
+    if (
+      (typeof input.bannerImage === "string" && input.bannerImage.length > MAX_BANNER_IMAGE_LENGTH) ||
+      (typeof input.bannerTitle === "string" && input.bannerTitle.trim().length > 160) ||
+      (typeof input.bannerDescription === "string" && input.bannerDescription.trim().length > 500)
+    ) {
+      return NextResponse.json({ message: "Category banner fields exceed the allowed length." }, { status: 400 });
+    }
+    if (
+      input.bannerPosition !== undefined &&
+      !["left", "center", "right"].includes(String(input.bannerPosition))
+    ) {
+      return NextResponse.json({ message: "Banner position must be left, center, or right." }, { status: 400 });
+    }
+    if (input.status !== undefined && typeof input.status !== "boolean") {
+      return NextResponse.json({ message: "Category status must be a boolean." }, { status: 400 });
+    }
+
+    const category = await Category.create({
+      name,
+      slug,
+      image: input.image ?? "",
+      bannerImage: input.bannerImage ?? "",
+      bannerTitle: input.bannerTitle ?? "",
+      bannerDescription: input.bannerDescription ?? "",
+      bannerPosition: input.bannerPosition ?? "left",
+      status: input.status ?? true,
+      parentCategory,
+      sectionTiles: Array.isArray(input.sectionTiles) ? input.sectionTiles : [],
+      menuGroups: Array.isArray(input.menuGroups) ? input.menuGroups : [],
+    });
 
     return NextResponse.json(category, { status: 201 });
   } catch (error) {
+    const duplicateKey =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000;
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Failed to create category",
+        message: duplicateKey
+          ? "A category with this name or slug already exists."
+          : error instanceof Error
+            ? error.message
+            : "Failed to create category",
       },
-      { status: 500 }
+      { status: duplicateKey ? 409 : 500 }
     );
   }
 }
