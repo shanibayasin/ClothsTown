@@ -10,7 +10,7 @@ import ProductCard, { type StoreProductCardData } from "@/app/components/product
 import UrlProductFilters from "@/app/components/shop/UrlProductFilters";
 import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
 import { EMPTY_PRODUCT_FILTERS } from "@/app/components/shop/ProductFilterDrawer";
-import CategoryPageBanner from "@/app/components/shop/CategoryPageBanner";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 
 const PAGE_SIZE = 12;
 type Query = Record<string, string | string[] | undefined>;
@@ -52,7 +52,7 @@ export default async function DepartmentSubcategoryPage({
     status: true,
     parentCategory: parentCategory._id,
   })
-    .select("_id name slug image bannerImage bannerTitle bannerDescription bannerPosition")
+    .select("_id name slug image bannerImage bannerTitle bannerDescription bannerButtonText bannerButtonLink bannerPosition")
     .lean();
   if (!category) notFound();
 
@@ -162,13 +162,16 @@ export default async function DepartmentSubcategoryPage({
         <span className="mx-2">/</span>
         <span className="font-medium text-[#102d40]">{category.name}</span>
       </nav>
-      <CategoryPageBanner
+      <HeroBanner
         key={category._id.toString()}
         name={category.name}
-        image={category.bannerImage}
+        image={category.bannerImage || category.image}
         title={category.bannerTitle}
         description={category.bannerDescription}
+        buttonText={category.bannerButtonText || `Shop ${category.name}`}
+        buttonLink={category.bannerButtonLink || `/shop/${department}/${category.slug}`}
         position={category.bannerPosition}
+        priority
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e7edf1] pb-4">
         <UrlProductFilters

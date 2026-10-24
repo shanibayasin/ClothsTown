@@ -26,6 +26,7 @@ import ProductFilterDrawer, {
   EMPTY_PRODUCT_FILTERS,
   type ProductFilterValues,
 } from "@/app/components/shop/ProductFilterDrawer";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 
 interface ProductCategory {
   _id?: string;
@@ -55,18 +56,17 @@ interface ArrivalProduct {
   status?: boolean;
 }
 
-interface StoreBanner {
-  image?: string;
-  title?: string;
-  subtitle?: string;
-  description?: string;
-}
-
 interface StoreCategory {
   _id: string;
   name: string;
   slug?: string;
   image?: string;
+  bannerImage?: string;
+  bannerTitle?: string;
+  bannerDescription?: string;
+  bannerButtonText?: string;
+  bannerButtonLink?: string;
+  bannerPosition?: "left" | "center" | "right";
   status?: boolean;
   parentCategory?: string | null;
   sectionTiles?: {
@@ -137,7 +137,7 @@ export default function NewArrivalsPage() {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<ArrivalProduct[]>([]);
-  const [heroImage, setHeroImage] = useState("");
+  const [arrivalCategory, setArrivalCategory] = useState<StoreCategory | null>(null);
   const [sectionTiles, setSectionTiles] = useState<StoreCategory["sectionTiles"]>([]);
   const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -169,9 +169,8 @@ export default function NewArrivalsPage() {
       setLoadError("");
 
       try {
-        const [productResponse, bannerResponse, categoryResponse] = await Promise.all([
+        const [productResponse, categoryResponse] = await Promise.all([
           fetch("/api/products?newArrival=true&limit=100", { cache: "no-store" }),
-          fetch("/api/banners/public"),
           fetch("/api/categories", { cache: "no-store" }),
         ]);
 
@@ -187,18 +186,6 @@ export default function NewArrivalsPage() {
         const arrivalProducts = (productData as ArrivalProduct[]).filter(
           (product) => product.newArrival === true && product.status !== false
         );
-
-        let bannerData: StoreBanner[] = [];
-        if (bannerResponse.ok) {
-          const responseData: unknown = await bannerResponse.json();
-          if (Array.isArray(responseData)) {
-            bannerData = responseData as StoreBanner[];
-          }
-        } else {
-          console.error(
-            `New Arrivals banner request failed with status ${bannerResponse.status}.`
-          );
-        }
 
         let arrivalsCategory: StoreCategory | undefined;
         if (categoryResponse.ok) {
@@ -220,15 +207,11 @@ export default function NewArrivalsPage() {
 
         if (active) {
           setProducts(arrivalProducts);
+          setArrivalCategory(arrivalsCategory ?? null);
           setSectionTiles(
             (arrivalsCategory?.sectionTiles ?? []).filter(
               (tile) => tile.title?.trim() && tile.image && tile.category?.trim()
             )
-          );
-          setHeroImage(
-            arrivalsCategory?.image ??
-              bannerData.find((banner) => banner.image)?.image ??
-              (arrivalProducts[0] ? productImage(arrivalProducts[0]) : "")
           );
         }
       } catch (error) {
@@ -464,29 +447,21 @@ export default function NewArrivalsPage() {
           <ChevronRight size={13} aria-hidden="true" />
           <span className="font-medium">New Arrivals</span>
         </nav>
-        <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f4f1ed]">
-          {heroImage && (
-            <Image
-              src={heroImage}
-              alt="New arrivals collection"
-              fill
-              priority
-              sizes="100vw"
-              className="object-contain"
-            />
-          )}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-black">
-            <h1
-              className="text-[clamp(3rem,10vw,9rem)] font-normal italic leading-[0.78] tracking-tight"
-              style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
-            >
-              New Arrivals
-            </h1>
-            <p className="mt-2 text-[clamp(0.6rem,1.5vw,1.4rem)] font-medium tracking-[0.08em]">
-              FRESH STYLES, JUST LANDED
-            </p>
-          </div>
-        </div>
+        <HeroBanner
+          name="New Arrivals"
+          image={
+            arrivalCategory?.bannerImage ||
+            arrivalCategory?.image ||
+            (products[0] ? productImage(products[0]) : undefined)
+          }
+          title={arrivalCategory?.bannerTitle}
+          description={arrivalCategory?.bannerDescription}
+          buttonText={arrivalCategory?.bannerButtonText || "Shop New Arrivals"}
+          buttonLink={arrivalCategory?.bannerButtonLink || "#new-arrival-products"}
+          position={arrivalCategory?.bannerPosition}
+          imageAlt="New arrivals fashion collection"
+          priority
+        />
       </section>
 
       {sectionTiles && sectionTiles.length > 0 && (
@@ -559,18 +534,6 @@ export default function NewArrivalsPage() {
         id="new-arrival-products"
         className="mx-auto max-w-[1440px] px-4 pb-16 pt-9 sm:px-7 sm:pt-12 lg:px-14"
       >
-        <nav aria-label="Breadcrumb" className="mb-6 text-xs text-[#778188]">
-          <Link href="/" className="hover:text-[#102d40]">
-            Home
-          </Link>
-          <ChevronRight
-            size={13}
-            aria-hidden="true"
-            className="mx-1 inline-block"
-          />
-          <span className="font-medium text-[#102d40]">New Arrivals</span>
-        </nav>
-
         <div className="mb-6 flex flex-col justify-between gap-4 border-b border-[#e8e2dc] pb-5 sm:flex-row sm:items-end">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a8267]">

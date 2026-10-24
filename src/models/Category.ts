@@ -47,6 +47,20 @@ const CategorySchema = new Schema(
       maxlength: 500,
     },
 
+    bannerButtonText: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 80,
+    },
+
+    bannerButtonLink: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 500,
+    },
+
     bannerPosition: {
       type: String,
       enum: ["left", "center", "right"],
@@ -125,6 +139,8 @@ for (const path of [
   "bannerImage",
   "bannerTitle",
   "bannerDescription",
+  "bannerButtonText",
+  "bannerButtonLink",
   "bannerPosition",
 ] as const) {
   if (!CategoryModel.schema.path(path)) {

@@ -1,10 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight,
   ChevronLeft,
   ChevronRight,
   Headset,
@@ -14,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { readJsonResponse } from "@/lib/api";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 
 type Banner = {
   _id: string;
@@ -69,74 +67,54 @@ export default function Hero() {
     return (
       <div
         aria-label="Loading featured collection"
-        className="h-[clamp(390px,105vw,500px)] animate-pulse bg-[#eaf1f6] sm:h-[clamp(390px,50vw,560px)] lg:h-[clamp(500px,42.7vw,620px)]"
+        className="aspect-[1.55/1] min-h-[220px] animate-pulse bg-[#f2e5e9] sm:aspect-[2.8/1] sm:min-h-[260px] lg:aspect-[4/1] lg:min-h-[320px]"
       />
     );
   }
 
-  if (!slide) return null;
+  if (!slide) {
+    return (
+      <section aria-label="Featured collection" className="bg-white">
+        <HeroBanner
+          name="Discover Clothstown"
+          subtitle="Style for every day"
+          buttonText="Shop Now"
+          buttonLink="/shop"
+          fullBleed={false}
+        />
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Featured collection" className="bg-white">
-      <div className="relative isolate h-[clamp(390px,105vw,500px)] overflow-hidden bg-[#dceaf4] sm:h-[clamp(390px,50vw,560px)] lg:h-[clamp(500px,42.7vw,620px)]">
-        {slide.image && (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slide._id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="absolute inset-0 z-0"
-            >
-              <Image
-                src={slide.image}
-                alt={slide.title.replace(/\n/g, " ") || "Featured collection"}
-                fill
-                priority
-                sizes="100vw"
-                quality={100}
-                className="object-cover object-[70%_center] sm:object-[68%_center]"
-                unoptimized
-              />
-            </motion.div>
-          </AnimatePresence>
-        )}
-        <div className="pointer-events-none absolute inset-0 z-10 bg-linear-to-r from-[#e3eff8]/95 via-[#e3eff8]/75 to-transparent via-45% to-75% sm:via-[#e3eff8]/55 sm:via-40% sm:to-65% lg:via-[#e3eff8]/40 lg:via-38% lg:to-60%" />
-        <div className="relative z-20 mx-auto flex h-full max-w-[1440px] items-center px-4 sm:px-8 lg:px-12">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slide._id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3 }}
-              className="w-full max-w-[470px] pb-12 sm:pb-8"
-            >
-              <p className="mb-2 text-[8px] font-bold uppercase tracking-[0.2em] text-[#102d40] sm:text-[10px] sm:tracking-[0.24em] lg:text-[11px]">
-                {slide.subtitle}
-              </p>
-              <h1 className="whitespace-pre-line text-[32px] font-extrabold leading-[1.02] tracking-tight text-[#102d40] sm:text-[40px] lg:text-[52px]">
-                {slide.title}
-              </h1>
-              {slide.description && (
-                <p className="mt-3 max-w-[340px] whitespace-pre-line text-[10px] leading-[1.5] text-[#243d4d] sm:mt-4 sm:text-xs sm:leading-[1.55]">
-                  {slide.description}
-                </p>
-              )}
-              <Link
-                href={slide.buttonLink || "/shop"}
-                className="mt-4 inline-flex h-8 items-center gap-2 rounded-full bg-[#102d40] px-4 text-[10px] font-semibold text-white transition hover:bg-primary sm:mt-5 sm:h-9 sm:px-5 sm:text-[11px]"
-              >
-                {slide.buttonText || "Shop Now"}
-                <ArrowRight size={13} />
-              </Link>
-
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={slide._id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <HeroBanner
+              name={slide.title.replace(/\n/g, " ") || "Featured collection"}
+              image={slide.image}
+              title={slide.title}
+              subtitle={slide.subtitle}
+              description={slide.description}
+              buttonText={slide.buttonText || "Shop Now"}
+              buttonLink={slide.buttonLink || "/shop"}
+              imagePosition="right"
+              fullBleed={false}
+              priority
+              imageAlt={slide.title.replace(/\n/g, " ") || "Featured collection"}
+              className="mb-0"
+            />
+          </motion.div>
+        </AnimatePresence>
         {slides.length > 1 && (
-          <div className="absolute bottom-5 left-5 z-30 flex items-center gap-2.5 sm:bottom-6 sm:left-[5.4%]">
+          <div className="absolute bottom-4 left-5 z-30 flex items-center gap-2.5 sm:bottom-6 sm:left-[5.4%]">
             <div className="flex items-center gap-2.5" aria-label="Featured collection slides">
               {slides.map((item, index) => (
                 <button

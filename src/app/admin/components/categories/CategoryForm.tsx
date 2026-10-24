@@ -13,6 +13,8 @@ interface Category {
   bannerImage?: string;
   bannerTitle?: string;
   bannerDescription?: string;
+  bannerButtonText?: string;
+  bannerButtonLink?: string;
   bannerPosition?: "left" | "center" | "right";
   status: boolean;
   parentCategory?: string | null;
@@ -31,6 +33,8 @@ const initialState = {
   bannerImage: "",
   bannerTitle: "",
   bannerDescription: "",
+  bannerButtonText: "",
+  bannerButtonLink: "",
   bannerPosition: "left" as const,
   status: true,
   parentCategory: "",
@@ -50,6 +54,8 @@ export default function CategoryForm({
           bannerImage: editing.bannerImage || "",
           bannerTitle: editing.bannerTitle || "",
           bannerDescription: editing.bannerDescription || "",
+          bannerButtonText: editing.bannerButtonText || "",
+          bannerButtonLink: editing.bannerButtonLink || "",
           bannerPosition: editing.bannerPosition || "left",
           status: editing.status,
           parentCategory:
@@ -148,6 +154,12 @@ export default function CategoryForm({
     }
     if (form.bannerDescription.trim().length > 500) {
       return alert("Banner description must be 500 characters or fewer.");
+    }
+    if (form.bannerButtonText.trim().length > 80) {
+      return alert("Banner button text must be 80 characters or fewer.");
+    }
+    if (form.bannerButtonLink.trim().length > 500) {
+      return alert("Banner button link must be 500 characters or fewer.");
     }
 
     if (!editing && !form.image && !form.parentCategory) {
@@ -336,7 +348,7 @@ export default function CategoryForm({
 
           {form.bannerImage ? (
             <div>
-              <div className="relative aspect-[3/1] w-full overflow-hidden rounded-lg border bg-slate-100">
+              <div className="relative aspect-[4/1] w-full overflow-hidden rounded-lg border bg-slate-100">
                 <Image
                   src={form.bannerImage}
                   alt="Category banner preview"
@@ -362,7 +374,7 @@ export default function CategoryForm({
               </div>
             </div>
           ) : (
-            <div className="flex aspect-[3/1] items-center justify-center rounded-lg bg-slate-100 text-sm text-slate-500">
+            <div className="flex aspect-[4/1] items-center justify-center rounded-lg bg-slate-100 text-sm text-slate-500">
               No banner uploaded
             </div>
           )}
@@ -393,6 +405,36 @@ export default function CategoryForm({
               onChange={(event) => setForm((prev) => ({ ...prev, bannerDescription: event.target.value }))}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#6f1d46]"
             />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-semibold" htmlFor="bannerButtonText">
+                CTA button text <span className="font-normal text-slate-400">(optional)</span>
+              </label>
+              <input
+                id="bannerButtonText"
+                type="text"
+                maxLength={80}
+                value={form.bannerButtonText}
+                onChange={(event) => setForm((prev) => ({ ...prev, bannerButtonText: event.target.value }))}
+                className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[#6f1d46]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold" htmlFor="bannerButtonLink">
+                CTA button link <span className="font-normal text-slate-400">(optional)</span>
+              </label>
+              <input
+                id="bannerButtonLink"
+                type="text"
+                maxLength={500}
+                placeholder="/shop/women"
+                value={form.bannerButtonLink}
+                onChange={(event) => setForm((prev) => ({ ...prev, bannerButtonLink: event.target.value }))}
+                className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[#6f1d46]"
+              />
+            </div>
           </div>
 
           <div>

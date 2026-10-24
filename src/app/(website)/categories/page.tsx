@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import CategoryImage from "@/app/components/category/CategoryImage";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 
 export default async function CategoriesPage() {
   await connectDB();
@@ -17,26 +18,16 @@ export default async function CategoriesPage() {
   );
 
   return (
-    <section className="bg-white py-20">
-      <div className="mx-auto max-w-7xl px-6">
-
-        {/* Header */}
-
-        <div className="mb-16 text-center">
-
-          <span className="text-sm uppercase tracking-[0.3em] text-[#536875]">
-            Shop By Category
-          </span>
-
-          <h1 className="mt-5 font-heading text-5xl text-[#102d40]">
-            Discover Our Collections
-          </h1>
-
-          <p className="mx-auto mt-5 max-w-2xl text-[#536875]">
-            Explore clothing and accessories for every style, season, and occasion.
-          </p>
-
-        </div>
+    <main className="min-h-screen bg-white">
+      <HeroBanner
+        name="Discover Our Collections"
+        subtitle="Shop by Category"
+        description="Explore clothing and accessories for every style, season, and occasion."
+        buttonText="Browse Categories"
+        buttonLink="#category-list"
+        priority
+      />
+      <section id="category-list" className="mx-auto max-w-7xl px-6 pb-20">
 
         {categories.length === 0 ? (
           <div className="rounded-3xl border bg-white py-20 text-center">
@@ -106,7 +97,7 @@ export default async function CategoriesPage() {
           </div>
         )}
 
-      </div>
-    </section>
+      </section>
+    </main>
   );
 }

@@ -17,6 +17,7 @@ import ProductFilterDrawer, {
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 
 interface Product {
   _id: string;
@@ -55,6 +56,13 @@ interface Category {
   name: string;
   slug?: string;
   image?: string;
+  bannerImage?: string;
+  bannerTitle?: string;
+  bannerDescription?: string;
+  bannerButtonText?: string;
+  bannerButtonLink?: string;
+  bannerPosition?: "left" | "center" | "right";
+  status?: boolean;
   parentCategory?: string | null;
   sectionTiles?: {
     title: string;
@@ -590,6 +598,15 @@ function ShopContent({
       : categoryName === "All Products"
         ? "Shop All Products"
         : categoryName;
+  const bannerCategory =
+    (isSaleListing
+      ? categories.find(
+          (item) =>
+            item.status !== false &&
+            /^(sale|sale collection|sale products)$/i.test(item.name.trim())
+        )
+      : activeCategory) ||
+    (isDepartmentProductListing ? departmentLandingCategory : undefined);
   const categoryHeroProduct = products.find(
     (product) => product.category?._id === activeCategory?._id
   );
@@ -599,7 +616,8 @@ function ShopContent({
       ? filteredProducts[0] || products[0]
       : products[0];
   const heroImage =
-    activeCategory?.image ||
+    bannerCategory?.bannerImage ||
+    bannerCategory?.image ||
     (categoryHeroProduct ? getProductImage(categoryHeroProduct) : undefined) ||
     fallbackHeroProduct?.images?.[0] ||
     fallbackHeroProduct?.image;
@@ -776,112 +794,44 @@ function ShopContent({
 
   return (
     <main className="min-h-screen bg-white pb-12 text-[#102d40]">
-      {isDepartmentLanding ? (
-        <section className="bg-white">
-          <nav
-            aria-label="Breadcrumb"
-            className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#536875] sm:px-6"
-          >
-            <Link href="/" className="hover:text-[#102d40]">Home</Link>
-            <ChevronRight size={13} aria-hidden="true" />
-            <span className="font-medium">{departmentName}</span>
-          </nav>
-          <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f3f4f5]">
-            {heroImage && (
-              <Image
-                src={heroImage}
-                alt={
-                  isAccessoriesProductListing
-                    ? "Accessories collection"
-                    : `${departmentName} ready-to-wear collection`
-                }
-                fill
-                priority
-                unoptimized
-                sizes="100vw"
-                className="object-contain"
-              />
-            )}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-black">
-              <h1
-                className="text-[clamp(3.5rem,11vw,10rem)] font-normal italic leading-[0.78] tracking-tight"
-                style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
-              >
-                {departmentName}
-              </h1>
-              <p className="mt-2 text-[clamp(0.65rem,1.6vw,1.5rem)] font-medium tracking-[0.08em]">
-                {isAccessoriesProductListing ? "THE FINISHING TOUCH" : "READY TO WEAR"}
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : isSaleListing ? (
-        <section className="bg-white">
-          <nav
-            aria-label="Breadcrumb"
-            className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#536875] sm:px-6"
-          >
-            <Link href="/" className="hover:text-[#102d40]">Home</Link>
-            <ChevronRight size={13} aria-hidden="true" />
-            <span className="font-medium">Sale</span>
-          </nav>
-          <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f3f4f5]">
-            {heroImage && (
-              <Image
-                src={heroImage}
-                alt="Sale collection"
-                fill
-                priority
-                sizes="100vw"
-                className="object-contain"
-              />
-            )}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-black">
-              <h1
-                className="text-[clamp(3.5rem,11vw,10rem)] font-normal italic leading-[0.78] tracking-tight"
-                style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
-              >
-                Sale
-              </h1>
-              <p className="mt-2 text-[clamp(0.65rem,1.6vw,1.5rem)] font-medium tracking-[0.08em]">
-                SPECIAL PRICES, LIMITED TIME
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className="relative mx-auto h-[190px] max-w-[1440px] overflow-hidden bg-gradient-to-r from-[#e7edf1] via-[#f3f4f5] to-[#d7e2e8] sm:h-[230px] lg:h-[280px]">
-          {heroImage && (
-            <div className="absolute inset-y-0 right-0 w-[62%]">
-              <Image
-                src={heroImage}
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 768px) 60vw, 800px"
-                className="object-cover object-center"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#f3f4f5] via-[#f3f4f5]/50 to-transparent" />
-            </div>
+      <section aria-label={`${heroTitle} introduction`}>
+        <nav
+          aria-label="Breadcrumb"
+          className="mx-auto flex max-w-[1440px] items-center gap-1.5 px-4 py-3 text-xs text-[#536875] sm:px-6"
+        >
+          <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+          <ChevronRight size={13} aria-hidden="true" />
+          {isSaleListing ? (
+            <span className="font-medium text-[#6f1d46]">Sale</span>
+          ) : (
+            <>
+              <Link href="/shop" className="hover:text-[#6f1d46]">Shop</Link>
+              <ChevronRight size={13} aria-hidden="true" />
+              <span className="font-medium text-[#6f1d46]">{heroTitle}</span>
+            </>
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/35 to-transparent" />
-          <div className="relative mx-auto flex h-full max-w-[1440px] flex-col justify-center px-5 sm:px-8 lg:px-12">
-            <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-xs text-[#536875]">
-              <Link href="/" className="hover:text-[#102d40]">Home</Link>
-              <ChevronRight size={13} aria-hidden="true" />
-              <span>Shop</span>
-              <ChevronRight size={13} aria-hidden="true" />
-              <span className="font-semibold text-[#102d40]">{heroTitle}</span>
-            </nav>
-            <h1 className="max-w-[56%] text-3xl font-bold tracking-tight text-[#102d40] sm:text-4xl lg:text-5xl">
-              {heroTitle}
-            </h1>
-            <p className="mt-2 max-w-[48%] text-xs text-[#536875] sm:text-sm">
-              Premium quality. Timeless style.
-            </p>
-          </div>
-        </section>
-      )}
+        </nav>
+        <HeroBanner
+          name={heroTitle}
+          image={heroImage}
+          title={bannerCategory?.bannerTitle}
+          description={bannerCategory?.bannerDescription}
+          buttonText={bannerCategory?.bannerButtonText || (isSaleListing ? "Shop Sale" : "Discover Collection")}
+          buttonLink={
+            bannerCategory?.bannerButtonLink ||
+            (isSaleListing
+              ? "/shop?sale=true"
+              : isDepartmentProductListing
+                ? `/shop?category=${encodeURIComponent(categoryQuery || departmentName)}`
+                : bannerCategory?.slug
+                  ? `/shop/${bannerCategory.slug}`
+                  : "#shop-products")
+          }
+          position={bannerCategory?.bannerPosition}
+          imageAlt={`${heroTitle} fashion collection`}
+          priority
+        />
+      </section>
 
       {departmentSectionTiles.length > 0 && (
         <section
@@ -1192,7 +1142,7 @@ function ShopContent({
           </aside>
           )}
 
-          <section aria-label={`${heroTitle} products`} className="min-w-0">
+          <section id="shop-products" aria-label={`${heroTitle} products`} className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
               <div className="flex items-center gap-4">
                 <ProductFilterDrawer

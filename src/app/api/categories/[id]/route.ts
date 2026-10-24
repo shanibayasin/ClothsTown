@@ -7,6 +7,16 @@ import { requireAdmin } from "@/lib/admin-auth";
 
 const MAX_BANNER_IMAGE_LENGTH = 6_000_000;
 
+function isSafeBannerLink(value: string) {
+  const link = value.trim();
+  return (
+    !link ||
+    (link.startsWith("/") && !link.startsWith("//")) ||
+    link.startsWith("#") ||
+    /^https?:\/\//i.test(link)
+  );
+}
+
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -90,7 +100,13 @@ export async function PUT(
     if (input.image !== undefined && typeof input.image !== "string") {
       return NextResponse.json({ message: "Category image must be a string." }, { status: 400 });
     }
-    for (const field of ["bannerImage", "bannerTitle", "bannerDescription"] as const) {
+    for (const field of [
+      "bannerImage",
+      "bannerTitle",
+      "bannerDescription",
+      "bannerButtonText",
+      "bannerButtonLink",
+    ] as const) {
       if (input[field] !== undefined && typeof input[field] !== "string") {
         return NextResponse.json({ message: `Category ${field} must be a string.` }, { status: 400 });
       }
@@ -98,9 +114,17 @@ export async function PUT(
     if (
       (typeof input.bannerImage === "string" && input.bannerImage.length > MAX_BANNER_IMAGE_LENGTH) ||
       (typeof input.bannerTitle === "string" && input.bannerTitle.trim().length > 160) ||
-      (typeof input.bannerDescription === "string" && input.bannerDescription.trim().length > 500)
+      (typeof input.bannerDescription === "string" && input.bannerDescription.trim().length > 500) ||
+      (typeof input.bannerButtonText === "string" && input.bannerButtonText.trim().length > 80) ||
+      (typeof input.bannerButtonLink === "string" && input.bannerButtonLink.trim().length > 500)
     ) {
       return NextResponse.json({ message: "Category banner fields exceed the allowed length." }, { status: 400 });
+    }
+    if (
+      typeof input.bannerButtonLink === "string" &&
+      !isSafeBannerLink(input.bannerButtonLink)
+    ) {
+      return NextResponse.json({ message: "Category banner button link must be a relative URL or use HTTP(S)." }, { status: 400 });
     }
     if (
       input.bannerPosition !== undefined &&
@@ -119,6 +143,8 @@ export async function PUT(
     if (input.bannerImage !== undefined) update.bannerImage = input.bannerImage;
     if (input.bannerTitle !== undefined) update.bannerTitle = input.bannerTitle;
     if (input.bannerDescription !== undefined) update.bannerDescription = input.bannerDescription;
+    if (input.bannerButtonText !== undefined) update.bannerButtonText = input.bannerButtonText;
+    if (input.bannerButtonLink !== undefined) update.bannerButtonLink = input.bannerButtonLink;
     if (input.bannerPosition !== undefined) update.bannerPosition = input.bannerPosition;
     if (input.status !== undefined) update.status = input.status;
     if (Array.isArray(input.sectionTiles)) update.sectionTiles = input.sectionTiles;

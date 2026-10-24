@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import Collection from "@/models/Collection";
 import Product from "@/models/Product";
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -61,21 +63,28 @@ export default async function CollectionPage({
     .lean();
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-16">
-
-      {/* Header */}
-
-      <div className="mb-12 text-center">
-
-        <h1 className="text-5xl font-bold text-primary">
-          {collection.title}
-        </h1>
-
-        <p className="mt-4 text-gray-500">
+    <main className="mx-auto min-h-screen max-w-7xl px-6 py-8">
+      <nav aria-label="Breadcrumb" className="mb-3 text-xs text-[#806d75]">
+        <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+        <span className="mx-2">/</span>
+        <Link href="/collections" className="hover:text-[#6f1d46]">Collections</Link>
+        <span className="mx-2">/</span>
+        <span className="font-medium text-[#321b27]">{collection.title}</span>
+      </nav>
+      <HeroBanner
+        name={collection.title}
+        image={collection.image}
+        title={collection.title}
+        subtitle={collection.subtitle}
+        description={collection.description}
+        buttonText={collection.buttonText || "Shop Collection"}
+        buttonLink={collection.buttonLink || "#collection-products"}
+        priority
+      />
+      <section id="collection-products" className="py-8">
+        <p className="mb-8 text-center text-sm text-gray-500">
           {products.length} Products Available
         </p>
-
-      </div>
 
       {products.length === 0 ? (
 
@@ -104,6 +113,7 @@ export default async function CollectionPage({
 
       )}
 
-    </section>
+      </section>
+    </main>
   );
 }

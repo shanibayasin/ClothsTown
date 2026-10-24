@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Image as ImageIcon } from "lucide-react";
 import { connectDB } from "@/lib/mongodb";
 import Collection from "@/models/Collection";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -32,26 +33,19 @@ export default async function CollectionsPage() {
 
   return (
     <main className="min-h-screen bg-[#faf7f8]">
-      {/* Hero */}
-      <section className="border-b bg-white">
-        <div className="mx-auto max-w-7xl px-6 py-20 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
-            ClothesTown
-          </p>
-
-          <h1 className="mt-5 text-5xl font-bold text-gray-900">
-            Our Collections
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600">
-            Explore seasonal collections of thoughtfully designed clothing,
-            made for comfort, quality, and everyday style.
-          </p>
-        </div>
-      </section>
+      <HeroBanner
+        name="Our Collections"
+        subtitle="Clothstown"
+        description="Explore seasonal collections of thoughtfully designed clothing, made for comfort, quality, and everyday style."
+        buttonText="Explore Collections"
+        buttonLink="#collections"
+        image={collections.find((collection) => collection.image)?.image}
+        imageAlt="Clothstown seasonal collection"
+        priority
+      />
 
       {/* Collections */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
+      <section id="collections" className="mx-auto max-w-7xl px-6 py-16">
         {collections.length === 0 ? (
           <div className="rounded-3xl border bg-white py-20 text-center">
             <h2 className="text-2xl font-semibold">

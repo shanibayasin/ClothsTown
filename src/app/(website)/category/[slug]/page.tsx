@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
+import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
+import HeroBanner from "@/app/components/shop/HeroBanner";
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
@@ -46,20 +48,32 @@ export default async function CategoryPage({
     .lean();
 
   return (
-    <section className="mx-auto max-w-7xl bg-white px-6 py-16">
-
-      {/* Header */}
-
-      <div className="mb-12 text-center">
-
-        <h1 className="text-5xl font-bold text-[#102d40]">
-          {category.name}
-        </h1>
-
-        <p className="mt-4 text-[#536875]">
-          {products.length} Products Available
-        </p>
-
+    <main className="mx-auto min-h-[60vh] max-w-7xl bg-white px-6 py-8">
+      <nav aria-label="Breadcrumb" className="mb-3 text-xs text-[#6d5961]">
+        <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+        <span className="mx-2">/</span>
+        <span className="font-medium text-[#321b27]">{category.name}</span>
+      </nav>
+      <HeroBanner
+        name={category.name}
+        image={
+          category.bannerImage ||
+          category.image ||
+          products[0]?.images?.[0] ||
+          products[0]?.image
+        }
+        title={category.bannerTitle}
+        description={category.bannerDescription}
+        buttonText={category.bannerButtonText || `Shop ${category.name}`}
+        buttonLink={
+          category.bannerButtonLink ||
+          (category.slug ? `/shop/${category.slug}` : `/category/${category._id}`)
+        }
+        position={category.bannerPosition}
+        priority
+      />
+      <div className="mb-8 text-center text-sm text-[#806d75]">
+        {products.length} Products Available
       </div>
 
       {products.length === 0 ? (
@@ -89,6 +103,6 @@ export default async function CategoryPage({
 
       )}
 
-    </section>
+    </main>
   );
 }
