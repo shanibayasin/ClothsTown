@@ -9,6 +9,7 @@
     "lint": "eslint",
     "migrate:categories": "node --env-file-if-exists=.env scripts/migrate-categories.mjs",
     "migrate:categories:dry-run": "node --env-file-if-exists=.env scripts/migrate-categories.mjs --dry-run",
+    "migrate:categories:repair": "node --env-file-if-exists=.env scripts/repair-stale-product-categories.mjs",
     "products:preview-cleanup": "node --env-file-if-exists=.env scripts/preview-product-name-cleanup.mjs"
   },
   "dependencies": {

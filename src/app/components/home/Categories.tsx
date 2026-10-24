@@ -6,22 +6,27 @@ import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
 import CategoryImage from "@/app/components/category/CategoryImage";
+import {
+  CATEGORY_CATALOG,
+  getCategoryHref,
+} from "@/lib/category-catalog";
 
 interface Category {
-  _id: string;
   name: string;
   slug: string;
-  image: string;
-  status: boolean;
-  parentCategory?: string | null;
-  routeGroup?: string;
-  sortOrder?: number;
+  image?: string;
   fallbackImage?: string;
   href?: string;
 }
 
 export default function CategoriesSection() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(
+    CATEGORY_CATALOG.map((category) => ({
+      ...category,
+      image: "",
+      href: getCategoryHref(category),
+    }))
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,31 +36,15 @@ export default function CategoriesSection() {
           cache: "no-store",
         });
         const data = await readJsonResponse<Category[]>(res, []);
-        const activeCategories = data.filter((category) => category.status);
-        const categoriesById = new Map(
-          activeCategories.map((category) => [category._id, category])
+        const categoriesBySlug = new Map(
+          data.filter((category) => category.image).map((category) => [category.slug, category])
         );
-        const categoryHref = (category: Category) => {
-          const parent = category.parentCategory
-            ? categoriesById.get(category.parentCategory)
-            : undefined;
-          return parent
-            ? `/shop/${parent.slug}/${category.slug}`
-            : `/shop/${category.slug}`;
-        };
         setCategories(
-          activeCategories
-            .filter((category) => category.routeGroup)
-            .sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0))
-            .map((category) => ({
-              ...category,
-              href: category.routeGroup
-                ? `/shop/${category.routeGroup}/${category.slug}`
-                : categoryHref(category),
-              fallbackImage: category.parentCategory
-                ? categoriesById.get(category.parentCategory)?.image ?? ""
-                : "",
-            }))
+          CATEGORY_CATALOG.map((definition) => ({
+            ...definition,
+            image: categoriesBySlug.get(definition.slug)?.image ?? "",
+            href: getCategoryHref(definition),
+          }))
         );
       } catch (error) {
         console.error("Categories fetch error:", error);
@@ -99,7 +88,7 @@ export default function CategoriesSection() {
             <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-5 lg:gap-3">
               {categories.map((category, index) => (
                 <motion.div
-                  key={category._id}
+                  key={category.slug}
                   initial={{ opacity: 0, y: 8 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}

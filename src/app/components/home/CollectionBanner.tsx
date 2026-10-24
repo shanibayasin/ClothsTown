@@ -68,7 +68,7 @@ export default function CollectionBanner() {
         if (menCollection) {
           nextCards.push({
             id: menCollection._id,
-            title: "Men's Winter Collection",
+            title: "Men's Seasonal Edit",
             subtitle: "Up to 40% Off",
             image: menCollection.image,
             href: `/collections/${menCollection.slug}`,

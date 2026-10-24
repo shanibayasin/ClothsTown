@@ -18,7 +18,13 @@ import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
 import HeroBanner from "@/app/components/shop/HeroBanner";
-import { CATEGORY_CATALOG, sortProductSizes } from "@/lib/category-catalog";
+import {
+  CATEGORY_CATALOG,
+  getCategoryDefinition,
+  getCategoryHref,
+  isProductTypeFilterValue,
+  sortProductSizes,
+} from "@/lib/category-catalog";
 
 interface Product {
   _id: string;
@@ -35,6 +41,7 @@ interface Product {
   category: {
     _id: string;
     name: string;
+    slug?: string;
     routeGroup?: string;
     gender?: string;
   };
@@ -85,7 +92,24 @@ interface Collection {
   title: string;
 }
 
+type CategorySectionTile = NonNullable<Category["sectionTiles"]>[number];
+
 const ITEMS_PER_PAGE = 9;
+
+function getCanonicalSectionTile(tile: CategorySectionTile) {
+  const value = tile.category.trim().toLowerCase();
+  const definition =
+    getCategoryDefinition(value) ??
+    CATEGORY_CATALOG.find(
+      (category) => category.name.toLowerCase() === value
+    );
+  if (!definition || !tile.image) return undefined;
+  return {
+    ...tile,
+    title: definition.name,
+    category: definition.slug,
+  };
+}
 
 function getProductImage(product: Product) {
   return product.images?.[0] || product.image || "/placeholder-product.svg";
@@ -296,7 +320,10 @@ function ShopContent({
 
     if (selectedCategory) {
       data = data.filter((item) => {
-        if (item.category?._id === selectedCategory) return true;
+        if (
+          item.category?._id === selectedCategory ||
+          item.category?.slug === selectedCategory
+        ) return true;
         const categoryName = item.category?.name.toLowerCase() ?? "";
         if (["men", "mens", "men's"].includes(selectedCategory)) {
           return /\bmen\b|\bmens\b|\bmenswear\b/.test(categoryName);
@@ -659,22 +686,20 @@ function ShopContent({
                   activeCategory.name.trim().toLowerCase()
                 )
               : /\bgirls?\b/.test(activeCategory.name.trim().toLowerCase())))
-      ? (departmentLandingCategory?.sectionTiles ?? activeCategory?.sectionTiles)?.filter(
-          (tile) => tile.title && tile.image && tile.category
-        ) ?? []
+      ? (departmentLandingCategory?.sectionTiles ?? activeCategory?.sectionTiles)
+          ?.flatMap((tile) => {
+            const canonicalTile = getCanonicalSectionTile(tile);
+            return canonicalTile ? [canonicalTile] : [];
+          }) ?? []
       : [];
   const categoryHrefForTile = (tileCategory: string) => {
-    const match = categories.find((item) =>
-      [item.name, item.slug].some(
-        (value) => value?.trim().toLowerCase() === tileCategory.trim().toLowerCase()
-      )
-    );
-    if (!match) return `/shop?category=${encodeURIComponent(tileCategory)}`;
-    if (match.routeGroup) return `/shop/${match.routeGroup}/${match.slug}`;
-    const parent = categories.find((item) => item._id === match.parentCategory);
-    return parent?.slug
-      ? `/shop/${parent.slug}/${match.slug}`
-      : `/shop/${match.slug}`;
+    const value = tileCategory.trim().toLowerCase();
+    const definition =
+      getCategoryDefinition(value) ??
+      CATEGORY_CATALOG.find(
+        (category) => category.name.toLowerCase() === value
+      );
+    return definition ? getCategoryHref(definition) : "/categories";
   };
   const isDepartmentLanding =
     isDepartmentProductListing && !viewAllQuery;
@@ -711,12 +736,7 @@ function ShopContent({
       (productType): productType is string => Boolean(productType)
     ))
   )
-    .filter((productType) =>
-      productType.toLowerCase() !== "men" &&
-      !CATEGORY_CATALOG.some(
-        (category) => category.name.toLowerCase() === productType.toLowerCase()
-      )
-    )
+    .filter(isProductTypeFilterValue)
     .sort((a, b) => a.localeCompare(b));
   const genderFilterOptions = Array.from(
     new Set(products.map((product) =>
@@ -750,7 +770,7 @@ function ShopContent({
     onSale: saleOnly,
   };
   const shopFilterOptions = {
-    category: categories
+    category: CATEGORY_CATALOG
       .filter((category) => {
         const route = categoryQuery.toLowerCase();
         if (["men", "mens", "men's"].includes(route)) return category.routeGroup === "men";
@@ -761,7 +781,7 @@ function ShopContent({
         return true;
       })
       .map((category) => ({
-        value: category._id,
+        value: category.slug,
         label: category.name,
       })),
     collection: collections.map((collection) => ({

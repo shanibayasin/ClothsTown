@@ -11,7 +11,12 @@ import UrlProductFilters from "@/app/components/shop/UrlProductFilters";
 import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
 import { EMPTY_PRODUCT_FILTERS } from "@/app/components/shop/ProductFilterDrawer";
 import HeroBanner from "@/app/components/shop/HeroBanner";
-import { CATEGORY_GROUPS, sortProductSizes } from "@/lib/category-catalog";
+import {
+  CATEGORY_GROUPS,
+  getCategoryDefinition,
+  isProductTypeFilterValue,
+  sortProductSizes,
+} from "@/lib/category-catalog";
 
 const PAGE_SIZE = 12;
 type Query = Record<string, string | string[] | undefined>;
@@ -48,16 +53,26 @@ export default async function DepartmentSubcategoryPage({
 
   const routeGroup = CATEGORY_GROUPS.find((group) => group.slug === department);
   if (!routeGroup) notFound();
-  const category = await Category.findOne({
-    slug,
+  const definition = getCategoryDefinition(slug.toLowerCase());
+  if (!definition || definition.routeGroup !== routeGroup.routeGroup) notFound();
+  const databaseCategory = await Category.findOne({
+    slug: definition.slug,
     status: true,
-    routeGroup: routeGroup.routeGroup,
   })
     .select("_id name slug image bannerImage bannerTitle bannerDescription bannerButtonText bannerButtonLink bannerPosition")
     .lean();
-  if (!category) notFound();
+  const category = {
+    ...definition,
+    ...databaseCategory,
+    _id: databaseCategory?._id ?? definition.slug,
+    name: definition.name,
+    slug: definition.slug,
+  };
+  const categoryFilter = databaseCategory
+    ? { category: databaseCategory._id }
+    : { category: { $in: [] } };
 
-  const filter: Record<string, unknown> = { category: category._id };
+  const filter: Record<string, unknown> = { ...categoryFilter };
   const minPriceValue = first(query.minPrice);
   const maxPriceValue = first(query.maxPrice);
   const minPrice = minPriceValue ? Number(minPriceValue) : undefined;
@@ -123,22 +138,22 @@ export default async function DepartmentSubcategoryPage({
     highestPrice,
   ] = await Promise.all([
     Product.countDocuments(activeFilter),
-    Product.distinct("sizes", getActiveProductFilter({ category: category._id })),
-    Product.distinct("colors", getActiveProductFilter({ category: category._id })),
-    Product.distinct("brand", getActiveProductFilter({ category: category._id })),
-    Product.distinct("fabric", getActiveProductFilter({ category: category._id })),
-    Product.distinct("productType", getActiveProductFilter({ category: category._id })),
-    Product.distinct("season", getActiveProductFilter({ category: category._id })),
-    Product.distinct("gender", getActiveProductFilter({ category: category._id })),
+    Product.distinct("sizes", getActiveProductFilter(categoryFilter)),
+    Product.distinct("colors", getActiveProductFilter(categoryFilter)),
+    Product.distinct("brand", getActiveProductFilter(categoryFilter)),
+    Product.distinct("fabric", getActiveProductFilter(categoryFilter)),
+    Product.distinct("productType", getActiveProductFilter(categoryFilter)),
+    Product.distinct("season", getActiveProductFilter(categoryFilter)),
+    Product.distinct("gender", getActiveProductFilter(categoryFilter)),
     Promise.all([
-      Product.distinct("collection", getActiveProductFilter({ category: category._id })),
-      Product.distinct("collections", getActiveProductFilter({ category: category._id })),
+      Product.distinct("collection", getActiveProductFilter(categoryFilter)),
+      Product.distinct("collections", getActiveProductFilter(categoryFilter)),
     ]).then(([single, multiple]) =>
       [...new Set([...single, ...multiple]
         .filter((id) => id != null && Types.ObjectId.isValid(String(id)))
         .map(String))]
     ),
-    Product.findOne(getActiveProductFilter({ category: category._id }))
+    Product.findOne(getActiveProductFilter(categoryFilter))
       .sort({ price: -1 })
       .select("price")
       .lean(),
@@ -191,7 +206,7 @@ export default async function DepartmentSubcategoryPage({
               .filter((value): value is string => typeof value === "string" && Boolean(value))
               .map((value) => ({ value, label: value })),
             productType: productTypes
-              .filter((value): value is string => typeof value === "string" && Boolean(value))
+              .filter(isProductTypeFilterValue)
               .map((value) => ({ value, label: value })),
             fabric: fabrics
               .filter((value): value is string => typeof value === "string" && Boolean(value))

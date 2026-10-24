@@ -4,7 +4,8 @@ import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getCategoryDefinition } from "@/lib/category-catalog";
+import { CATEGORY_CATALOG, getCategoryDefinition } from "@/lib/category-catalog";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 
 const MAX_BANNER_IMAGE_LENGTH = 6_000_000;
 
@@ -18,10 +19,6 @@ function isSafeBannerLink(value: string) {
   );
 }
 
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // GET SINGLE CATEGORY
 
 export async function GET(
@@ -32,7 +29,10 @@ export async function GET(
     await connectDB();
 
     const { id } = await params;
-    const category = await Category.findById(id);
+    const category = await Category.findOne({
+      _id: id,
+      slug: { $in: CATEGORY_CATALOG.map((item) => item.slug) },
+    });
 
     if (!category) {
       return NextResponse.json(
@@ -41,7 +41,9 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(category);
+    return NextResponse.json(category, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return NextResponse.json(
       { message: "Failed to fetch category" },
@@ -218,7 +220,10 @@ export async function PUT(
       );
     }
 
-    return NextResponse.json(updatedCategory);
+    revalidateStorefront();
+    return NextResponse.json(updatedCategory, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
     const duplicateKey =
       typeof error === "object" &&
@@ -266,39 +271,23 @@ export async function DELETE(
       );
     }
 
-    const categoryReference = new RegExp(
-      `^${escapeRegex(category.name)}$`,
-      "i"
-    );
-    const slugReference = new RegExp(
-      `^${escapeRegex(category.slug)}$`,
-      "i"
-    );
-    const [hasProducts, hasChildren, hasNavigationReferences] = await Promise.all([
-      Product.exists({ category: category._id }),
-      Category.exists({ parentCategory: category._id }),
-      Category.exists({
-        _id: { $ne: category._id },
-        $or: [
-          { "sectionTiles.category": categoryReference },
-          { "sectionTiles.category": slugReference },
-          { "sectionTiles.category": id },
-          { "menuGroups.categories.category": categoryReference },
-          { "menuGroups.categories.category": slugReference },
-          { "menuGroups.categories.category": id },
-        ],
-      }),
-    ]);
-    if (hasProducts || hasNavigationReferences || hasChildren) {
+    const attachedProductCount = await Product.countDocuments({
+      category: category._id,
+    });
+    if (attachedProductCount > 0) {
       return NextResponse.json(
         {
           message:
-            "This category is used by products, child categories, or category navigation. Reassign those references before deleting it.",
+            `Cannot delete “${category.name}” while ${attachedProductCount} product${attachedProductCount === 1 ? " is" : "s are"} still assigned to it. Reassign those products first; no products were changed.`,
         },
         { status: 409 }
       );
     }
 
+    await Category.updateMany(
+      { parentCategory: category._id },
+      { $set: { parentCategory: null } }
+    );
     const deletedCategory = await Category.findByIdAndDelete(id);
 
     if (!deletedCategory) {
@@ -308,7 +297,11 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ message: "Category deleted" });
+    revalidateStorefront();
+    return NextResponse.json(
+      { message: "Category deleted" },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     return NextResponse.json(
       {

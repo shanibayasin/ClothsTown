@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import { requireAdmin } from "@/lib/admin-auth";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 import {
   CATEGORY_CATALOG,
   getCategoryDefinition,
@@ -30,7 +31,9 @@ export async function GET() {
       slug: { $in: CATEGORY_CATALOG.map((category) => category.slug) },
     }).sort({ sortOrder: 1, name: 1 });
 
-    return NextResponse.json(categories);
+    return NextResponse.json(categories, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return NextResponse.json(
       { message: "Failed to fetch categories" },
@@ -152,7 +155,11 @@ export async function POST(request: Request) {
       menuGroups: Array.isArray(input.menuGroups) ? input.menuGroups : [],
     });
 
-    return NextResponse.json(category, { status: 201 });
+    revalidateStorefront();
+    return NextResponse.json(category, {
+      status: 201,
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
     const duplicateKey =
       typeof error === "object" &&

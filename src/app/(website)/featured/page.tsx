@@ -2,7 +2,6 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import { getActiveProductFilter, getFeaturedProductFilter } from "@/lib/products";
-import Category from "@/models/Category";
 import Product from "@/models/Product";
 import ProductCard, {
   type StoreProductCardData,
@@ -13,18 +12,11 @@ export default async function FeaturedPage() {
   await connection();
   await connectDB();
 
-  const [products, featuredCategory] = await Promise.all([
-    Product.find(getActiveProductFilter(getFeaturedProductFilter()))
-      .sort({ createdAt: -1 })
-      .lean(),
-    Category.findOne({
-      status: true,
-      $or: [
-        { slug: /^featured(?:-products|-collection)?$/i },
-        { name: /^featured(?: products| collection)?$/i },
-      ],
-    }).lean(),
-  ]);
+  const products = await Product.find(
+    getActiveProductFilter(getFeaturedProductFilter())
+  )
+    .sort({ createdAt: -1 })
+    .lean();
 
   return (
     <main className="min-h-screen">
@@ -35,16 +27,9 @@ export default async function FeaturedPage() {
       </nav>
       <HeroBanner
         name="Featured Collection"
-        image={
-          featuredCategory?.bannerImage ||
-          featuredCategory?.image ||
-          products[0]?.images?.[0]
-        }
-        title={featuredCategory?.bannerTitle}
-        description={featuredCategory?.bannerDescription}
-        buttonText={featuredCategory?.bannerButtonText || "Shop Featured"}
-        buttonLink={featuredCategory?.bannerButtonLink || "#featured-products"}
-        position={featuredCategory?.bannerPosition}
+        image={products[0]?.images?.[0]}
+        buttonText="Shop Featured"
+        buttonLink="#featured-products"
         priority
       />
 

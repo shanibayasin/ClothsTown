@@ -1,15 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import mongoose from "mongoose";
-import catalog from "../src/lib/category-catalog.json" with { type: "json" };
+import catalogData from "../src/lib/category-catalog.json" with { type: "json" };
 
-const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
-if (!mongoUri) {
-  throw new Error("Set MONGODB_URI or MONGO_URI before running this migration.");
-}
+export const catalog = catalogData;
 
-const normalize = (value) =>
+export const normalize = (value) =>
   String(value ?? "")
     .toLowerCase()
     .replace(/[’']/g, "")
@@ -108,7 +106,7 @@ const productsCollectionName = "products";
 const backupDirectory = path.resolve(process.cwd(), "backup");
 const reportPath = path.join(backupDirectory, "category-migration-report.json");
 
-function getCategoryPath(categoryById, category) {
+export function getCategoryPath(categoryById, category) {
   const pathParts = [];
   let current = category;
   let depth = 0;
@@ -121,7 +119,7 @@ function getCategoryPath(categoryById, category) {
   return pathParts.filter(Boolean);
 }
 
-function getGroup(categoryPath, category) {
+export function getGroup(categoryPath, category) {
   for (const part of categoryPath) {
     const group = groupsByName.get(normalize(part));
     if (group) return group;
@@ -148,7 +146,7 @@ function getCurrentDepartmentRoute(categoryPath, category) {
   return category.routeGroup === "accessories" ? "accessories" : null;
 }
 
-function resolveCategory(category, categoryPath) {
+export function resolveCategory(category, categoryPath) {
   const name = normalize(category.name);
   const group = getGroup(categoryPath, category);
 
@@ -183,9 +181,9 @@ function resolveCategory(category, categoryPath) {
   return null;
 }
 
-const validGenders = new Set(["men", "women", "girls", "boys", "unisex"]);
+export const validGenders = new Set(["men", "women", "girls", "boys", "unisex"]);
 
-function classifyProductForGroup(product, group, sourcePath) {
+export function classifyProductForGroup(product, group, sourcePath) {
   const text = normalize(
     `${product.name ?? ""} ${product.productType ?? ""} ${product.brand ?? ""} ${sourcePath.join(" ")}`
   );
@@ -231,7 +229,7 @@ function classifyProductForGroup(product, group, sourcePath) {
   return null;
 }
 
-function inferLooseGroup(product) {
+export function inferLooseGroup(product) {
   const text = normalize(`${product.name ?? ""} ${product.productType ?? ""}`);
   if (/\bgirls?\b/.test(text)) return "Kids";
   if (/\bboys?\b/.test(text)) return "Kids";
@@ -246,7 +244,7 @@ function inferLooseGroup(product) {
   return null;
 }
 
-function inferredGender(group, target, existingGender) {
+export function inferredGender(group, target, existingGender) {
   if (target.routeGroup === "accessories") {
     if (group === "Men") return "men";
     if (group === "Women") return "women";
@@ -255,11 +253,15 @@ function inferredGender(group, target, existingGender) {
   return target.gender;
 }
 
-function isMisplacedMenProduct(name) {
+export function isMisplacedMenProduct(name) {
   return /\bdupatta\b|floral\s+2[- ]piece|embroidered\s+shirt/i.test(name);
 }
 
 async function run() {
+  const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
+  if (!mongoUri) {
+    throw new Error("Set MONGODB_URI or MONGO_URI before running this migration.");
+  }
   const dryRun = process.argv.includes("--dry-run");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const backupPath = path.join(
@@ -684,11 +686,13 @@ async function run() {
   }
 }
 
-run()
-  .catch((error) => {
-    console.error("Category migration failed:", error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await mongoose.disconnect();
-  });
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  run()
+    .catch((error) => {
+      console.error("Category migration failed:", error);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await mongoose.disconnect();
+    });
+}

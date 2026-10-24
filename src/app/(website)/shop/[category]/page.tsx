@@ -11,15 +11,16 @@ import UrlProductFilters from "@/app/components/shop/UrlProductFilters";
 import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
 import { EMPTY_PRODUCT_FILTERS } from "@/app/components/shop/ProductFilterDrawer";
 import HeroBanner from "@/app/components/shop/HeroBanner";
-import { CATEGORY_GROUPS, sortProductSizes } from "@/lib/category-catalog";
+import {
+  CATEGORY_CATALOG,
+  CATEGORY_GROUPS,
+  getCategoryDefinition,
+  isProductTypeFilterValue,
+  sortProductSizes,
+} from "@/lib/category-catalog";
 
-const CATEGORY_NAMES: Record<string, RegExp> = {
-  men: /^(men(?:'s|s)?(?:\s*(?:wear|clothing))?|menswear)$/i,
-  women: /^(women(?:'s|s)?(?:\s*(?:wear|clothing))?|womenswear)$/i,
-  girls: /^(girls?(?:\s*(?:wear|clothing))?)$/i,
-  boys: /^(boys?(?:\s*(?:wear|clothing))?)$/i,
-  accessories: /^(accessor(y|ies))$/i,
-};
+export const dynamic = "force-dynamic";
+
 const PAGE_SIZE = 12;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -56,41 +57,46 @@ export default async function StoreCategoryPage({
   const [{ category: categoryParam }, query] = await Promise.all([params, searchParams]);
   const categorySlug = categoryParam.toLowerCase();
   const routeGroup = CATEGORY_GROUPS.find((group) => group.slug === categorySlug);
+  const categoryDefinition = getCategoryDefinition(categorySlug);
+  if (!routeGroup && !categoryDefinition) notFound();
+
   await connectDB();
-  const category = routeGroup
-    ? await Category.findOne({
-        routeGroup: routeGroup.routeGroup,
-        status: true,
-      })
-        .sort({ sortOrder: 1 })
-        .lean()
-    : await Category.findOne({ slug: categorySlug, status: true }).lean() ??
-      (CATEGORY_NAMES[categorySlug]
-        ? await Category.findOne({
-          status: true,
-          name: { $regex: CATEGORY_NAMES[categorySlug] },
-        }).lean()
-        : null);
-  if (!category) notFound();
-  const departmentSubcategories = routeGroup
-    ? await Category.find({
-        status: true,
-        routeGroup: routeGroup.routeGroup,
-      })
-        .sort({ sortOrder: 1, name: 1 })
-        .select("_id name slug")
-        .lean()
-    : await Category.find({
-        status: true,
-        parentCategory: category._id,
-      })
-        .sort({ name: 1 })
-        .select("_id name slug")
-        .lean();
+  const catalogSubcategories = routeGroup
+    ? CATEGORY_CATALOG.filter((item) => item.routeGroup === routeGroup.routeGroup)
+    : [];
+  const categorySlugs = routeGroup
+    ? catalogSubcategories.map((item) => item.slug)
+    : [categoryDefinition!.slug];
+  const databaseCategories = await Category.find({
+    status: true,
+    slug: { $in: categorySlugs },
+  })
+    .sort({ sortOrder: 1, name: 1 })
+    .lean();
+  const databaseCategoriesBySlug = new Map(
+    databaseCategories.map((item) => [item.slug, item])
+  );
+  const departmentSubcategories = catalogSubcategories.map((definition) => ({
+    ...definition,
+    ...databaseCategoriesBySlug.get(definition.slug),
+    name: definition.name,
+    slug: definition.slug,
+    _id: databaseCategoriesBySlug.get(definition.slug)?._id ?? definition.slug,
+  }));
+  const selectedCategoryDefinition = categoryDefinition ??
+    catalogSubcategories[0];
+  const databaseCategory = selectedCategoryDefinition
+    ? databaseCategoriesBySlug.get(selectedCategoryDefinition.slug)
+    : undefined;
+  const category = {
+    ...(selectedCategoryDefinition ?? {}),
+    ...databaseCategory,
+    _id: databaseCategory?._id ?? categorySlug,
+    name: routeGroup?.name ?? categoryDefinition!.name,
+    slug: categorySlug,
+  };
   const pageTitle = routeGroup?.name ?? category.name;
-  const categoryIds = routeGroup
-    ? departmentSubcategories.map((item) => item._id)
-    : [category._id, ...departmentSubcategories.map((item) => item._id)];
+  const categoryIds = databaseCategories.map((item) => item._id);
   const requestedSubcategories = values(query.subcategory);
   const selectedSubcategories = requestedSubcategories.filter((slug) =>
     departmentSubcategories.some((item) => item.slug === slug)
@@ -111,10 +117,9 @@ export default async function StoreCategoryPage({
           ],
         }
       : {
-          category:
-            categoryIds.length > 1
-              ? { $in: categoryIds }
-              : categoryIds[0],
+          category: categoryIds.length
+            ? { $in: categoryIds }
+            : { $in: [] },
         };
   const minimumPrice = Number(first(query.minPrice));
   const maximumPrice = Number(first(query.maxPrice));
@@ -260,7 +265,7 @@ export default async function StoreCategoryPage({
             size: sortProductSizes(sizes.filter((item): item is string => typeof item === "string")).map((value) => ({ value, label: value })),
             color: colors.filter((item): item is string => typeof item === "string").map((value) => ({ value, label: value })),
             brand: brands.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
-            productType: productTypes.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
+            productType: productTypes.filter(isProductTypeFilterValue).map((value) => ({ value, label: value })),
             fabric: fabrics.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
             season: seasons.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
             gender: genders

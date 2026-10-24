@@ -23,6 +23,7 @@ import { readJsonResponse } from "@/lib/api";
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
+import { getCategoryDefinition } from "@/lib/category-catalog";
 
 type DatabaseRef = {
   _id: string;
@@ -219,6 +220,7 @@ export default function ProductPage() {
   }
 
   const images = product.images?.length ? product.images : ["/placeholder-product.svg"];
+  const categoryDefinition = getCategoryDefinition(product.category?.slug ?? "");
 
   return (
     <main className="min-h-screen bg-[#f8fafb] text-[#172b3a]">
@@ -226,22 +228,13 @@ export default function ProductPage() {
         <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
           <Link href="/" className="hover:text-[#102f43]">Home</Link>
           <ChevronRight size={12} aria-hidden="true" />
-          {product.category && (
+          {categoryDefinition && (
             <>
               <Link
-                href={
-                  product.category.routeGroup && product.category.slug
-                    ? `/shop/${product.category.routeGroup}/${product.category.slug}`
-                    : product.category.slug &&
-                        ["men", "women", "girls", "boys", "accessories"].includes(
-                          product.category.slug.toLowerCase()
-                        )
-                    ? `/shop/${product.category.slug.toLowerCase()}`
-                    : `/category/${product.category._id}`
-                }
+                href={`/shop/${categoryDefinition.routeGroup}/${categoryDefinition.slug}`}
                 className="hover:text-[#102f43]"
               >
-                {product.category.name}
+                {categoryDefinition.name}
               </Link>
               <ChevronRight size={12} aria-hidden="true" />
             </>
@@ -560,7 +553,7 @@ export default function ProductPage() {
                     <dt className="text-slate-500">SKU</dt><dd className="text-right font-medium text-slate-700">{product.sku || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
-                    <dt className="text-slate-500">Category</dt><dd className="text-right font-medium text-slate-700">{product.category?.name || "N/A"}</dd>
+                    <dt className="text-slate-500">Category</dt><dd className="text-right font-medium text-slate-700">{categoryDefinition?.name || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
                     <dt className="text-slate-500">Collections</dt><dd className="text-right font-medium text-slate-700">{product.collections?.map((collection) => collection.title).join(", ") || product.collection?.title || "N/A"}</dd>

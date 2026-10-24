@@ -24,8 +24,49 @@ export const CATEGORY_GROUPS = [
   { name: "Accessories & Others", slug: "accessories", routeGroup: "accessories" },
 ] as const;
 
+const PRODUCT_TYPE_FILTER_VALUES = new Set([
+  "abaya",
+  "blazer",
+  "cardigan",
+  "coat",
+  "co-ord set",
+  "dress",
+  "frock",
+  "gown",
+  "hoodie",
+  "jacket",
+  "jeans",
+  "kameez",
+  "kaftan",
+  "kurta",
+  "kurti",
+  "lehenga",
+  "pajama",
+  "polo shirt",
+  "salwar",
+  "sharara",
+  "sherwani",
+  "shirt",
+  "shorts",
+  "skirt",
+  "suit",
+  "sweater",
+  "t-shirt",
+  "top",
+  "trousers",
+  "tunic",
+  "waistcoat",
+]);
+
 export function getCategoryDefinition(slug: string) {
   return CATEGORY_CATALOG.find((category) => category.slug === slug);
+}
+
+export function isProductTypeFilterValue(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    PRODUCT_TYPE_FILTER_VALUES.has(value.trim().toLowerCase())
+  );
 }
 
 export function getCategoryRouteGroup(route: string) {

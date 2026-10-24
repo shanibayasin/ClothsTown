@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getActiveProductFilter, normalizeProductAliases } from "@/lib/products";
 import { ProductInputError, saveProduct } from "@/lib/product-management";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 import Product from "@/models/Product";
 
 type RouteContext = { params: Promise<{ slug: string }> };
@@ -72,6 +73,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Product not found." }, { status: 404 });
     }
 
+    revalidateStorefront();
     return NextResponse.json(product, {
       headers: { "Cache-Control": "no-store" },
     });
@@ -117,6 +119,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Product not found." }, { status: 404 });
     }
 
+    revalidateStorefront();
     return NextResponse.json({ message: "Product deleted successfully." });
   } catch (error) {
     console.error("DELETE PRODUCT ERROR:", error);

@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
@@ -7,6 +7,9 @@ import HeroBanner from "@/app/components/shop/HeroBanner";
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
+import { getCategoryDefinition } from "@/lib/category-catalog";
+
+export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{
@@ -17,35 +20,32 @@ interface Props {
 export default async function CategoryPage({
   params,
 }: Props) {
-  await connectDB();
-
   const { slug } = await params;
+  const definition = getCategoryDefinition(slug.toLowerCase());
+  if (!definition) notFound();
 
-  const category: any = await Category.findOne({
-    $or: [
-      { slug },
-      ...(mongoose.Types.ObjectId.isValid(slug)
-        ? [{ _id: new mongoose.Types.ObjectId(slug) }]
-        : []),
-    ],
-  }).lean();
-
-  if (!category) {
-    return (
-      <section className="bg-white py-24 text-center">
-        <h1 className="text-4xl font-bold">
-          Category Not Found
-        </h1>
-      </section>
-    );
-  }
-
-  const products: any[] = await Product.find({
-    category: category._id,
+  await connectDB();
+  const databaseCategory = await Category.findOne({
+    slug: definition.slug,
     status: true,
-  })
-    .populate("category")
-    .lean();
+  }).lean();
+  const category = {
+    ...definition,
+    ...databaseCategory,
+    name: definition.name,
+    slug: definition.slug,
+  };
+  const productDocuments = databaseCategory
+    ? await Product.find({
+        category: databaseCategory._id,
+        status: true,
+      })
+        .populate("category")
+        .lean()
+    : [];
+  const products: StoreProductCardData[] = productDocuments.map((product) =>
+    JSON.parse(JSON.stringify(product)) as StoreProductCardData
+  );
 
   return (
     <main className="mx-auto min-h-[60vh] max-w-7xl bg-white px-6 py-8">
@@ -67,7 +67,7 @@ export default async function CategoryPage({
         buttonText={category.bannerButtonText || `Shop ${category.name}`}
         buttonLink={
           category.bannerButtonLink ||
-          (category.slug ? `/shop/${category.slug}` : `/category/${category._id}`)
+          `/shop/${category.routeGroup}/${category.slug}`
         }
         position={category.bannerPosition}
         priority
@@ -92,10 +92,8 @@ export default async function CategoryPage({
 
           {products.map((product) => (
             <ProductCard
-              key={product._id.toString()}
-              product={
-                JSON.parse(JSON.stringify(product)) as StoreProductCardData
-              }
+              key={product._id}
+              product={product}
             />
           ))}
 

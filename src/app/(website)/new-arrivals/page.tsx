@@ -27,7 +27,13 @@ import ProductFilterDrawer, {
   type ProductFilterValues,
 } from "@/app/components/shop/ProductFilterDrawer";
 import HeroBanner from "@/app/components/shop/HeroBanner";
-import { CATEGORY_CATALOG, sortProductSizes } from "@/lib/category-catalog";
+import {
+  CATEGORY_CATALOG,
+  getCategoryDefinition,
+  getCategoryHref,
+  isProductTypeFilterValue,
+  sortProductSizes,
+} from "@/lib/category-catalog";
 
 interface ProductCategory {
   _id?: string;
@@ -88,10 +94,8 @@ const benefits = [
 
 function categoryName(product: ArrivalProduct) {
   return typeof product.category === "object" && product.category
-    ? product.category.name ?? ""
-    : typeof product.category === "string"
-      ? product.category
-      : "";
+    ? getCategoryDefinition(product.category.slug ?? "")?.name ?? ""
+    : "";
 }
 
 function productImage(product: ArrivalProduct) {
@@ -118,12 +122,15 @@ function isCategory(
   product: ArrivalProduct,
   selected: string
 ) {
-  const name = categoryName(product).toLowerCase();
   const slug =
     typeof product.category === "object" && product.category
       ? product.category.slug?.toLowerCase() ?? ""
       : "";
-  return name === selected.toLowerCase() || slug === selected.toLowerCase();
+  const definition = getCategoryDefinition(slug);
+  return (
+    definition?.slug === selected.toLowerCase() ||
+    definition?.name.toLowerCase() === selected.toLowerCase()
+  );
 }
 
 function productIsOnSale(product: ArrivalProduct) {
@@ -142,7 +149,6 @@ export default function NewArrivalsPage() {
   const [products, setProducts] = useState<ArrivalProduct[]>([]);
   const [arrivalCategory, setArrivalCategory] = useState<StoreCategory | null>(null);
   const [sectionTiles, setSectionTiles] = useState<StoreCategory["sectionTiles"]>([]);
-  const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
@@ -200,7 +206,6 @@ export default function NewArrivalsPage() {
                 category.name.trim().toLowerCase() === "new arrivals" ||
                 category.slug?.trim().toLowerCase() === "new-arrivals"
             );
-            if (active) setStoreCategories(allCategories.filter((category) => category.status !== false));
           }
         } else {
           console.error(
@@ -213,8 +218,26 @@ export default function NewArrivalsPage() {
           setArrivalCategory(arrivalsCategory ?? null);
           setSectionTiles(
             (arrivalsCategory?.sectionTiles ?? []).filter(
-              (tile) => tile.title?.trim() && tile.image && tile.category?.trim()
-            )
+              (tile) =>
+                tile.title?.trim() &&
+                tile.image &&
+                CATEGORY_CATALOG.some(
+                  (category) =>
+                    category.slug === tile.category?.trim().toLowerCase() ||
+                    category.name.toLowerCase() === tile.category?.trim().toLowerCase()
+                )
+            ).map((tile) => {
+              const definition = CATEGORY_CATALOG.find(
+                (category) =>
+                  category.slug === tile.category.trim().toLowerCase() ||
+                  category.name.toLowerCase() === tile.category.trim().toLowerCase()
+              );
+              return {
+                ...tile,
+                title: definition?.name ?? tile.title,
+                category: definition?.slug ?? tile.category,
+              };
+            })
           );
         }
       } catch (error) {
@@ -238,11 +261,8 @@ export default function NewArrivalsPage() {
   }, []);
 
   const categories = useMemo(
-    () =>
-      Array.from(new Set(products.map(categoryName).filter(Boolean))).sort(
-        (a, b) => a.localeCompare(b)
-      ),
-    [products]
+    () => CATEGORY_CATALOG.map((category) => category.name),
+    []
   );
   const sizes = useMemo(
     () =>
@@ -278,13 +298,7 @@ export default function NewArrivalsPage() {
         new Set(
           products
             .map((product) => product.productType?.trim())
-            .filter((type): type is string =>
-              typeof type === "string" &&
-              type.toLowerCase() !== "men" &&
-              !CATEGORY_CATALOG.some(
-                (category) => category.name.toLowerCase() === type.toLowerCase()
-              )
-            )
+            .filter(isProductTypeFilterValue)
         )
       ).sort((a, b) => a.localeCompare(b)),
     [products]
@@ -414,18 +428,12 @@ export default function NewArrivalsPage() {
     })),
   };
   const categoryHrefForTile = (tileCategory: string) => {
-    const match = storeCategories.find((category) =>
-      [category.name, category.slug].some(
-        (value) => value?.trim().toLowerCase() === tileCategory.trim().toLowerCase()
-      )
+    const definition = CATEGORY_CATALOG.find(
+      (category) =>
+        category.slug === tileCategory.trim().toLowerCase() ||
+        category.name.toLowerCase() === tileCategory.trim().toLowerCase()
     );
-    if (!match) return `/shop?category=${encodeURIComponent(tileCategory)}`;
-    const parent = storeCategories.find(
-      (category) => category._id === match.parentCategory
-    );
-    return parent?.slug
-      ? `/shop/${parent.slug}/${match.slug}`
-      : `/shop/${match.slug}`;
+    return definition ? getCategoryHref(definition) : "/categories";
   };
 
   function addProductToCart(product: ArrivalProduct) {

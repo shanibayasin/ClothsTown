@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { readJsonResponse } from "@/lib/api";
+import { getCategoryDefinition } from "@/lib/category-catalog";
 
 interface SearchProduct {
   _id: string;
@@ -21,7 +22,7 @@ interface SearchProduct {
   productType?: string;
   fabric?: string;
   season?: string;
-  category?: { name?: string } | string | null;
+  category?: { slug?: string } | string | null;
 }
 
 export default function ProductSearch({
@@ -213,8 +214,8 @@ export default function ProductSearch({
                   "/placeholder-product.svg";
                 const category =
                   typeof product.category === "object" && product.category
-                    ? product.category.name
-                    : product.category;
+                    ? getCategoryDefinition(product.category.slug ?? "")?.name
+                    : undefined;
                 const price =
                   product.discountPrice && product.discountPrice > 0
                     ? product.discountPrice

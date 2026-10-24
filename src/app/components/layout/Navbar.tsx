@@ -17,6 +17,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
 import ProductSearch from "@/app/components/layout/ProductSearch";
+import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 type Collection = {
   _id: string;
@@ -125,8 +126,18 @@ export default function Navbar() {
     async function loadDepartmentCategories() {
       try {
         const response = await fetch("/api/categories", { cache: "no-store" });
-        const categories = await readJsonResponse<StoreCategory[]>(response, []);
-        setStoreCategories(categories.filter((category) => category.status !== false));
+        const databaseCategories = await readJsonResponse<StoreCategory[]>(response, []);
+        const databaseCategoriesBySlug = new Map(
+          databaseCategories.map((category) => [category.slug, category])
+        );
+        const categories = CATEGORY_CATALOG.map((definition) => ({
+          ...definition,
+          ...databaseCategoriesBySlug.get(definition.slug),
+          _id: databaseCategoriesBySlug.get(definition.slug)?._id ?? definition.slug,
+          name: definition.name,
+          slug: definition.slug,
+        }));
+        setStoreCategories(categories);
         const sections: Record<string, DepartmentCategory[]> = {};
         for (const [sectionName, routeGroup] of [
           ["Men", "men"],
@@ -139,18 +150,23 @@ export default function Navbar() {
             .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
             .map((category) => ({
               title: category.name,
-              category: category.slug ?? category.name,
+              category: category.slug,
             }));
         }
-        const accessoriesCategory = categories.find(
-          (category) => category.routeGroup === "accessories"
-        );
         setAccessoriesMenuGroups(
-          (accessoriesCategory?.menuGroups ?? []).filter(
-            (group) => group.title?.trim()
-          )
+          [{
+            title: "Accessories & Others",
+            categories: categories
+              .filter((category) => category.routeGroup === "accessories")
+              .map((category) => ({
+                title: category.name,
+                category: category.slug,
+              })),
+          }]
         );
-        setAccessoriesMenuImage(accessoriesCategory?.image ?? "");
+        setAccessoriesMenuImage(
+          categories.find((category) => category.routeGroup === "accessories" && category.image)?.image ?? ""
+        );
         setDepartmentCategories(sections);
       } catch (error) {
         console.error("Department categories fetch error:", error);
@@ -250,23 +266,13 @@ export default function Navbar() {
       }
       return groups;
     };
-    const accessoryCategory =
-      storeCategories.find((category) => category.routeGroup === "accessories") ??
-      categoryFor("accessories");
-    const accessoryGroups = (accessoryCategory?.menuGroups ?? [])
-      .map((group) => ({
-        title: group.title,
-        links: group.categories
-          .filter((item) => item.title.trim() && item.category.trim())
-          .map((item) => ({
-            label: item.title,
-            href: categoryRouteByName(
-              item.category,
-              `/shop?category=${encodeURIComponent(item.category)}`
-            ),
-          })),
-      }))
-      .filter((group) => group.links.length);
+    const accessoryLinks = storeCategories
+      .filter((category) => category.routeGroup === "accessories")
+      .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+      .map((category) => ({
+        label: category.name,
+        href: categoryRoute(category),
+      }));
     const saleCollections = collectionLinks.filter((item) =>
       /\b(sale|discount|clearance|offer)\b/i.test(item.label)
     );
@@ -308,7 +314,9 @@ export default function Navbar() {
                 })),
             }]
           : []),
-        ...accessoryGroups,
+        ...(accessoryLinks.length
+          ? [{ title: "Accessories & Others", links: accessoryLinks }]
+          : []),
         ...(collectionLinks.length
           ? [{ title: "Collections", links: collectionLinks }]
           : []),
@@ -332,7 +340,7 @@ export default function Navbar() {
       { name: "Girls", href: "/shop/girls", hasChevron: true },
       { name: "Boys", href: "/shop/boys", hasChevron: true },
       { name: "Accessories", href: "/shop/accessories", hasChevron: true },
-      { name: "Winter Collection", href: "/collections", collectionMenu: true },
+      { name: "Collections", href: "/collections", collectionMenu: true },
       { name: "New Arrivals", href: "/new-arrivals" },
       { name: "Sale", href: "/shop?sale=true" },
     ],

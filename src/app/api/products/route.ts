@@ -14,6 +14,11 @@ import {
   type ProductPublicationStatus,
 } from "@/lib/products";
 import { ProductInputError, saveProduct } from "@/lib/product-management";
+import {
+  CATEGORY_CATALOG,
+  isProductTypeFilterValue,
+} from "@/lib/category-catalog";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
 
@@ -74,6 +79,7 @@ export async function GET(request: Request) {
       const regex = new RegExp(escapeRegex(search.slice(0, 100)), "i");
       const matchingCategories = await Category.find({
         status: true,
+        slug: { $in: CATEGORY_CATALOG.map((category) => category.slug) },
         $or: [{ name: regex }, { slug: regex }],
       })
         .select("_id")
@@ -221,7 +227,7 @@ export async function GET(request: Request) {
             colors: availableColors.filter((value): value is string => typeof value === "string").sort(),
             brands: availableBrands.filter((value): value is string => typeof value === "string" && value.length > 0).sort(),
             fabrics: availableFabrics.filter((value): value is string => typeof value === "string" && value.length > 0).sort(),
-            productTypes: availableProductTypes.filter((value): value is string => typeof value === "string" && value.length > 0).sort(),
+            productTypes: availableProductTypes.filter(isProductTypeFilterValue).sort(),
           },
         },
         { headers: { "Cache-Control": "no-store" } }
@@ -270,6 +276,7 @@ export async function POST(request: Request) {
   try {
     await connectDB();
     const product = await saveProduct(await request.json());
+    revalidateStorefront();
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("CREATE PRODUCT ERROR:", error);

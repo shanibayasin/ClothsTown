@@ -28,7 +28,7 @@ export default function AnnouncementBar() {
         </div>
         <span className="flex shrink-0 items-center gap-1 sm:gap-1.5 lg:gap-2">
           <Snowflake size={12} className={isAccountPage ? "sm:size-[13px] lg:size-[14px]" : "sm:size-4 lg:size-[20px]"} aria-hidden="true" />
-          <span>Winter Collection 2025</span>
+          <span>Discover New Season Styles</span>
         </span>
       </div>
     </div>

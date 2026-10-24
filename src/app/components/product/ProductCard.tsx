@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Heart, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { getCategoryDefinition } from "@/lib/category-catalog";
 
 export interface StoreProductCardData {
   _id: string;
@@ -20,7 +21,7 @@ export interface StoreProductCardData {
   featured?: boolean;
   newArrival?: boolean;
   isNewArrival?: boolean;
-  category?: { name?: string } | string | null;
+  category?: { name?: string; slug?: string } | string | null;
   sizes?: string[];
   colors?: string[];
   shortDescription?: string;
@@ -73,10 +74,8 @@ export default function ProductCard({
   const outOfStock = product.stock === 0;
   const categoryName =
     typeof product.category === "object" && product.category
-      ? product.category.name
-      : typeof product.category === "string"
-        ? product.category
-        : "";
+      ? getCategoryDefinition(product.category.slug ?? "")?.name ?? ""
+      : "";
 
   function handleAddToCart() {
     if (onAddToCart) {

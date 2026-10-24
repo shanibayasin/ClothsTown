@@ -1,5 +1,7 @@
 import DepartmentSubcategoryPage from "@/app/components/shop/DepartmentSubcategoryPage";
 
+export const dynamic = "force-dynamic";
+
 export default async function CategorySubcategoryPage({
   params,
   searchParams,

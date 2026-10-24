@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 
 export async function POST(request: Request) {
   const unauthorized = requireAdmin(request);
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
 
     if (input.action === "delete") {
       const result = await Product.deleteMany({ _id: { $in: ids } });
+      if (result.deletedCount) revalidateStorefront();
       return NextResponse.json({ deleted: result.deletedCount });
     }
 
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
           },
         }
       );
+      if (result.modifiedCount) revalidateStorefront();
       return NextResponse.json({ updated: result.modifiedCount });
     }
 
@@ -68,6 +71,7 @@ export async function POST(request: Request) {
         { _id: { $in: ids } },
         { $set: fields }
       );
+      if (result.modifiedCount) revalidateStorefront();
       return NextResponse.json({ updated: result.modifiedCount });
     }
 
