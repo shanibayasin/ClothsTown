@@ -1,5 +1,7 @@
 import { Schema, model, models } from "mongoose";
 
+const categoryGroups = ["Men", "Women", "Kids", "Accessories & Others"] as const;
+
 const CategorySchema = new Schema(
   {
     name: {
@@ -19,6 +21,33 @@ const CategorySchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Category",
       default: null,
+      index: true,
+    },
+
+    group: {
+      type: String,
+      enum: categoryGroups,
+      default: "Accessories & Others",
+      index: true,
+    },
+
+    routeGroup: {
+      type: String,
+      enum: ["men", "women", "girls", "boys", "accessories"],
+      default: "accessories",
+      index: true,
+    },
+
+    gender: {
+      type: String,
+      enum: ["men", "women", "girls", "boys", "unisex"],
+      default: "unisex",
+      index: true,
+    },
+
+    sortOrder: {
+      type: Number,
+      default: 0,
       index: true,
     },
 
@@ -133,6 +162,12 @@ if (!CategoryModel.schema.path("parentCategory")) {
   CategoryModel.schema.add({
     parentCategory: CategorySchema.obj.parentCategory,
   });
+}
+
+for (const path of ["group", "routeGroup", "gender", "sortOrder"] as const) {
+  if (!CategoryModel.schema.path(path)) {
+    CategoryModel.schema.add({ [path]: CategorySchema.obj[path] });
+  }
 }
 
 for (const path of [

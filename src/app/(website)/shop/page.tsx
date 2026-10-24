@@ -18,11 +18,13 @@ import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
 import HeroBanner from "@/app/components/shop/HeroBanner";
+import { CATEGORY_CATALOG, sortProductSizes } from "@/lib/category-catalog";
 
 interface Product {
   _id: string;
   name: string;
   slug: string;
+  sku?: string;
   images: string[];
   image?: string;
   price: number;
@@ -33,7 +35,10 @@ interface Product {
   category: {
     _id: string;
     name: string;
+    routeGroup?: string;
+    gender?: string;
   };
+  gender?: "men" | "women" | "girls" | "boys" | "unisex";
   collection?: {
     _id: string;
     title: string;
@@ -48,6 +53,8 @@ interface Product {
   fabric?: string;
   productType?: string;
   brand?: string;
+  shortDescription?: string;
+  description?: string;
   stock: number;
 }
 
@@ -64,6 +71,8 @@ interface Category {
   bannerPosition?: "left" | "center" | "right";
   status?: boolean;
   parentCategory?: string | null;
+  routeGroup?: string;
+  sortOrder?: number;
   sectionTiles?: {
     title: string;
     image: string;
@@ -88,12 +97,13 @@ function getProductPrice(product: Product) {
     : product.price;
 }
 
-function getProductGender(name: string) {
+function getProductGender(gender: Product["gender"], name: string) {
+  if (gender) return gender;
   const value = name.toLowerCase();
-  if (/\bmen\b|men's|mens/.test(value)) return "Men";
-  if (/\bwomen\b|women's|womens|ladies/.test(value)) return "Women";
-  if (/\bgirls?\b/.test(value)) return "Girls";
-  if (/\bboys?\b/.test(value)) return "Boys";
+  if (/\bmen\b|men's|mens/.test(value)) return "men";
+  if (/\bwomen\b|women's|womens|ladies/.test(value)) return "women";
+  if (/\bgirls?\b/.test(value)) return "girls";
+  if (/\bboys?\b/.test(value)) return "boys";
   return "";
 }
 
@@ -256,8 +266,20 @@ function ShopContent({
     let data = [...products];
 
     if (search) {
+      const term = search.trim().toLowerCase();
       data = data.filter((item) =>
-        item.name.toLowerCase().includes(search.toLowerCase())
+        [
+          item.name,
+          item.slug,
+          item.sku,
+          item.shortDescription,
+          item.description,
+          item.brand,
+          item.productType,
+          item.fabric,
+          item.season,
+          item.category?.name,
+        ].some((value) => value?.toLowerCase().includes(term))
       );
     }
 
@@ -295,7 +317,9 @@ function ShopContent({
 
     if (selectedGenders.length > 0) {
       data = data.filter((item) =>
-        selectedGenders.includes(getProductGender(item.category?.name ?? ""))
+        selectedGenders.includes(
+          getProductGender(item.gender, item.category?.name ?? "")
+        )
       );
     }
 
@@ -410,6 +434,12 @@ function ShopContent({
     return (
       name === normalizedQuery ||
       slug === normalizedQuery ||
+      (normalizedQuery === "men" && category.routeGroup === "men") ||
+      (normalizedQuery === "women" && category.routeGroup === "women") ||
+      (normalizedQuery === "girls" && category.routeGroup === "girls") ||
+      (["boy", "boys"].includes(normalizedQuery) && category.routeGroup === "boys") ||
+      (["accessories", "accessory"].includes(normalizedQuery) &&
+        category.routeGroup === "accessories") ||
       (normalizedQuery === "girls" &&
         (/\bgirls?\b/.test(name) || /\bgirls?\b/.test(slug ?? ""))) ||
       (["men", "mens", "men's"].includes(normalizedQuery) &&
@@ -422,7 +452,7 @@ function ShopContent({
     );
   };
   const womenCategories = categories.filter((item) =>
-    /\bwomen\b|womens/.test(
+    item.routeGroup === "women" || /\bwomen\b|womens/.test(
       `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
     )
   );
@@ -435,7 +465,7 @@ function ShopContent({
     ) ||
     womenCategories[0];
   const menCategories = categories.filter((item) =>
-    /\bmen\b|\bmens\b|\bmenswear\b/.test(
+    item.routeGroup === "men" || /\bmen\b|\bmens\b|\bmenswear\b/.test(
       `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
     )
   );
@@ -457,7 +487,7 @@ function ShopContent({
       first.name.localeCompare(second.name)
     )[0];
   const boysCategories = categories.filter((item) =>
-    /\bboys?\b/.test(
+    item.routeGroup === "boys" || /\bboys?\b/.test(
       `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
     )
   );
@@ -470,7 +500,7 @@ function ShopContent({
     ) ||
     boysCategories[0];
   const girlsCategories = categories.filter((item) =>
-    /\bgirls?\b/.test(
+    item.routeGroup === "girls" || /\bgirls?\b/.test(
       `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
     )
   );
@@ -483,7 +513,7 @@ function ShopContent({
     ) ||
     girlsCategories[0];
   const accessoriesCategories = categories.filter((item) =>
-    /\baccessor(y|ies)\b/.test(
+    item.routeGroup === "accessories" || /\baccessor(y|ies)\b/.test(
       `${item.name.trim().toLowerCase()} ${item.slug?.trim().toLowerCase() ?? ""}`
     )
   );
@@ -533,37 +563,29 @@ function ShopContent({
         : isAccessoriesProductListing
           ? accessoriesLandingCategory
           : girlsLandingCategory;
-  const departmentProductsCount = departmentLandingCategory
-    ? isAccessoriesProductListing
-      ? products.filter((product) =>
-          /\baccessor(y|ies)\b/.test(product.category?.name?.toLowerCase() ?? "")
-        ).length
-      : products.filter(
-        (product) => product.category?._id === departmentLandingCategory._id
-      ).length
-    : filteredProducts.length;
   const departmentProducts = products.filter((product) =>
     isBoysProductListing
-      ? /\bboys?\b/.test(product.category?.name?.toLowerCase() ?? "")
+      ? product.category?.routeGroup === "boys" || /\bboys?\b/.test(product.category?.name?.toLowerCase() ?? "")
       : isMenProductListing
-        ? /\bmen\b|\bmens\b|\bmenswear\b/.test(
+        ? product.category?.routeGroup === "men" || /\bmen\b|\bmens\b|\bmenswear\b/.test(
             product.category?.name?.toLowerCase() ?? ""
           )
         : isWomenProductListing
-          ? /\bwomen\b|womens/.test(product.category?.name?.toLowerCase() ?? "")
+          ? product.category?.routeGroup === "women" || /\bwomen\b|womens/.test(product.category?.name?.toLowerCase() ?? "")
             : isAccessoriesProductListing
-              ? /\baccessor(y|ies)\b/.test(product.category?.name?.toLowerCase() ?? "")
-              : /\bgirls?\b/.test(product.category?.name?.toLowerCase() ?? "")
+              ? product.category?.routeGroup === "accessories" || /\baccessor(y|ies)\b/.test(product.category?.name?.toLowerCase() ?? "")
+              : product.category?.routeGroup === "girls" || /\bgirls?\b/.test(product.category?.name?.toLowerCase() ?? "")
   );
+  const departmentProductsCount = departmentProducts.length;
   const seasonOptions = Array.from(
     new Set(departmentProducts.map((product) => product.season?.trim()).filter(Boolean))
   ).sort((a, b) => a!.localeCompare(b!)) as string[];
   const fabricOptions = Array.from(
     new Set(departmentProducts.map((product) => product.fabric?.trim()).filter(Boolean))
   ).sort((a, b) => a!.localeCompare(b!)) as string[];
-  const sizeOptions = Array.from(
+  const sizeOptions = sortProductSizes(Array.from(
     new Set(departmentProducts.flatMap((product) => product.sizes ?? []))
-  ).sort((a, b) => a.localeCompare(b));
+  ));
   const highestDepartmentPrice = Math.max(
     ...departmentProducts.map((product) => getProductPrice(product)),
     0
@@ -648,6 +670,7 @@ function ShopContent({
       )
     );
     if (!match) return `/shop?category=${encodeURIComponent(tileCategory)}`;
+    if (match.routeGroup) return `/shop/${match.routeGroup}/${match.slug}`;
     const parent = categories.find((item) => item._id === match.parentCategory);
     return parent?.slug
       ? `/shop/${parent.slug}/${match.slug}`
@@ -658,7 +681,8 @@ function ShopContent({
 
   const sizeFilterOptions = Array.from(
     new Set(products.flatMap((product) => product.sizes ?? []))
-  ).sort((a, b) => a.localeCompare(b));
+  );
+  const sortedSizeFilterOptions = sortProductSizes(sizeFilterOptions);
   const colorFilterOptions = Array.from(
     new Set(products.flatMap((product) => product.colors ?? []))
   ).sort((a, b) => a.localeCompare(b));
@@ -686,9 +710,18 @@ function ShopContent({
     new Set(products.map((product) => product.productType?.trim()).filter(
       (productType): productType is string => Boolean(productType)
     ))
-  ).sort((a, b) => a.localeCompare(b));
+  )
+    .filter((productType) =>
+      productType.toLowerCase() !== "men" &&
+      !CATEGORY_CATALOG.some(
+        (category) => category.name.toLowerCase() === productType.toLowerCase()
+      )
+    )
+    .sort((a, b) => a.localeCompare(b));
   const genderFilterOptions = Array.from(
-    new Set(products.map((product) => getProductGender(product.category?.name ?? "")).filter(Boolean))
+    new Set(products.map((product) =>
+      getProductGender(product.gender, product.category?.name ?? "")
+    ).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
   const activeCategoryFilter =
     categories.find(
@@ -717,16 +750,26 @@ function ShopContent({
     onSale: saleOnly,
   };
   const shopFilterOptions = {
-    category: categories.map((category) => ({
-      value: category._id,
-      label: category.name,
-    })),
+    category: categories
+      .filter((category) => {
+        const route = categoryQuery.toLowerCase();
+        if (["men", "mens", "men's"].includes(route)) return category.routeGroup === "men";
+        if (["women", "womens", "women's"].includes(route)) return category.routeGroup === "women";
+        if (["girls", "girl"].includes(route)) return category.routeGroup === "girls";
+        if (["boys", "boy"].includes(route)) return category.routeGroup === "boys";
+        if (["accessories", "accessory"].includes(route)) return category.routeGroup === "accessories";
+        return true;
+      })
+      .map((category) => ({
+        value: category._id,
+        label: category.name,
+      })),
     collection: collections.map((collection) => ({
       value: collection._id,
       label: collection.title,
     })),
     gender: genderFilterOptions.map((gender) => ({ value: gender, label: gender })),
-    size: sizeFilterOptions.map((size) => ({ value: size, label: size })),
+    size: sortedSizeFilterOptions.map((size) => ({ value: size, label: size })),
     color: colorFilterOptions.map((color) => ({ value: color, label: color })),
     brand: brandFilterOptions.map((brand) => ({ value: brand, label: brand })),
     productType: productTypeFilterOptions.map((productType) => ({

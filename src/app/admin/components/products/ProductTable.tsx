@@ -29,6 +29,7 @@ export interface AdminProduct {
   sizes?: string[];
   colors?: string[];
   category?: string | { _id: string; name?: string };
+  gender?: "men" | "women" | "girls" | "boys" | "unisex";
   collection?: string | { _id: string; title?: string };
   collections?: Array<string | { _id: string; title?: string }>;
   price: number;

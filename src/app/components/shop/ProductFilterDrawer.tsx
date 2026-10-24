@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
+import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 export type ProductFilterKey =
   | "category"
@@ -259,7 +260,16 @@ export default function ProductFilterDrawer({
                     <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
                   </summary>
                   <div className="grid gap-3 pb-5 sm:grid-cols-2">
-                    {(options[key] ?? []).map((option) =>
+                    {(key === "productType"
+                      ? (options[key] ?? []).filter((option) =>
+                          option.value.toLowerCase() !== "men" &&
+                          !CATEGORY_CATALOG.some(
+                            (category) =>
+                              category.name.toLowerCase() === option.value.toLowerCase()
+                          )
+                        )
+                      : options[key] ?? []
+                    ).map((option) =>
                       key === "color" ? (
                         <button
                           key={option.value}

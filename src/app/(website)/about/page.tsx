@@ -1,228 +1,37 @@
-import Image from "next/image";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 export default function AboutPage() {
   return (
-    <>
-      {/* Hero */}
-
-      <section className="relative h-125">
-
-        <Image
-          src="/images/about-banner.jpg"
-          alt="About ClothesTown"
-          fill
-          priority
-          className="object-cover"
-        />
-
-        <div className="absolute inset-0 bg-black/45" />
-
-        <div className="absolute inset-0 flex items-center justify-center">
-
-          <div className="text-center text-white">
-
-            <h1 className="text-5xl font-bold md:text-7xl">
-              About ClothesTown
-            </h1>
-
-            <p className="mt-6 text-lg md:text-xl">
-              Timeless Elegance • Luxury Fashion • Premium Quality
-            </p>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* Brand Story */}
-
-      <section className="mx-auto max-w-7xl px-6 py-24">
-
-        <div className="grid items-center gap-16 lg:grid-cols-2">
-
-          <div>
-
-            <h2 className="text-4xl font-bold text-primary">
-              Our Story
-            </h2>
-
-            <p className="mt-8 leading-8 text-gray-600">
-              ClothesTown was created with a passion for timeless
-              fashion and thoughtfully designed everyday clothing. Every
-              collection brings comfort, quality, and confidence to modern
-              wardrobes.
-            </p>
-
-            <p className="mt-6 leading-8 text-gray-600">
-              Our designs blend traditional elegance with modern
-              trends to create outfits suitable for every special
-              occasion and everyday sophistication.
-            </p>
-
-          </div>
-
-          <div className="relative h-150 overflow-hidden rounded-3xl">
-
-            <Image
-              src="/images/about-story.jpg"
-              alt="Our Story"
-              fill
-              className="object-cover"
-            />
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* Mission */}
-
-      <section className="bg-[#faf7f8] py-24">
-
-        <div className="mx-auto max-w-7xl px-6">
-
-          <div className="grid gap-8 md:grid-cols-3">
-
-            <div className="rounded-3xl bg-white p-10 shadow">
-
-              <h3 className="text-2xl font-bold text-primary">
-                Our Mission
-              </h3>
-
-              <p className="mt-5 leading-8 text-gray-600">
-                To provide quality clothing that combines
-                style, comfort, and lasting value for everyone.
-              </p>
-
-            </div>
-
-            <div className="rounded-3xl bg-white p-10 shadow">
-
-              <h3 className="text-2xl font-bold text-primary">
-                Our Vision
-              </h3>
-
-              <p className="mt-5 leading-8 text-gray-600">
-                To become a trusted luxury fashion brand recognized
-                worldwide for exceptional quality and timeless
-                collections.
-              </p>
-
-            </div>
-
-            <div className="rounded-3xl bg-white p-10 shadow">
-
-              <h3 className="text-2xl font-bold text-primary">
-                Our Values
-              </h3>
-
-              <p className="mt-5 leading-8 text-gray-600">
-                Premium fabrics, elegant craftsmanship, customer
-                satisfaction and attention to every detail.
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* Why Choose Us */}
-
-      <section className="mx-auto max-w-7xl px-6 py-24">
-
-        <div className="text-center">
-
-          <h2 className="text-4xl font-bold text-primary">
-            Why Choose ClothesTown
-          </h2>
-
-        </div>
-
-        <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
-
-          <div className="rounded-3xl border p-8 text-center">
-
-            <h3 className="text-xl font-semibold">
-              Premium Quality
-            </h3>
-
-            <p className="mt-4 text-gray-600">
-              Carefully selected fabrics with luxury finishing.
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl border p-8 text-center">
-
-            <h3 className="text-xl font-semibold">
-              Elegant Designs
-            </h3>
-
-            <p className="mt-4 text-gray-600">
-              Modern styles inspired by timeless fashion.
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl border p-8 text-center">
-
-            <h3 className="text-xl font-semibold">
-              Fast Delivery
-            </h3>
-
-            <p className="mt-4 text-gray-600">
-              Reliable shipping with secure packaging.
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl border p-8 text-center">
-
-            <h3 className="text-xl font-semibold">
-              Customer Support
-            </h3>
-
-            <p className="mt-4 text-gray-600">
-              Friendly support whenever you need assistance.
-            </p>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* CTA */}
-
-      <section className="bg-primary py-24">
-
-        <div className="mx-auto max-w-4xl px-6 text-center text-white">
-
-          <h2 className="text-4xl font-bold">
-            Discover Our Latest Collection
-          </h2>
-
-          <p className="mt-6 text-lg">
-            Explore premium fashion designed with elegance,
-            sophistication and comfort.
+    <main className="min-h-[70vh] bg-white text-[#171717]">
+      <nav
+        aria-label="Breadcrumb"
+        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[#6f1d46] sm:px-6"
+      >
+        <Link href="/" className="hover:underline">
+          Home
+        </Link>
+        <ChevronRight size={12} aria-hidden="true" />
+        <span className="font-medium">About Us</span>
+      </nav>
+
+      <section className="mx-auto max-w-[1440px] px-5 pb-20 pt-24 sm:px-8 sm:pt-36">
+        <h1 className="border-b border-[#e5e5e5] pb-4 text-center text-lg font-semibold">
+          About Us
+        </h1>
+
+        <div className="space-y-5 pt-20 text-xs leading-6 text-[#40383b] sm:pt-24 sm:text-sm">
+          <p>
+            Clothstown brings together thoughtfully selected fashion for
+            everyday wear and special occasions, with a focus on comfort, style,
+            and quality.
           </p>
-
-          <Link
-            href="/shop"
-            className="mt-10 inline-block rounded-xl bg-white px-10 py-4 font-semibold text-primary"
-          >
-            Shop Now
-          </Link>
-
+          <p>
+            Explore clothing and accessories for women, men, and children, and
+            find pieces that suit your personal style.
+          </p>
         </div>
-
       </section>
-    </>
+    </main>
   );
 }

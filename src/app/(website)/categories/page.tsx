@@ -11,7 +11,7 @@ export default async function CategoriesPage() {
   const categories = await Category.find({
     status: true,
   })
-    .sort({ createdAt: -1 })
+    .sort({ sortOrder: 1, name: 1 })
     .lean();
   const categoriesById = new Map(
     categories.map((category) => [category._id.toString(), category])
@@ -43,7 +43,9 @@ export default async function CategoriesPage() {
               <Link
                 key={category._id.toString()}
                 href={
-                  category.parentCategory &&
+                  category.routeGroup
+                    ? `/shop/${category.routeGroup}/${category.slug}`
+                    : category.parentCategory &&
                   categoriesById.get(category.parentCategory.toString())?.slug
                     ? `/shop/${categoriesById.get(category.parentCategory.toString())?.slug}/${category.slug}`
                     : `/shop/${category.slug}`

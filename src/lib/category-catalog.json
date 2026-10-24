@@ -1,0 +1,22 @@
+[
+  { "name": "Shalwar Kameez", "slug": "shalwar-kameez", "group": "Men", "routeGroup": "men", "gender": "men", "sortOrder": 1 },
+  { "name": "Kurtas & Waistcoats", "slug": "kurtas-waistcoats", "group": "Men", "routeGroup": "men", "gender": "men", "sortOrder": 2 },
+  { "name": "Formal & Wedding Wear", "slug": "formal-wedding-wear", "group": "Men", "routeGroup": "men", "gender": "men", "sortOrder": 3 },
+  { "name": "Western Wear", "slug": "western-wear", "group": "Men", "routeGroup": "men", "gender": "men", "sortOrder": 4 },
+  { "name": "Winter Wear", "slug": "mens-winter-wear", "group": "Men", "routeGroup": "men", "gender": "men", "sortOrder": 5 },
+  { "name": "Men's Unstitched Fabric", "slug": "mens-unstitched-fabric", "group": "Men", "routeGroup": "men", "gender": "men", "sortOrder": 6 },
+  { "name": "Unstitched Suits", "slug": "unstitched-suits", "group": "Women", "routeGroup": "women", "gender": "women", "sortOrder": 7 },
+  { "name": "Ready-to-Wear", "slug": "ready-to-wear", "group": "Women", "routeGroup": "women", "gender": "women", "sortOrder": 8 },
+  { "name": "Formal & Bridal Wear", "slug": "formal-bridal-wear", "group": "Women", "routeGroup": "women", "gender": "women", "sortOrder": 9 },
+  { "name": "Western & Casual Wear", "slug": "western-casual-wear", "group": "Women", "routeGroup": "women", "gender": "women", "sortOrder": 10 },
+  { "name": "Women's Winter Wear", "slug": "womens-winter-wear", "group": "Women", "routeGroup": "women", "gender": "women", "sortOrder": 11 },
+  { "name": "Dupattas & Stoles", "slug": "dupattas-stoles", "group": "Women", "routeGroup": "women", "gender": "women", "sortOrder": 12 },
+  { "name": "Girls Casual Wear", "slug": "girls-casual-wear", "group": "Kids", "routeGroup": "girls", "gender": "girls", "sortOrder": 13 },
+  { "name": "Girls Party & Festive Wear", "slug": "girls-party-festive-wear", "group": "Kids", "routeGroup": "girls", "gender": "girls", "sortOrder": 14 },
+  { "name": "Boys Casual Wear", "slug": "boys-casual-wear", "group": "Kids", "routeGroup": "boys", "gender": "boys", "sortOrder": 15 },
+  { "name": "Boys Traditional Wear", "slug": "boys-traditional-wear", "group": "Kids", "routeGroup": "boys", "gender": "boys", "sortOrder": 16 },
+  { "name": "Footwear", "slug": "footwear", "group": "Accessories & Others", "routeGroup": "accessories", "gender": "unisex", "sortOrder": 17 },
+  { "name": "Bags & Wallets", "slug": "bags-wallets", "group": "Accessories & Others", "routeGroup": "accessories", "gender": "unisex", "sortOrder": 18 },
+  { "name": "Perfumes & Fragrances", "slug": "perfumes-fragrances", "group": "Accessories & Others", "routeGroup": "accessories", "gender": "unisex", "sortOrder": 19 },
+  { "name": "Watches, Belts & Caps", "slug": "watches-belts-caps", "group": "Accessories & Others", "routeGroup": "accessories", "gender": "unisex", "sortOrder": 20 }
+]

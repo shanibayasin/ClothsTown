@@ -14,6 +14,8 @@ interface Category {
   image: string;
   status: boolean;
   parentCategory?: string | null;
+  routeGroup?: string;
+  sortOrder?: number;
   fallbackImage?: string;
   href?: string;
 }
@@ -42,13 +44,18 @@ export default function CategoriesSection() {
             : `/shop/${category.slug}`;
         };
         setCategories(
-          activeCategories.slice(0, 6).map((category) => ({
-            ...category,
-            href: categoryHref(category),
-            fallbackImage: category.parentCategory
-              ? categoriesById.get(category.parentCategory)?.image ?? ""
-              : "",
-          }))
+          activeCategories
+            .filter((category) => category.routeGroup)
+            .sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0))
+            .map((category) => ({
+              ...category,
+              href: category.routeGroup
+                ? `/shop/${category.routeGroup}/${category.slug}`
+                : categoryHref(category),
+              fallbackImage: category.parentCategory
+                ? categoriesById.get(category.parentCategory)?.image ?? ""
+                : "",
+            }))
         );
       } catch (error) {
         console.error("Categories fetch error:", error);
@@ -77,7 +84,7 @@ export default function CategoriesSection() {
         </div>
         {loading ? (
           <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:-mx-8 sm:px-8 lg:mx-auto lg:max-w-[1150px] lg:overflow-visible lg:px-0">
-            <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-6 lg:gap-3">
+              <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-5 lg:gap-3">
               {Array.from({ length: 6 }, (_, index) => (
                 <div key={index} className="flex w-[104px] shrink-0 animate-pulse flex-col items-center sm:w-[120px] lg:w-auto">
                   <div className="size-[76px] rounded-full bg-gray-100 min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]" />
@@ -89,7 +96,7 @@ export default function CategoriesSection() {
           </div>
         ) : (
           <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:-mx-8 sm:px-8 lg:mx-auto lg:max-w-[1150px] lg:overflow-visible lg:px-0">
-            <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-6 lg:gap-3">
+            <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-5 lg:gap-3">
               {categories.map((category, index) => (
                 <motion.div
                   key={category._id}

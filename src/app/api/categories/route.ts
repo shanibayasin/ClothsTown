@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import { requireAdmin } from "@/lib/admin-auth";
+import {
+  CATEGORY_CATALOG,
+  getCategoryDefinition,
+} from "@/lib/category-catalog";
 
 const MAX_BANNER_IMAGE_LENGTH = 6_000_000;
 
@@ -22,7 +26,9 @@ export async function GET() {
   try {
     await connectDB();
 
-    const categories = await Category.find().sort({ createdAt: -1 });
+    const categories = await Category.find({
+      slug: { $in: CATEGORY_CATALOG.map((category) => category.slug) },
+    }).sort({ sortOrder: 1, name: 1 });
 
     return NextResponse.json(categories);
   } catch {
@@ -61,6 +67,13 @@ export async function POST(request: Request) {
       .replace(/^-|-$/g, "");
     if (!slug) {
       return NextResponse.json({ message: "Category name must produce a valid slug." }, { status: 400 });
+    }
+    const definition = getCategoryDefinition(slug);
+    if (!definition) {
+      return NextResponse.json(
+        { message: "Choose one of the predefined Clothestown categories." },
+        { status: 400 }
+      );
     }
     if (await Category.exists({ slug })) {
       return NextResponse.json({ message: "A category with this name or slug already exists." }, { status: 409 });
@@ -120,8 +133,12 @@ export async function POST(request: Request) {
     }
 
     const category = await Category.create({
-      name,
-      slug,
+      name: definition.name,
+      slug: definition.slug,
+      group: definition.group,
+      routeGroup: definition.routeGroup,
+      gender: definition.gender,
+      sortOrder: definition.sortOrder,
       image: input.image ?? "",
       bannerImage: input.bannerImage ?? "",
       bannerTitle: input.bannerTitle ?? "",

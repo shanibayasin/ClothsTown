@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate:categories": "node --env-file-if-exists=.env scripts/migrate-categories.mjs",
+    "migrate:categories:dry-run": "node --env-file-if-exists=.env scripts/migrate-categories.mjs --dry-run",
+    "products:preview-cleanup": "node --env-file-if-exists=.env scripts/preview-product-name-cleanup.mjs"
   },
   "dependencies": {
     "axios": "^1.18.1",

@@ -10,13 +10,13 @@ import {
   User,
   X,
   ChevronDown,
-  Search,
   Snowflake,
 } from "lucide-react";
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
+import ProductSearch from "@/app/components/layout/ProductSearch";
 
 type Collection = {
   _id: string;
@@ -41,6 +41,8 @@ type StoreCategory = {
   image?: string;
   status?: boolean;
   parentCategory?: string | null;
+  routeGroup?: string;
+  sortOrder?: number;
   sectionTiles?: DepartmentCategory[];
   menuGroups?: AccessoriesMenuGroup[];
 };
@@ -86,11 +88,10 @@ export default function Navbar() {
     const parent = storeCategories.find(
       (item) => item._id === category.parentCategory
     );
-    return category.slug
-      ? parent?.slug
-        ? `/shop/${parent.slug}/${category.slug}`
-        : `/shop/${category.slug}`
-      : fallback ?? "/shop";
+    if (!category.slug) return fallback ?? "/shop";
+    if (category.routeGroup) return `/shop/${category.routeGroup}/${category.slug}`;
+    if (parent?.slug) return `/shop/${parent.slug}/${category.slug}`;
+    return `/shop/${category.slug}`;
   }, [storeCategories]);
   const categoryRouteByName = useCallback((name: string, fallback: string) => {
     const match = storeCategories.find((category) =>
@@ -127,35 +128,22 @@ export default function Navbar() {
         const categories = await readJsonResponse<StoreCategory[]>(response, []);
         setStoreCategories(categories.filter((category) => category.status !== false));
         const sections: Record<string, DepartmentCategory[]> = {};
-        for (const sectionName of ["Men", "Women", "Girls", "Boys"]) {
-          const sectionPattern =
-            sectionName === "Girls"
-              ? /\bgirls?\b/
-              : sectionName === "Women"
-                ? /\bwomen\b|womens/
-                : sectionName === "Men"
-                  ? /\bmen\b|\bmens\b|\bmenswear\b/
-                  : /\bboys?\b/;
-          const sectionCategories = categories.filter((category) =>
-            sectionPattern.test(
-              `${category.name.trim().toLowerCase()} ${category.slug?.trim().toLowerCase() ?? ""}`
-            )
-          );
-          const sectionCategory =
-            sectionCategories.find(
-              (category) => (category.sectionTiles?.length ?? 0) > 0
-            ) ?? sectionCategories[0];
-          sections[sectionName] = (sectionCategory?.sectionTiles ?? []).filter(
-            (tile) => tile.title?.trim() && tile.category?.trim()
-          );
+        for (const [sectionName, routeGroup] of [
+          ["Men", "men"],
+          ["Women", "women"],
+          ["Girls", "girls"],
+          ["Boys", "boys"],
+        ]) {
+          sections[sectionName] = categories
+            .filter((category) => category.routeGroup === routeGroup)
+            .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+            .map((category) => ({
+              title: category.name,
+              category: category.slug ?? category.name,
+            }));
         }
-        const accessoriesCategory = categories.find((category) =>
-          /^(accessory|accessories)$/.test(
-            category.name.trim().toLowerCase()
-          ) ||
-          /^(accessory|accessories)$/.test(
-            category.slug?.trim().toLowerCase() ?? ""
-          )
+        const accessoriesCategory = categories.find(
+          (category) => category.routeGroup === "accessories"
         );
         setAccessoriesMenuGroups(
           (accessoriesCategory?.menuGroups ?? []).filter(
@@ -223,9 +211,18 @@ export default function Navbar() {
       label: collection.title,
       href: `/collections/${collection.slug}`,
     }));
-    const department = (name: string, href: string): MegaMenuGroup[] => {
+    const department = (name: string, href: string, routeGroup: string): MegaMenuGroup[] => {
       const rootCategory = categoryFor(name.toLowerCase());
-      const childLinks = rootCategory
+      const groupLinks = storeCategories
+        .filter((category) => category.routeGroup === routeGroup)
+        .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+        .map((category) => ({
+          label: category.name,
+          href: categoryRoute(category),
+        }));
+      const childLinks = groupLinks.length
+        ? groupLinks
+        : rootCategory
         ? storeCategories
             .filter((category) => category.parentCategory === rootCategory._id)
             .map((category) => ({
@@ -253,7 +250,9 @@ export default function Navbar() {
       }
       return groups;
     };
-    const accessoryCategory = categoryFor("accessories");
+    const accessoryCategory =
+      storeCategories.find((category) => category.routeGroup === "accessories") ??
+      categoryFor("accessories");
     const accessoryGroups = (accessoryCategory?.menuGroups ?? [])
       .map((group) => ({
         title: group.title,
@@ -281,10 +280,10 @@ export default function Navbar() {
           ],
         },
       ],
-      WOMEN: department("Women", "/shop/women"),
-      MEN: department("Men", "/shop/men"),
-      GIRLS: department("Girls", "/shop/girls"),
-      BOYS: department("Boys", "/shop/boys"),
+      WOMEN: department("Women", "/shop/women", "women"),
+      MEN: department("Men", "/shop/men", "men"),
+      GIRLS: department("Girls", "/shop/girls", "girls"),
+      BOYS: department("Boys", "/shop/boys", "boys"),
       SALE: [
         {
           title: "Shop Sale",
@@ -297,6 +296,18 @@ export default function Navbar() {
       ],
       ACCESSORIES: [
         { title: "Shop Accessories", links: [{ label: "All Accessories", href: "/shop/accessories" }] },
+        ...(storeCategories.some((category) => category.routeGroup === "accessories")
+          ? [{
+              title: "Accessories & Others",
+              links: storeCategories
+                .filter((category) => category.routeGroup === "accessories")
+                .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+                .map((category) => ({
+                  label: category.name,
+                  href: categoryRoute(category),
+                })),
+            }]
+          : []),
         ...accessoryGroups,
         ...(collectionLinks.length
           ? [{ title: "Collections", links: collectionLinks }]
@@ -350,23 +361,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <form action="/shop" method="get" role="search" className="hidden min-w-0 max-w-[660px] flex-1 md:flex">
-            <label htmlFor="header-product-search" className="sr-only">Search products</label>
-            <input
-              id="header-product-search"
-              type="search"
-              name="search"
-              placeholder="Search for jackets, hoodies, sweaters, and more..."
-              className={`min-w-0 flex-1 border border-r-0 border-[#d9e0e5] bg-[#f7f8fa] text-[#243643] outline-none transition focus:border-[#9eabb3] focus:bg-white ${isAccountPage ? "h-9 rounded-l-[9px] px-3 text-[10px] lg:h-[34px] lg:px-3" : "h-10 rounded-l-[18px] px-4 text-sm lg:h-14 lg:rounded-l-[20px] lg:px-5"}`}
-            />
-            <button
-              type="submit"
-              aria-label="Search products"
-              className={`flex items-center justify-center bg-[#102633] text-white transition hover:bg-primary ${isAccountPage ? "h-9 w-10 rounded-r-[9px] lg:h-[34px] lg:w-10" : "h-10 w-12 rounded-r-[18px] lg:h-14 lg:w-[68px] lg:rounded-r-[20px]"}`}
-            >
-              <Search size={isAccountPage ? 17 : 21} />
-            </button>
-          </form>
+          <ProductSearch id="header-product-search" accountPage={isAccountPage} />
 
           <div className="flex shrink-0 items-center">
             <Link
@@ -405,19 +400,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <form action="/shop" method="get" role="search" className="flex border-t border-gray-100 px-4 py-2 md:hidden">
-          <label htmlFor="mobile-product-search" className="sr-only">Search products</label>
-          <input
-            id="mobile-product-search"
-            type="search"
-            name="search"
-            placeholder="Search products..."
-            className="h-9 min-w-0 flex-1 rounded-l-full border border-r-0 border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-gray-400 focus:bg-white"
-          />
-          <button type="submit" aria-label="Search products" className="flex h-9 w-10 items-center justify-center rounded-r-full bg-[#14242b] text-white">
-            <Search size={16} />
-          </button>
-        </form>
+        <ProductSearch id="mobile-product-search" compact />
 
         <nav aria-label="Legacy navigation" className="hidden">
           <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-start gap-5 overflow-visible px-6 lg:h-[67px] lg:gap-9 lg:px-10">

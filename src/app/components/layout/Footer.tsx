@@ -10,6 +10,7 @@ import {
   FaXTwitter,
   FaYoutube,
 } from "react-icons/fa6";
+import { CATEGORY_CATALOG, getCategoryHref } from "@/lib/category-catalog";
 
 const quickLinks = [
   { label: "Home", href: "/" },
@@ -24,16 +25,16 @@ const serviceLinks = [
   { label: "Contact Us", href: "/contact" },
   { label: "Track Order", href: "/track-order" },
   { label: "Returns & Exchanges", href: "/contact" },
-  { label: "FAQs", href: "/contact" },
+  { label: "FAQs", href: "/faq" },
   { label: "Size Guide", href: "/contact" },
   { label: "Help", href: "/contact" },
 ];
 
 const policyLinks = [
-  { label: "Privacy Policy", href: "/privacy-policy" },
-  { label: "Terms & Conditions", href: "/terms" },
-  { label: "Shipping Policy", href: "/contact" },
-  { label: "Return Policy", href: "/contact" },
+  { label: "Privacy Policy", href: "/policies#privacy" },
+  { label: "Terms & Conditions", href: "/policies#terms" },
+  { label: "Shipping Policy", href: "/policies#shipping" },
+  { label: "Return Policy", href: "/policies#exchange" },
   { label: "Payment Methods", href: "/contact" },
 ];
 
@@ -128,7 +129,7 @@ export default function Footer() {
       </section>
 
       <div className="mx-auto max-w-[1440px] px-5 py-9 sm:px-8 sm:py-10 lg:px-12">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-3 lg:grid-cols-[1.45fr_0.8fr_1fr_0.9fr_1.15fr] lg:gap-10">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-3 lg:grid-cols-[1.3fr_0.8fr_1.4fr_1fr_0.9fr_1fr] lg:gap-8">
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold tracking-tight">
               <Shirt aria-hidden="true" className="size-7" strokeWidth={1.7} />
@@ -157,6 +158,13 @@ export default function Footer() {
           </div>
 
           <FooterLinks title="Quick Links" links={quickLinks} />
+          <FooterLinks
+            title="Shop Categories"
+            links={CATEGORY_CATALOG.map((category) => ({
+              label: category.name,
+              href: getCategoryHref(category),
+            }))}
+          />
           <FooterLinks title="Customer Service" links={serviceLinks} />
           <FooterLinks title="Policies" links={policyLinks} />
 

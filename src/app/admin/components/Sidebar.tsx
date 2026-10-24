@@ -86,7 +86,7 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
 
       <nav
         aria-label="Admin navigation"
-        className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto"
+        className="mt-5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain"
       >
         {menus.map((item) => {
           const Icon = item.icon;
@@ -113,37 +113,6 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
           );
         })}
       </nav>
-
-      <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-3">
-        <div className="flex items-center gap-2">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 72 56"
-            className="h-4 w-5 shrink-0 text-[#7de2d2]"
-            fill="none"
-          >
-            <path
-              d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31"
-              stroke="currentColor"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span className="text-xs font-semibold text-white">ClothesTown</span>
-        </div>
-        <p className="mt-2 text-[11px] leading-4 text-slate-400">
-          Style Meets Comfort
-          <br />
-          Manage your store with ease.
-        </p>
-        <Link
-          href="/"
-          className="mt-3 flex min-h-8 items-center justify-center rounded-md border border-white/10 px-2 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
-        >
-          View Store
-        </Link>
-      </div>
 
       <button
         type="button"

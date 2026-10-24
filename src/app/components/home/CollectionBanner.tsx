@@ -10,6 +10,7 @@ import { readJsonResponse } from "@/lib/api";
 interface Collection {
   _id: string;
   slug: string;
+  routeGroup?: string;
   title: string;
   subtitle: string;
   description: string;
@@ -23,6 +24,7 @@ interface Category {
   _id: string;
   name: string;
   slug: string;
+  routeGroup?: string;
   image: string;
   status: boolean;
 }
@@ -58,8 +60,8 @@ export default function CollectionBanner() {
           /\b(?:men'?s?|male)\b/i.test(`${item.title} ${item.slug}`)
         ) || activeCollections.find((item) => item !== womenCollection) ||
           (!womenCollection ? activeCollections[0] : undefined);
-        const womenCategory = categories.find((item) =>
-          item.status && /\b(?:women'?s?|female|ladies)\b/i.test(`${item.name} ${item.slug}`)
+        const womenCategory = categories.find(
+          (item) => item.status && item.routeGroup === "women"
         );
         const nextCards: PromoCard[] = [];
 
@@ -89,7 +91,7 @@ export default function CollectionBanner() {
             title: "Women's Fashion",
             subtitle: "Trendy Styles for You",
             image: womenCategory.image,
-            href: `/category/${womenCategory._id}`,
+            href: `/shop/${womenCategory.routeGroup}/${womenCategory.slug}`,
             isMen: false,
           });
         } else {

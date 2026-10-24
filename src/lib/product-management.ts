@@ -72,6 +72,7 @@ export async function saveProduct(value: unknown, productId?: string) {
   const discountPrice = Number(value.discountPrice ?? 0);
   const stock = Number(value.stock ?? 0);
   const category = typeof value.category === "string" ? value.category : "";
+  const selectedGender = value.gender;
   if (name.length < 3 || name.length > 160) {
     throw new ProductInputError("Product name must be between 3 and 160 characters.");
   }
@@ -84,16 +85,30 @@ export async function saveProduct(value: unknown, productId?: string) {
   if (!Number.isInteger(stock) || stock < 0) {
     throw new ProductInputError("Stock must be a non-negative whole number.");
   }
-  if (!mongoose.Types.ObjectId.isValid(category) || !(await Category.exists({ _id: category }))) {
+  if (!mongoose.Types.ObjectId.isValid(category)) {
+    throw new ProductInputError("Select a valid product category.");
+  }
+  const categoryDocument = await Category.findById(category).select("gender").lean();
+  if (!categoryDocument) {
     throw new ProductInputError("Select a valid product category.");
   }
 
   const existing = productId
     ? await Product.findById(productId)
-        .select("slug sku collection collections featured isFeatured newArrival isNewArrival status publicationStatus images sizes colors brand productType fragranceType bottleSize")
+        .select("slug sku collection collections featured isFeatured newArrival isNewArrival status publicationStatus images sizes colors brand productType fragranceType bottleSize gender")
         .lean()
     : null;
   if (productId && !existing) return null;
+  if (
+    selectedGender !== undefined &&
+    !["men", "women", "girls", "boys", "unisex"].includes(String(selectedGender))
+  ) {
+    throw new ProductInputError("Choose a valid product audience.");
+  }
+  const gender =
+    typeof selectedGender === "string"
+      ? selectedGender
+      : existing?.gender ?? categoryDocument.gender ?? "unisex";
 
   const existingFields = existing ? getCanonicalProductFields(existing) : null;
   for (const flag of ["featured", "isFeatured", "newArrival", "isNewArrival", "onSale"] as const) {
@@ -201,6 +216,7 @@ export async function saveProduct(value: unknown, productId?: string) {
     stock,
     sku,
     category,
+    gender,
     collection: collections[0] || null,
     collections,
     images: stringArray(value.images, "Images", existing?.images ?? []),

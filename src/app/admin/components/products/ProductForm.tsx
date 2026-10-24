@@ -25,6 +25,8 @@ interface Category {
   _id: string;
   name: string;
   parentCategory?: string | null;
+  gender?: ProductFormState["gender"];
+  group?: string;
 }
 
 interface Collection {
@@ -57,6 +59,7 @@ interface ProductFormState {
   stock: string;
   sku: string;
   category: string;
+  gender: "men" | "women" | "girls" | "boys" | "unisex";
   collections: string[];
   images: string[];
   sizes: string[];
@@ -84,6 +87,7 @@ const initialState: ProductFormState = {
   stock: "",
   sku: "",
   category: "",
+  gender: "unisex",
   collections: [],
   images: [],
   sizes: [],
@@ -98,13 +102,17 @@ const initialState: ProductFormState = {
 function createFormState(
   editing: AdminProduct | null | undefined,
   forceNewArrival: boolean,
-  preselectedCategoryId: string
+  preselectedCategoryId: string,
+  categories: Category[]
 ): ProductFormState {
   if (!editing) {
     return {
       ...initialState,
       newArrival: forceNewArrival,
       category: preselectedCategoryId,
+      gender:
+        categories.find((category) => category._id === preselectedCategoryId)
+          ?.gender ?? initialState.gender,
     };
   }
 
@@ -130,6 +138,7 @@ function createFormState(
       typeof editing.category === "object"
         ? editing.category?._id ?? ""
         : editing.category ?? "",
+    gender: editing.gender ?? "unisex",
     collections: productFields.collectionIds,
     images: editing.images ?? [],
     sizes: editing.sizes ?? [],
@@ -158,7 +167,7 @@ export default function ProductForm({
   preselectedCategoryId = "",
 }: ProductFormProps) {
   const [form, setForm] = useState<ProductFormState>(() =>
-    createFormState(editing, forceNewArrival, preselectedCategoryId)
+    createFormState(editing, forceNewArrival, preselectedCategoryId, categories)
   );
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -232,6 +241,18 @@ export default function ProductForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+
+    if (name === "category") {
+      const selectedCategory = resolvedCategories.find(
+        (category) => category._id === value
+      );
+      setForm((previous) => ({
+        ...previous,
+        category: value,
+        gender: selectedCategory?.gender ?? previous.gender,
+      }));
+      return;
+    }
     
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
@@ -470,13 +491,26 @@ export default function ProductForm({
                 <option value="">Select Category</option>
                 {resolvedCategories.map((cat) => (
                   <option key={cat._id} value={cat._id}>
-                    {cat.parentCategory
-                      ? `${resolvedCategories.find((parent) => parent._id === cat.parentCategory)?.name ?? "Department"} / ${cat.name}`
-                      : cat.name}
+                    {cat.group ? `${cat.group} / ${cat.name}` : cat.name}
                   </option>
                 ))}
               </select>
             </div>
+            <label className="block">
+              <span className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Product audience</span>
+              <select
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
+              >
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+                <option value="girls">Girls</option>
+                <option value="boys">Boys</option>
+                <option value="unisex">Unisex</option>
+              </select>
+            </label>
             <label className="block">
               <span className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Publication status</span>
               <select

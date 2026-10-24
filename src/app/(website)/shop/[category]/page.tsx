@@ -11,6 +11,7 @@ import UrlProductFilters from "@/app/components/shop/UrlProductFilters";
 import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
 import { EMPTY_PRODUCT_FILTERS } from "@/app/components/shop/ProductFilterDrawer";
 import HeroBanner from "@/app/components/shop/HeroBanner";
+import { CATEGORY_GROUPS, sortProductSizes } from "@/lib/category-catalog";
 
 const CATEGORY_NAMES: Record<string, RegExp> = {
   men: /^(men(?:'s|s)?(?:\s*(?:wear|clothing))?|menswear)$/i,
@@ -54,39 +55,67 @@ export default async function StoreCategoryPage({
 }) {
   const [{ category: categoryParam }, query] = await Promise.all([params, searchParams]);
   const categorySlug = categoryParam.toLowerCase();
+  const routeGroup = CATEGORY_GROUPS.find((group) => group.slug === categorySlug);
   await connectDB();
-  const category =
-    await Category.findOne({ slug: categorySlug, status: true }).lean() ??
-    (CATEGORY_NAMES[categorySlug]
-      ? await Category.findOne({
+  const category = routeGroup
+    ? await Category.findOne({
+        routeGroup: routeGroup.routeGroup,
+        status: true,
+      })
+        .sort({ sortOrder: 1 })
+        .lean()
+    : await Category.findOne({ slug: categorySlug, status: true }).lean() ??
+      (CATEGORY_NAMES[categorySlug]
+        ? await Category.findOne({
           status: true,
           name: { $regex: CATEGORY_NAMES[categorySlug] },
         }).lean()
-      : null);
+        : null);
   if (!category) notFound();
-  const departmentSubcategories = await Category.find({
-    status: true,
-    parentCategory: category._id,
-  })
-    .sort({ name: 1 })
-    .select("_id name slug")
-    .lean();
-  const categoryIds = [category._id, ...departmentSubcategories.map((item) => item._id)];
+  const departmentSubcategories = routeGroup
+    ? await Category.find({
+        status: true,
+        routeGroup: routeGroup.routeGroup,
+      })
+        .sort({ sortOrder: 1, name: 1 })
+        .select("_id name slug")
+        .lean()
+    : await Category.find({
+        status: true,
+        parentCategory: category._id,
+      })
+        .sort({ name: 1 })
+        .select("_id name slug")
+        .lean();
+  const pageTitle = routeGroup?.name ?? category.name;
+  const categoryIds = routeGroup
+    ? departmentSubcategories.map((item) => item._id)
+    : [category._id, ...departmentSubcategories.map((item) => item._id)];
   const requestedSubcategories = values(query.subcategory);
   const selectedSubcategories = requestedSubcategories.filter((slug) =>
     departmentSubcategories.some((item) => item.slug === slug)
   );
-  const filter: Record<string, unknown> = {
-    category: requestedSubcategories.length
-      ? {
+  const filter: Record<string, unknown> = requestedSubcategories.length
+    ? {
+        category: {
           $in: departmentSubcategories
             .filter((item) => selectedSubcategories.includes(item.slug))
             .map((item) => item._id),
+        },
+      }
+    : routeGroup
+      ? {
+          $or: [
+            { category: { $in: categoryIds } },
+            { gender: routeGroup.routeGroup },
+          ],
         }
-      : categoryIds.length > 1
-        ? { $in: categoryIds }
-        : categoryIds[0],
-  };
+      : {
+          category:
+            categoryIds.length > 1
+              ? { $in: categoryIds }
+              : categoryIds[0],
+        };
   const minimumPrice = Number(first(query.minPrice));
   const maximumPrice = Number(first(query.maxPrice));
   if (Number.isFinite(minimumPrice) && minimumPrice > 0) {
@@ -101,6 +130,7 @@ export default async function StoreCategoryPage({
   const selectedFabrics = values(query.fabric);
   const selectedProductTypes = values(query.productType);
   const selectedSeasons = values(query.season);
+  const selectedGenders = values(query.gender);
   const selectedCollections = values(query.collection);
   const sale = first(query.sale) === "true";
   const available = first(query.available) === "true";
@@ -113,6 +143,7 @@ export default async function StoreCategoryPage({
     filter.productType = { $in: selectedProductTypes };
   }
   if (selectedSeasons.length) filter.season = { $in: selectedSeasons };
+  if (selectedGenders.length) filter.gender = { $in: selectedGenders };
   if (selectedCollections.length) {
     const collectionIds = selectedCollections.filter((id) => Types.ObjectId.isValid(id));
     conditions.push({
@@ -143,6 +174,7 @@ export default async function StoreCategoryPage({
     fabrics,
     productTypes,
     seasons,
+    genders,
     productCollectionIds,
     highestPrice,
   ] = await Promise.all([
@@ -153,6 +185,7 @@ export default async function StoreCategoryPage({
     Product.distinct("fabric", getActiveProductFilter({ category: { $in: categoryIds } })),
     Product.distinct("productType", getActiveProductFilter({ category: { $in: categoryIds } })),
     Product.distinct("season", getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.distinct("gender", getActiveProductFilter({ category: { $in: categoryIds } })),
     Promise.all([
       Product.distinct("collection", getActiveProductFilter({ category: { $in: categoryIds } })),
       Product.distinct("collections", getActiveProductFilter({ category: { $in: categoryIds } })),
@@ -186,29 +219,29 @@ export default async function StoreCategoryPage({
       <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[#536875]">
         <Link href="/" className="hover:text-[#102d40]">Home</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium text-[#102d40]">{category.name}</span>
+        <span className="font-medium text-[#102d40]">{pageTitle}</span>
       </nav>
       <HeroBanner
         key={category._id.toString()}
-        name={category.name}
+        name={routeGroup?.name ?? category.name}
         image={category.bannerImage || category.image}
         title={category.bannerTitle}
         description={category.bannerDescription}
-        buttonText={category.bannerButtonText || `Shop ${category.name}`}
+        buttonText={category.bannerButtonText || `Shop ${pageTitle}`}
         buttonLink={
           category.bannerButtonLink ||
-          `/shop/${category.slug}${sale ? "?sale=true" : ""}`
+          `/shop/${categorySlug}${sale ? "?sale=true" : ""}`
         }
         position={category.bannerPosition}
         imagePosition="center"
         priority
       />
       {departmentSubcategories.length > 0 && (
-        <nav aria-label={`${category.name} subcategories`} className="mb-6 flex flex-wrap gap-2">
+        <nav aria-label={`${pageTitle} categories`} className="mb-6 flex flex-wrap gap-2">
           {departmentSubcategories.map((subcategory) => (
             <Link
               key={subcategory._id.toString()}
-              href={`/shop/${category.slug}/${subcategory.slug}`}
+              href={`/shop/${categorySlug}/${subcategory.slug}`}
               className="rounded-full border border-[#e7edf1] px-4 py-2 text-sm font-medium text-[#536875] transition hover:border-[#102d40] hover:text-[#102d40]"
             >
               {subcategory.name}
@@ -224,12 +257,17 @@ export default async function StoreCategoryPage({
               value: item.slug,
               label: item.name,
             })),
-            size: sizes.filter((item): item is string => typeof item === "string").map((value) => ({ value, label: value })),
+            size: sortProductSizes(sizes.filter((item): item is string => typeof item === "string")).map((value) => ({ value, label: value })),
             color: colors.filter((item): item is string => typeof item === "string").map((value) => ({ value, label: value })),
             brand: brands.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
             productType: productTypes.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
             fabric: fabrics.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
             season: seasons.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
+            gender: genders
+              .filter((item): item is string =>
+                ["men", "women", "girls", "boys", "unisex"].includes(item)
+              )
+              .map((value) => ({ value, label: value })),
             collection: collections.map((collection) => ({
               value: collection._id.toString(),
               label: collection.title,
@@ -245,6 +283,7 @@ export default async function StoreCategoryPage({
             productType: selectedProductTypes,
             fabric: selectedFabrics,
             season: selectedSeasons,
+            gender: selectedGenders,
             minPrice: Number(first(query.minPrice)) || 0,
             maxPrice: Number(first(query.maxPrice)) || 0,
             availability: available,
@@ -253,6 +292,7 @@ export default async function StoreCategoryPage({
           priceCeiling={Math.max(1, Number(highestPrice?.price) || 100000)}
           showCategory={departmentSubcategories.length > 0}
           showCollection={collections.length > 0}
+          showGender={genders.length > 0}
         />
         <p className="text-xs font-medium text-[#536875]">{total} products</p>
         <ProductSortSelect

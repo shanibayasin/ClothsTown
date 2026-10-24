@@ -29,6 +29,7 @@ type DatabaseRef = {
   title?: string;
   name?: string;
   slug?: string;
+  routeGroup?: string;
 };
 
 type ProductType = {
@@ -229,10 +230,12 @@ export default function ProductPage() {
             <>
               <Link
                 href={
-                  product.category.slug &&
-                  ["men", "women", "girls", "boys", "accessories"].includes(
-                    product.category.slug.toLowerCase()
-                  )
+                  product.category.routeGroup && product.category.slug
+                    ? `/shop/${product.category.routeGroup}/${product.category.slug}`
+                    : product.category.slug &&
+                        ["men", "women", "girls", "boys", "accessories"].includes(
+                          product.category.slug.toLowerCase()
+                        )
                     ? `/shop/${product.category.slug.toLowerCase()}`
                     : `/category/${product.category._id}`
                 }

@@ -13,7 +13,16 @@ interface Category {
   _id: string;
   name: string;
   slug?: string;
+  routeGroup?: string;
+  gender?: "men" | "women" | "girls" | "boys" | "unisex";
+  sortOrder?: number;
   image?: string;
+  bannerImage?: string;
+  bannerTitle?: string;
+  bannerDescription?: string;
+  bannerButtonText?: string;
+  bannerButtonLink?: string;
+  bannerPosition?: "left" | "center" | "right";
   parentCategory?: string | null;
   sectionTiles?: SectionTile[];
   menuGroups?: AccessoriesMenuGroup[];
@@ -78,6 +87,14 @@ const SECTION_CATEGORY_KEYS: Record<
   },
 };
 
+const SECTION_ROUTE_GROUPS: Partial<Record<ManagedSection, string>> = {
+  Men: "men",
+  Women: "women",
+  Girls: "girls",
+  Boys: "boys",
+  Accessories: "accessories",
+};
+
 function normalizeCategoryKey(value: string | undefined) {
   return (value ?? "")
     .trim()
@@ -91,6 +108,13 @@ function resolveSectionCategory(
   categories: Category[],
   sectionName: ManagedSection
 ): { category: Category | null; error: string } {
+  const routeGroup = SECTION_ROUTE_GROUPS[sectionName];
+  if (routeGroup) {
+    const category = categories
+      .filter((item) => item.routeGroup === routeGroup)
+      .sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0))[0];
+    if (category) return { category, error: "" };
+  }
   const keys = SECTION_CATEGORY_KEYS[sectionName];
   const normalized = categories.map((category) => ({
     category,
@@ -166,7 +190,9 @@ export default function CategorySectionManager({
   const menSubcategories =
     (sectionName === "Men" || sectionName === "Women") && sectionCategory
       ? allCategories.filter(
-          (category) => category.parentCategory === sectionCategory._id
+          (category) =>
+            category._id !== sectionCategory._id &&
+            category.routeGroup === SECTION_ROUTE_GROUPS[sectionName]
         )
       : [];
 
@@ -486,7 +512,7 @@ export default function CategorySectionManager({
               : `Add and manage products shown in the ${sectionName} section of your store.`}
           </p>
         </div>
-        {(sectionName === "Men" || sectionName === "Women") && (
+        {(sectionName === "Men" || sectionName === "Women") && sectionCategory && (
           <button
             type="button"
             onClick={() => {
@@ -537,9 +563,9 @@ export default function CategorySectionManager({
             Retry loading {sectionName} setup
           </button>
         </section>
-      ) : sectionCategory ? (
+      ) : sectionCategory || sectionName === "New Arrivals" ? (
         <>
-          <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+          {sectionCategory && <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
             <div className="mb-4">
               <h2 className="text-base font-bold text-[#24211e]">
                 {sectionName} Hero Banner
@@ -657,15 +683,15 @@ export default function CategorySectionManager({
                 )}
               </div>
             </div>
-          </section>
-          {(sectionName === "Men" || sectionName === "Women") && (
+          </section>}
+          {(sectionName === "Men" || sectionName === "Women") && sectionCategory && (
             <>
               <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                   <div>
                     <h2 className="text-base font-bold text-[#24211e]">{sectionName.toUpperCase()} subcategories</h2>
                     <p className="mt-1 text-xs text-slate-500">
-                      {menSubcategories.length} department subcategories. Manage hierarchy and status in Categories.
+                      {menSubcategories.length + 1} department categories. Manage them in Categories.
                     </p>
                   </div>
                   <Link
@@ -685,7 +711,7 @@ export default function CategorySectionManager({
                   </ul>
                 ) : (
                   <p className="mt-3 text-sm text-slate-500">
-                    Add {sectionName.toUpperCase()} subcategories from Categories by selecting {sectionName} as the parent department.
+                    Add the predefined {sectionName.toUpperCase()} categories in Categories.
                   </p>
                 )}
               </section>
@@ -710,7 +736,7 @@ export default function CategorySectionManager({
               />
             </>
           )}
-          <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
+          {sectionCategory && <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <h2 className="text-base font-bold text-[#24211e]">
@@ -884,8 +910,8 @@ export default function CategorySectionManager({
                 {savingTiles ? "Saving tiles..." : "Save category tiles"}
               </button>
             </div>
-          </section>
-          {sectionName === "Accessories" && (
+          </section>}
+          {sectionName === "Accessories" && sectionCategory && (
             <section className="rounded-xl border border-[#e9e5df] bg-white p-4 shadow-sm sm:p-5">
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
@@ -1110,14 +1136,21 @@ export default function CategorySectionManager({
               key={editing?._id ?? "new"}
               editing={editing}
               categories={
-                sectionName === "New Arrivals" || sectionName === "Accessories"
+                sectionName === "New Arrivals"
                   ? allCategories
-                  : [sectionCategory]
+                  : SECTION_ROUTE_GROUPS[sectionName]
+                    ? allCategories.filter(
+                        (category) =>
+                          category.routeGroup === SECTION_ROUTE_GROUPS[sectionName]
+                      )
+                    : sectionCategory
+                      ? [sectionCategory]
+                      : []
               }
               collections={collections}
               forceNewArrival={sectionName === "New Arrivals"}
               preselectedCategoryId={
-                sectionName === "New Arrivals" ? "" : sectionCategory._id
+                sectionName === "New Arrivals" ? "" : sectionCategory?._id ?? ""
               }
               onSuccess={() => {
                 setRefresh((current) => current + 1);
@@ -1128,29 +1161,20 @@ export default function CategorySectionManager({
             refresh={refresh}
             sectionName={sectionName}
             categoryId={
-              sectionName === "New Arrivals" || sectionName === "Accessories"
+              sectionName === "New Arrivals" ||
+              Boolean(SECTION_ROUTE_GROUPS[sectionName])
                 ? undefined
-                : sectionCategory._id
+                : sectionCategory?._id
             }
             newArrivalOnly={sectionName === "New Arrivals"}
             categoryIds={
-              sectionName === "Accessories"
-                ? [
-                    sectionCategory._id,
-                    ...allCategories
-                      .filter((category) =>
-                        accessoriesMenuGroups.some((group) =>
-                          group.categories.some(
-                            (item) =>
-                              item.category.trim().toLowerCase() ===
-                                category.name.trim().toLowerCase() ||
-                              item.category.trim().toLowerCase() ===
-                                category.slug?.trim().toLowerCase()
-                          )
-                        )
-                      )
-                      .map((category) => category._id),
-                  ]
+              SECTION_ROUTE_GROUPS[sectionName]
+                ? allCategories
+                    .filter(
+                      (category) =>
+                        category.routeGroup === SECTION_ROUTE_GROUPS[sectionName]
+                    )
+                    .map((category) => category._id)
                 : undefined
             }
             onEdit={(product) => {

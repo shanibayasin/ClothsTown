@@ -2,6 +2,8 @@ import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ScrollToTop from "@/components/layout/ScrollToTop";
+import { CartProvider } from "@/context/CartContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 
 export default function WebsiteLayout({
   children,
@@ -9,14 +11,16 @@ export default function WebsiteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <ScrollToTop />
-      <AnnouncementBar />
-      <Navbar />
+    <CartProvider>
+      <WishlistProvider>
+        <ScrollToTop />
+        <AnnouncementBar />
+        <Navbar />
 
-      {children}
+        {children}
 
-      <Footer />
-    </>
+        <Footer />
+      </WishlistProvider>
+    </CartProvider>
   );
 }

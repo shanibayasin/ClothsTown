@@ -27,6 +27,7 @@ import ProductFilterDrawer, {
   type ProductFilterValues,
 } from "@/app/components/shop/ProductFilterDrawer";
 import HeroBanner from "@/app/components/shop/HeroBanner";
+import { CATEGORY_CATALOG, sortProductSizes } from "@/lib/category-catalog";
 
 interface ProductCategory {
   _id?: string;
@@ -46,6 +47,7 @@ interface ArrivalProduct {
   shortDescription?: string;
   description?: string;
   category?: ProductCategory | string | null;
+  gender?: "men" | "women" | "girls" | "boys" | "unisex";
   sizes?: string[];
   colors?: string[];
   brand?: string;
@@ -102,12 +104,13 @@ function productPrice(product: ArrivalProduct) {
     : product.price;
 }
 
-function getGender(name: string) {
+function getGender(name: string, gender?: ArrivalProduct["gender"]) {
+  if (gender) return gender;
   const value = name.toLowerCase();
-  if (/\bmen\b|men's|mens/.test(value)) return "Men";
-  if (/\bwomen\b|women's|womens|ladies/.test(value)) return "Women";
-  if (/\bgirls?\b/.test(value)) return "Girls";
-  if (/\bboys?\b/.test(value)) return "Boys";
+  if (/\bmen\b|men's|mens/.test(value)) return "men";
+  if (/\bwomen\b|women's|womens|ladies/.test(value)) return "women";
+  if (/\bgirls?\b/.test(value)) return "girls";
+  if (/\bboys?\b/.test(value)) return "boys";
   return "";
 }
 
@@ -243,7 +246,7 @@ export default function NewArrivalsPage() {
   );
   const sizes = useMemo(
     () =>
-      Array.from(new Set(products.flatMap((product) => product.sizes ?? []))).sort(),
+      sortProductSizes(Array.from(new Set(products.flatMap((product) => product.sizes ?? [])))),
     [products]
   );
   const colors = useMemo(
@@ -256,7 +259,7 @@ export default function NewArrivalsPage() {
       Array.from(
         new Set(
           products
-            .map((product) => getGender(categoryName(product)))
+            .map((product) => getGender(categoryName(product), product.gender))
             .filter(Boolean)
         )
       ),
@@ -275,7 +278,13 @@ export default function NewArrivalsPage() {
         new Set(
           products
             .map((product) => product.productType?.trim())
-            .filter((type): type is string => Boolean(type))
+            .filter((type): type is string =>
+              typeof type === "string" &&
+              type.toLowerCase() !== "men" &&
+              !CATEGORY_CATALOG.some(
+                (category) => category.name.toLowerCase() === type.toLowerCase()
+              )
+            )
         )
       ).sort((a, b) => a.localeCompare(b)),
     [products]
@@ -289,7 +298,7 @@ export default function NewArrivalsPage() {
     let result = products.filter((product) => {
       const name = product.name.toLowerCase();
       const description = `${product.shortDescription ?? ""} ${product.description ?? ""}`.toLowerCase();
-      const gender = getGender(categoryName(product));
+      const gender = getGender(categoryName(product), product.gender);
 
       return (
         (!search ||
@@ -778,15 +787,15 @@ export default function NewArrivalsPage() {
         <CollectionPromo
           title="Modern Menswear"
           description="Everyday essentials, made to move with you."
-          href="/shop?category=Men"
-          image={products.find((product) => getGender(categoryName(product)) === "Men")}
+          href="/shop/men"
+          image={products.find((product) => getGender(categoryName(product), product.gender) === "men")}
           tone="from-[#d8dedb] to-[#aeb8b5]"
         />
         <CollectionPromo
           title="A Softer Statement"
           description="Fresh looks for the moments that matter."
-          href="/shop?category=Women"
-          image={products.find((product) => getGender(categoryName(product)) === "Women")}
+          href="/shop/women"
+          image={products.find((product) => getGender(categoryName(product), product.gender) === "women")}
           tone="from-[#e7d9ce] to-[#c4aa96]"
         />
         <div className="flex min-h-[230px] flex-col justify-center rounded-sm bg-[#102d40] p-7 text-white sm:col-span-2 lg:col-span-1">

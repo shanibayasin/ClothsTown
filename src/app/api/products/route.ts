@@ -14,6 +14,7 @@ import {
   type ProductPublicationStatus,
 } from "@/lib/products";
 import { ProductInputError, saveProduct } from "@/lib/product-management";
+import Category from "@/models/Category";
 import Product from "@/models/Product";
 
 function escapeRegex(value: string) {
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
     const brand = url.searchParams.get("brand")?.trim();
     const fabric = url.searchParams.get("fabric")?.trim();
     const productType = url.searchParams.get("productType")?.trim();
+    const gender = url.searchParams.get("gender")?.trim().toLowerCase();
     const newArrival = url.searchParams.get("newArrival");
     const featured = url.searchParams.get("featured");
     const sale = url.searchParams.get("sale");
@@ -70,7 +72,26 @@ export async function GET(request: Request) {
     }
     if (search) {
       const regex = new RegExp(escapeRegex(search.slice(0, 100)), "i");
-      conditions.push({ $or: [{ name: regex }, { sku: regex }, { slug: regex }] });
+      const matchingCategories = await Category.find({
+        status: true,
+        $or: [{ name: regex }, { slug: regex }],
+      })
+        .select("_id")
+        .lean();
+      conditions.push({
+        $or: [
+          { name: regex },
+          { sku: regex },
+          { slug: regex },
+          { shortDescription: regex },
+          { description: regex },
+          { brand: regex },
+          { productType: regex },
+          { fabric: regex },
+          { season: regex },
+          { category: { $in: matchingCategories.map((category) => category._id) } },
+        ],
+      });
     }
     if (collectionId) {
       if (!mongoose.Types.ObjectId.isValid(collectionId)) {
@@ -106,6 +127,12 @@ export async function GET(request: Request) {
     if (brand) conditions.push({ brand });
     if (fabric) conditions.push({ fabric });
     if (productType) conditions.push({ productType });
+    if (gender) {
+      if (!["men", "women", "girls", "boys", "unisex"].includes(gender)) {
+        return NextResponse.json({ message: "Invalid gender filter." }, { status: 400 });
+      }
+      conditions.push({ gender });
+    }
     if (newArrival === "true") {
       const arrivalCondition = getNewArrivalProductFilter();
       conditions.push(arrivalCondition);

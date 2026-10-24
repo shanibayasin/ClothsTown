@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
 import { requireAdmin } from "@/lib/admin-auth";
+import { getCategoryDefinition } from "@/lib/category-catalog";
 
 const MAX_BANNER_IMAGE_LENGTH = 6_000_000;
 
@@ -77,18 +78,38 @@ export async function PUT(
       if (typeof input.name !== "string" || !input.name.trim()) {
         return NextResponse.json({ message: "Category name is required." }, { status: 400 });
       }
-      name = input.name.trim();
-      slug = name
-        .replace(/['’]/g, "")
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^\w-]+/g, "")
-        .replace(/^-|-$/g, "");
+      const requestedSlug =
+        typeof input.slug === "string" && input.slug.trim()
+          ? input.slug.trim().toLowerCase()
+          : input.name
+              .trim()
+              .toLowerCase()
+              .replace(/['’]/g, "")
+              .replace(/&/g, "")
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-|-$/g, "");
+      const definition = getCategoryDefinition(requestedSlug);
+      if (!definition) {
+        return NextResponse.json(
+          { message: "Categories must use one of the 20 predefined Clothestown entries." },
+          { status: 400 }
+        );
+      }
+      name = definition.name;
+      slug = definition.slug;
     } else if (input.slug !== undefined) {
       if (typeof input.slug !== "string" || !input.slug.trim()) {
         return NextResponse.json({ message: "Category slug is required." }, { status: 400 });
       }
-      slug = input.slug.trim().toLowerCase();
+      const definition = getCategoryDefinition(input.slug.trim().toLowerCase());
+      if (!definition) {
+        return NextResponse.json(
+          { message: "Categories must use one of the 20 predefined Clothestown entries." },
+          { status: 400 }
+        );
+      }
+      name = definition.name;
+      slug = definition.slug;
     }
 
     if (slug !== undefined && !slug) {
@@ -137,8 +158,21 @@ export async function PUT(
     }
 
     const update: Record<string, unknown> = {};
-    if (name !== undefined) update.name = name;
-    if (slug !== undefined) update.slug = slug;
+    if (name !== undefined && slug !== undefined) {
+      const definition = getCategoryDefinition(slug);
+      if (!definition) {
+        return NextResponse.json(
+          { message: "Categories must use one of the 20 predefined Clothestown entries." },
+          { status: 400 }
+        );
+      }
+      update.name = definition.name;
+      update.slug = definition.slug;
+      update.group = definition.group;
+      update.routeGroup = definition.routeGroup;
+      update.gender = definition.gender;
+      update.sortOrder = definition.sortOrder;
+    }
     if (input.image !== undefined) update.image = input.image;
     if (input.bannerImage !== undefined) update.bannerImage = input.bannerImage;
     if (input.bannerTitle !== undefined) update.bannerTitle = input.bannerTitle;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { adminFetch } from "@/lib/admin-fetch";
 import { prepareImageForUpload } from "@/lib/image-upload";
+import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 interface Category {
   _id: string;
@@ -17,7 +18,6 @@ interface Category {
   bannerButtonLink?: string;
   bannerPosition?: "left" | "center" | "right";
   status: boolean;
-  parentCategory?: string | null;
 }
 
 interface Props {
@@ -37,7 +37,6 @@ const initialState = {
   bannerButtonLink: "",
   bannerPosition: "left" as const,
   status: true,
-  parentCategory: "",
 };
 
 export default function CategoryForm({
@@ -58,46 +57,12 @@ export default function CategoryForm({
           bannerButtonLink: editing.bannerButtonLink || "",
           bannerPosition: editing.bannerPosition || "left",
           status: editing.status,
-          parentCategory:
-            typeof editing.parentCategory === "string" ? editing.parentCategory : "",
         }
       : initialState
   );
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryLoadError, setCategoryLoadError] = useState("");
-
   const [loading, setLoading] = useState(false);
 
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/categories", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Could not load parent categories (${response.status}).`);
-        const data: unknown = await response.json();
-        if (!Array.isArray(data)) throw new Error("Category list response was invalid.");
-        if (active) {
-          setCategories(data as Category[]);
-          setCategoryLoadError("");
-        }
-      })
-      .catch((error: unknown) => {
-        console.error("Failed to load category parent options:", error);
-        if (active) setCategoryLoadError("Could not load parent categories.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  function createSlug(text: string) {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^\w-]+/g, "");
-  }
 
   async function uploadImage(
     e: React.ChangeEvent<HTMLInputElement>,
@@ -162,7 +127,7 @@ export default function CategoryForm({
       return alert("Banner button link must be 500 characters or fewer.");
     }
 
-    if (!editing && !form.image && !form.parentCategory) {
+    if (!editing && !form.image) {
       return alert("Please upload category image.");
     }
 
@@ -230,57 +195,33 @@ export default function CategoryForm({
             Category Name
           </label>
 
-          <input
-            type="text"
-            placeholder="Enter category name"
-            value={form.name}
-            onChange={(e) =>
+          <select
+            value={form.slug}
+            disabled={Boolean(editing)}
+            onChange={(event) => {
+              const category = CATEGORY_CATALOG.find(
+                (item) => item.slug === event.target.value
+              );
+              if (!category) return;
               setForm({
                 ...form,
-                name: e.target.value,
-                slug: createSlug(e.target.value),
-              })
-            }
+                name: category.name,
+                slug: category.slug,
+              });
+            }}
             className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[#6f1d46]"
-          />
+          >
+            <option value="">Select a predefined category</option>
+            {CATEGORY_CATALOG.map((category) => (
+              <option key={category.slug} value={category.slug}>
+                {category.group} / {category.name}
+              </option>
+            ))}
+          </select>
 
         </div>
 
         {/* Image */}
-
-        <div>
-          <label className="mb-2 block text-sm font-semibold" htmlFor="parentCategory">
-            Parent department
-          </label>
-          <select
-            id="parentCategory"
-            value={form.parentCategory}
-            onChange={(event) =>
-              setForm({ ...form, parentCategory: event.target.value })
-            }
-            className="h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm outline-none transition focus:border-[#6f1d46]"
-          >
-            <option value="">Top-level category</option>
-            {categories
-              .filter(
-                (category) =>
-                  !category.parentCategory && category._id !== editing?._id
-              )
-              .map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
-                </option>
-              ))}
-          </select>
-          {categoryLoadError && (
-            <p role="alert" className="mt-1 text-xs text-red-700">{categoryLoadError}</p>
-          )}
-          {form.parentCategory && (
-            <p className="mt-1 text-xs text-slate-500">
-              Subcategories can be saved without an image; the storefront uses a neutral fallback.
-            </p>
-          )}
-        </div>
 
         <div>
 

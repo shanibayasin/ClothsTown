@@ -85,6 +85,13 @@ const ProductSchema = new Schema(
       required: true,
     },
 
+    gender: {
+      type: String,
+      enum: ["men", "women", "girls", "boys", "unisex"],
+      default: "unisex",
+      index: true,
+    },
+
     collection: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Collection",
@@ -153,6 +160,7 @@ const ProductSchema = new Schema(
   },
   {
     timestamps: true,
+    suppressReservedKeysWarning: true,
   }
 );
 
@@ -174,6 +182,12 @@ for (const field of ["brand", "productType", "fragranceType", "bottleSize"] as c
 if (!ProductModel.schema.path("collections")) {
   ProductModel.schema.add({
     collections: ProductSchema.obj.collections,
+  });
+}
+
+if (!ProductModel.schema.path("gender")) {
+  ProductModel.schema.add({
+    gender: ProductSchema.obj.gender,
   });
 }
 
