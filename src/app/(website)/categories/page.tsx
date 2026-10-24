@@ -17,22 +17,22 @@ export default async function CategoriesPage() {
   );
 
   return (
-    <section className="bg-[#FCF8F6] py-20">
+    <section className="bg-white py-20">
       <div className="mx-auto max-w-7xl px-6">
 
         {/* Header */}
 
         <div className="mb-16 text-center">
 
-          <span className="text-sm uppercase tracking-[0.3em] text-[#6f1d46]">
+          <span className="text-sm uppercase tracking-[0.3em] text-[#536875]">
             Shop By Category
           </span>
 
-          <h1 className="mt-5 font-heading text-5xl text-[#2B1A22]">
+          <h1 className="mt-5 font-heading text-5xl text-[#102d40]">
             Discover Our Collections
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-gray-500">
+          <p className="mx-auto mt-5 max-w-2xl text-[#536875]">
             Explore clothing and accessories for every style, season, and occasion.
           </p>
 
@@ -40,7 +40,7 @@ export default async function CategoriesPage() {
 
         {categories.length === 0 ? (
           <div className="rounded-3xl border bg-white py-20 text-center">
-            <h2 className="text-3xl font-bold text-[#6f1d46]">
+            <h2 className="text-3xl font-bold text-[#102d40]">
               No Categories Found
             </h2>
           </div>
@@ -68,7 +68,7 @@ export default async function CategoriesPage() {
                     alt={category.name}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     className="object-cover transition duration-700 group-hover:scale-105"
-                    fallbackClassName="text-sm text-gray-500"
+                    fallbackClassName="text-sm text-[#536875]"
                   />
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
@@ -87,11 +87,11 @@ export default async function CategoriesPage() {
 
                 <div className="flex items-center justify-between p-6">
 
-                  <span className="text-sm uppercase tracking-[0.25em] text-gray-500">
+                  <span className="text-sm uppercase tracking-[0.25em] text-[#536875]">
                     View Collection
                   </span>
 
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#6f1d46] text-white transition group-hover:translate-x-1">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#102d40] text-white transition group-hover:translate-x-1">
 
                     <ArrowRight size={18} />
 

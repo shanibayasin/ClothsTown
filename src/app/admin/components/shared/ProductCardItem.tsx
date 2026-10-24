@@ -18,7 +18,7 @@ export default function ProductCardItem({ product }: ProductCardItemProps) {
   const imageUrl =
     product.images?.[0] && product.images[0].includes("res.cloudinary.com")
       ? product.images[0]
-      : "/placeholder.png";
+      : "/placeholder-product.svg";
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">

@@ -133,7 +133,7 @@ export default function Footer() {
             <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold tracking-tight">
               <Shirt aria-hidden="true" className="size-7" strokeWidth={1.7} />
               <span>
-                ClothesTown<span className="font-normal text-[#b7c5ce]">.com</span>
+                ClothesTown
               </span>
             </Link>
             <p className="mt-4 max-w-[290px] text-xs leading-6 text-[#b7c5ce]">

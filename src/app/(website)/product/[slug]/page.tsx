@@ -20,6 +20,9 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
+import ProductCard, {
+  type StoreProductCardData,
+} from "@/app/components/product/ProductCard";
 
 type DatabaseRef = {
   _id: string;
@@ -65,7 +68,7 @@ const colorSwatches: Record<string, string> = {
 };
 
 function getImage(product: ProductType) {
-  return product.images?.[0] || "/images/placeholder-product.jpg";
+  return product.images?.[0] || "/placeholder-product.svg";
 }
 
 function getPrice(product: ProductType) {
@@ -214,7 +217,7 @@ export default function ProductPage() {
     );
   }
 
-  const images = product.images?.length ? product.images : ["/images/placeholder-product.jpg"];
+  const images = product.images?.length ? product.images : ["/placeholder-product.svg"];
 
   return (
     <main className="min-h-screen bg-[#f8fafb] text-[#172b3a]">
@@ -577,35 +580,18 @@ export default function ProductPage() {
           </div>
 
           {relatedProducts.length > 0 && (
-            <aside className="rounded-xl border border-slate-200 bg-white p-4">
-              <h2 className="mb-3 text-xs font-bold text-[#173246]">You Might Also Like</h2>
-              <div className="space-y-3">
-                {relatedProducts.slice(0, 3).map((item) => (
-                  <Link
+            <aside className="min-w-0 lg:col-span-2">
+              <h2 className="mb-4 text-sm font-bold text-[#6f1d46]">You Might Also Like</h2>
+              <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-none">
+                {relatedProducts.map((item) => (
+                  <div
                     key={item._id}
-                    href={`/product/${item.slug}`}
-                    className="flex items-center gap-3 rounded-lg p-1 transition hover:bg-slate-50"
+                    className="w-[68%] shrink-0 snap-start sm:w-[32%] lg:w-[23%] xl:w-[18.5%]"
                   >
-                    <div className="relative size-[58px] shrink-0 overflow-hidden rounded-md bg-slate-50">
-                      <Image
-                        src={getImage(item)}
-                        alt={item.name}
-                        fill
-                        sizes="58px"
-                        className="object-cover"
-                      />
-                    </div>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[10px] font-medium text-slate-700">{item.name}</span>
-                      <span className="mt-1 block text-[10px] font-bold text-[#173246]">
-                        Rs. {getPrice(item).toLocaleString()}
-                      </span>
-                      <span className="block text-[9px] text-slate-400">
-                        {item.category?.name || "Clothing"}
-                      </span>
-                    </span>
-                    <Heart size={13} className="ml-auto shrink-0 text-slate-300" aria-hidden="true" />
-                  </Link>
+                    <ProductCard
+                      product={item as StoreProductCardData}
+                    />
+                  </div>
                 ))}
               </div>
             </aside>

@@ -25,12 +25,14 @@ export default function UrlProductFilters({
   priceCeiling,
   showGender = false,
   showCategory = false,
+  showCollection = false,
 }: {
   options: Partial<Record<ProductFilterKey, ProductFilterOption[]>>;
   value: ProductFilterValues;
   priceCeiling: number;
   showGender?: boolean;
   showCategory?: boolean;
+  showCollection?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -63,6 +65,7 @@ export default function UrlProductFilters({
       priceCeiling={priceCeiling}
       showGender={showGender}
       showCategory={showCategory}
+      showCollection={showCollection}
       onApply={applyFilters}
     />
   );

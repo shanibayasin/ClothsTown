@@ -345,7 +345,7 @@ export default function CheckoutPage() {
                   <div key={getCartItemKey(item)} className="flex items-center gap-3">
                     <div className="relative size-12 shrink-0 overflow-hidden rounded-md border border-slate-100 bg-slate-50">
                       <Image
-                        src={item.image || "/images/placeholder-product.jpg"}
+                        src={item.image || "/placeholder-product.svg"}
                         alt={item.name}
                         fill
                         sizes="48px"

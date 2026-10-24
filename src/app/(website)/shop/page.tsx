@@ -7,18 +7,16 @@ import { useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   ChevronRight,
-  Heart,
-  ShoppingCart,
-  Star,
   X,
 } from "lucide-react";
-import { useCart } from "@/context/CartContext";
-import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
 import ProductFilterDrawer, {
   EMPTY_PRODUCT_FILTERS,
   type ProductFilterValues,
 } from "@/app/components/shop/ProductFilterDrawer";
+import ProductCard, {
+  type StoreProductCardData,
+} from "@/app/components/product/ProductCard";
 
 interface Product {
   _id: string;
@@ -73,7 +71,7 @@ interface Collection {
 const ITEMS_PER_PAGE = 9;
 
 function getProductImage(product: Product) {
-  return product.images?.[0] || product.image || "/images/placeholder-product.jpg";
+  return product.images?.[0] || product.image || "/placeholder-product.svg";
 }
 
 function getProductPrice(product: Product) {
@@ -144,10 +142,8 @@ function ShopContent({
   saleQuery: string;
   viewAllQuery: boolean;
 }) {
-  const { addToCart } = useCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
-
   const [products, setProducts] = useState<Product[]>([]);
+  const [productLoadError, setProductLoadError] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -175,13 +171,47 @@ function ShopContent({
   useEffect(() => {
     let active = true;
 
-    fetch("/api/products")
-      .then((res) => readJsonResponse<Product[]>(res, []))
-      .then((data) => {
-        if (active) setProducts(data);
-      })
+    async function loadAllProducts() {
+      const pageSize = 100;
+      const firstResponse = await fetch(
+        `/api/products?limit=${pageSize}&offset=0`,
+        { cache: "no-store" }
+      );
+      if (!firstResponse.ok) {
+        throw new Error(`Product request failed (${firstResponse.status}).`);
+      }
+      const firstBatch = await readJsonResponse<Product[]>(firstResponse, []);
+      const total = Number(firstResponse.headers.get("X-Total-Count"));
+      if (!Number.isFinite(total)) {
+        throw new Error("Product response did not include a valid total count.");
+      }
+
+      const offsets = Array.from(
+        { length: Math.ceil(Math.max(0, total - firstBatch.length) / pageSize) },
+        (_, index) => (index + 1) * pageSize
+      );
+      const remainingBatches = await Promise.all(
+        offsets.map(async (offset) => {
+          const response = await fetch(
+            `/api/products?limit=${pageSize}&offset=${offset}`,
+            { cache: "no-store" }
+          );
+          if (!response.ok) {
+            throw new Error(`Product request failed (${response.status}).`);
+          }
+          return readJsonResponse<Product[]>(response, []);
+        })
+      );
+
+      if (active) setProducts([...firstBatch, ...remainingBatches.flat()]);
+    }
+
+    loadAllProducts()
       .catch((error: unknown) => {
         console.error("Failed to load shop products:", error);
+        if (active) {
+          setProductLoadError("Products could not be loaded. Please try again.");
+        }
       })
       .finally(() => {
         if (active) setIsLoading(false);
@@ -745,18 +775,18 @@ function ShopContent({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f9fb] pb-12 text-[#172b3a]">
+    <main className="min-h-screen bg-white pb-12 text-[#102d40]">
       {isDepartmentLanding ? (
         <section className="bg-white">
           <nav
             aria-label="Breadcrumb"
-            className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#303030] sm:px-6"
+            className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#536875] sm:px-6"
           >
-            <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+            <Link href="/" className="hover:text-[#102d40]">Home</Link>
             <ChevronRight size={13} aria-hidden="true" />
             <span className="font-medium">{departmentName}</span>
           </nav>
-          <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f4f1ed]">
+          <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f3f4f5]">
             {heroImage && (
               <Image
                 src={heroImage}
@@ -789,13 +819,13 @@ function ShopContent({
         <section className="bg-white">
           <nav
             aria-label="Breadcrumb"
-            className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#303030] sm:px-6"
+            className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#536875] sm:px-6"
           >
-            <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+            <Link href="/" className="hover:text-[#102d40]">Home</Link>
             <ChevronRight size={13} aria-hidden="true" />
             <span className="font-medium">Sale</span>
           </nav>
-          <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f4f1ed]">
+          <div className="relative mx-auto aspect-[3.2/1] min-h-[150px] max-h-[590px] w-full max-w-[1894px] overflow-hidden bg-[#f3f4f5]">
             {heroImage && (
               <Image
                 src={heroImage}
@@ -820,7 +850,7 @@ function ShopContent({
           </div>
         </section>
       ) : (
-        <section className="relative mx-auto h-[190px] max-w-[1440px] overflow-hidden bg-gradient-to-r from-[#d8eafb] via-[#e9f3fb] to-[#a9c4da] sm:h-[230px] lg:h-[280px]">
+        <section className="relative mx-auto h-[190px] max-w-[1440px] overflow-hidden bg-gradient-to-r from-[#e7edf1] via-[#f3f4f5] to-[#d7e2e8] sm:h-[230px] lg:h-[280px]">
           {heroImage && (
             <div className="absolute inset-y-0 right-0 w-[62%]">
               <Image
@@ -831,22 +861,22 @@ function ShopContent({
                 sizes="(max-width: 768px) 60vw, 800px"
                 className="object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#e6f1fa] via-[#e6f1fa]/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#f3f4f5] via-[#f3f4f5]/50 to-transparent" />
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-white/35 to-transparent" />
           <div className="relative mx-auto flex h-full max-w-[1440px] flex-col justify-center px-5 sm:px-8 lg:px-12">
-            <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-xs text-[#526c7e]">
-              <Link href="/" className="hover:text-[#102633]">Home</Link>
+            <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-xs text-[#536875]">
+              <Link href="/" className="hover:text-[#102d40]">Home</Link>
               <ChevronRight size={13} aria-hidden="true" />
               <span>Shop</span>
               <ChevronRight size={13} aria-hidden="true" />
-              <span className="font-semibold text-[#20394c]">{heroTitle}</span>
+              <span className="font-semibold text-[#102d40]">{heroTitle}</span>
             </nav>
-            <h1 className="max-w-[56%] text-3xl font-bold tracking-tight text-[#142d40] sm:text-4xl lg:text-5xl">
+            <h1 className="max-w-[56%] text-3xl font-bold tracking-tight text-[#102d40] sm:text-4xl lg:text-5xl">
               {heroTitle}
             </h1>
-            <p className="mt-2 max-w-[48%] text-xs text-[#526c7e] sm:text-sm">
+            <p className="mt-2 max-w-[48%] text-xs text-[#536875] sm:text-sm">
               Premium quality. Timeless style.
             </p>
           </div>
@@ -861,7 +891,7 @@ function ShopContent({
           <div className="mx-auto max-w-5xl">
             <h2
               id="department-category-tiles-title"
-              className="mb-6 text-center text-2xl font-medium tracking-wide text-[#171717] sm:mb-8 sm:text-3xl"
+              className="mb-6 text-center text-2xl font-medium tracking-wide text-[#102d40] sm:mb-8 sm:text-3xl"
             >
               {departmentName.toUpperCase()}
             </h2>
@@ -872,7 +902,7 @@ function ShopContent({
                   href={categoryHrefForTile(tile.category)}
                   className="group flex w-full max-w-48 flex-col items-center text-center"
                 >
-                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f5f2ed] sm:w-36 lg:w-40">
+                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f3f4f5] sm:w-36 lg:w-40">
                     <Image
                       src={tile.image}
                       alt={tile.title}
@@ -882,7 +912,7 @@ function ShopContent({
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </span>
-                  <span className="mt-3 text-xs font-medium uppercase tracking-wide text-[#171717] sm:text-sm">
+                  <span className="mt-3 text-xs font-medium uppercase tracking-wide text-[#102d40] sm:text-sm">
                     {tile.title}
                   </span>
                 </Link>
@@ -928,91 +958,12 @@ function ShopContent({
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:gap-4">
-                {filteredProducts.slice(0, 4).map((product) => {
-                  const image = getProductImage(product);
-                  const price = getProductPrice(product);
-                  const onSale =
-                    product.onSale === true ||
-                    (product.onSale === undefined && price < product.price);
-
-                  return (
-                    <article
-                      key={product._id}
-                      className="group min-w-0 overflow-hidden rounded-lg bg-white transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(30,41,59,0.12)]"
-                    >
-                      <Link
-                        href={`/product/${product.slug}`}
-                        className="relative block aspect-[1/1.08] overflow-hidden rounded-md bg-[#f3efec]"
-                      >
-                        <Image
-                          src={image}
-                          alt={product.name}
-                          fill
-                          sizes="(max-width: 639px) 50vw, 25vw"
-                          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
-                        />
-                        {(onSale || product.newArrival) && (
-                          <span
-                            className={`absolute left-1.5 top-1.5 rounded-sm px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm sm:left-2 sm:top-2 ${
-                              onSale ? "bg-[#d94d68]" : "bg-[#7fa6a0]"
-                            }`}
-                          >
-                            {onSale ? "Sale" : "New"}
-                          </span>
-                        )}
-                      </Link>
-                      <div className="px-1.5 pb-2 pt-2 sm:px-2 sm:pb-2.5">
-                        <Link
-                          href={`/product/${product.slug}`}
-                          className="block truncate text-[11px] font-semibold leading-4 text-[#39312f] hover:text-primary sm:text-xs"
-                        >
-                          {product.name}
-                        </Link>
-                        <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[9px] sm:text-[10px]">
-                          <span className="font-bold text-[#172a33]">
-                            Rs. {price.toLocaleString()}
-                          </span>
-                          {onSale && (
-                            <span className="text-[8px] text-gray-400 line-through sm:text-[9px]">
-                              Rs. {product.price.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          aria-hidden="true"
-                          className="mt-1 flex gap-px text-[#f3aa21]"
-                        >
-                          {Array.from({ length: 5 }, (_, star) => (
-                            <Star
-                              key={star}
-                              size={10}
-                              fill="currentColor"
-                              strokeWidth={0}
-                            />
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          disabled={product.stock <= 0}
-                          onClick={() =>
-                            addToCart({
-                              _id: product._id,
-                              name: product.name,
-                              slug: product.slug,
-                              image,
-                              price,
-                              quantity: 1,
-                            })
-                          }
-                          className="mt-2 flex h-7 w-full items-center justify-center gap-1 rounded-sm bg-[#102d40] px-1 text-[8px] font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-[9px]"
-                        >
-                          <ShoppingCart size={11} />
-                          {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                {filteredProducts.slice(0, 4).map((product) => (
+                  <ProductCard
+                    key={product._id}
+                    product={product as StoreProductCardData}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -1105,7 +1056,7 @@ function ShopContent({
                         setSelectedCollection("");
                         setCurrentPage(1);
                       }}
-                      className="text-xs font-medium text-[#2867b2] hover:underline"
+                      className="text-xs font-medium text-[#102d40] hover:underline"
                     >
                       Clear collection
                     </button>
@@ -1127,7 +1078,7 @@ function ShopContent({
                   setCurrentPage(1);
                 }}
                 placeholder="Search products"
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#2867b2]"
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#102d40]"
               />
             </div>
 
@@ -1170,7 +1121,7 @@ function ShopContent({
                   setPriceRange(Number(event.target.value));
                   setCurrentPage(1);
                 }}
-                className="w-full accent-[#2867b2]"
+                className="w-full accent-[#102d40]"
               />
               <p className="mt-1 text-[11px] text-slate-500">
                 Rs. 0 — Rs. {priceRange.toLocaleString()}
@@ -1195,7 +1146,7 @@ function ShopContent({
                   >
                     <span
                       className={`size-3 rounded-full border border-slate-300 ${
-                        selectedColor === color.name ? "ring-2 ring-[#2867b2] ring-offset-1" : ""
+                        selectedColor === color.name ? "ring-2 ring-[#102d40] ring-offset-1" : ""
                       }`}
                       style={{ backgroundColor: color.value }}
                     />
@@ -1214,7 +1165,7 @@ function ShopContent({
                     setInStockOnly(event.target.checked);
                     setCurrentPage(1);
                   }}
-                  className="accent-[#2867b2]"
+                  className="accent-[#102d40]"
                 />
                 In stock only
               </label>
@@ -1226,14 +1177,14 @@ function ShopContent({
                     setSaleOnly(event.target.checked);
                     setCurrentPage(1);
                   }}
-                  className="accent-[#2867b2]"
+                  className="accent-[#102d40]"
                 />
                 On sale
               </label>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="text-xs font-semibold text-[#2867b2] hover:underline"
+                className="text-xs font-semibold text-[#102d40] hover:underline"
               >
                 Reset all filters
               </button>
@@ -1276,7 +1227,7 @@ function ShopContent({
                       setSort(event.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none rounded-md border border-slate-300 bg-white py-2 pl-3 pr-8 text-[10px] font-medium uppercase text-slate-700 outline-none focus:border-[#2867b2] sm:text-xs"
+                    className="appearance-none rounded-md border border-[#e7edf1] bg-white py-2 pl-3 pr-8 text-[10px] font-medium uppercase text-[#536875] outline-none focus:border-[#102d40] sm:text-xs"
                   >
                     <option value="latest">Newest First</option>
                     <option value="low">Price: Low to High</option>
@@ -1290,120 +1241,36 @@ function ShopContent({
             </div>
 
             {isLoading ? (
-              <div className={`grid grid-cols-2 gap-3 sm:gap-5 ${isDepartmentProductListing || isSaleListing ? "lg:grid-cols-4" : "xl:grid-cols-3"}`}>
+              <div className={`grid grid-cols-2 gap-3 sm:gap-5 ${viewAllQuery || isDepartmentProductListing || isSaleListing ? "lg:grid-cols-4" : "xl:grid-cols-3"}`}>
                 {Array.from({ length: 6 }).map((_, index) => (
                   <div key={index} className="h-[300px] animate-pulse rounded-xl bg-white sm:h-[370px]" />
                 ))}
               </div>
             ) : (
-              <div className={`grid grid-cols-2 gap-3 sm:gap-5 ${isDepartmentProductListing || isSaleListing ? "lg:grid-cols-4" : "xl:grid-cols-3"}`}>
-                {paginatedProducts.length === 0 ? (
+              <div className={`grid grid-cols-2 gap-3 sm:gap-5 ${viewAllQuery || isDepartmentProductListing || isSaleListing ? "lg:grid-cols-4" : "xl:grid-cols-3"}`}>
+                {productLoadError ? (
+                  <div role="alert" className="col-span-full rounded-xl border border-rose-200 bg-rose-50 px-5 py-12 text-center text-sm text-rose-800">
+                    {productLoadError}
+                  </div>
+                ) : paginatedProducts.length === 0 ? (
                   <div className="col-span-full rounded-xl border border-slate-200 bg-white px-5 py-16 text-center">
                     <h2 className="text-xl font-semibold text-slate-800">No products found</h2>
                     <p className="mt-2 text-sm text-slate-500">Try changing your filters.</p>
                     <button
                       type="button"
                       onClick={resetFilters}
-                      className="mt-4 text-sm font-semibold text-[#2867b2] hover:underline"
+                      className="mt-4 text-sm font-semibold text-[#102d40] hover:underline"
                     >
                       Reset filters
                     </button>
                   </div>
                 ) : (
-                  paginatedProducts.map((product) => {
-                    const image = getProductImage(product);
-                    const price = getProductPrice(product);
-                    const onSale =
-                      product.onSale === true ||
-                      (product.onSale === undefined && price < product.price);
-                    const wished = isInWishlist(product._id);
-
-                    return (
-                      <article
-                        key={product._id}
-                        className="group overflow-hidden rounded-lg bg-white p-1.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(30,41,59,0.12)] sm:p-2"
-                      >
-                        <div className="relative">
-                          <Link
-                            href={`/product/${product.slug}`}
-                            aria-label={`View ${product.name}`}
-                            className="relative block aspect-[1/1.08] overflow-hidden rounded-md bg-[#f3efec]"
-                          >
-                            <Image
-                              src={image}
-                              alt={product.name}
-                              fill
-                              sizes="(max-width: 640px) 46vw, (max-width: 1280px) 30vw, 360px"
-                              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
-                            />
-                          </Link>
-                          {(onSale || product.newArrival) && (
-                            <span className="absolute left-2 top-2 rounded-sm bg-[#d94d68] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
-                              {onSale ? "Sale" : "New"}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleWishlist({
-                                _id: product._id,
-                                name: product.name,
-                                slug: product.slug,
-                                image,
-                                price,
-                              })
-                            }
-                            aria-label={wished ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-                            aria-pressed={wished}
-                            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:scale-105 hover:text-red-500"
-                          >
-                            <Heart size={15} className={wished ? "fill-red-500 text-red-500" : ""} />
-                          </button>
-                        </div>
-
-                        <div className="px-1 pb-1 pt-2.5">
-                          <Link
-                            href={`/product/${product.slug}`}
-                            className="line-clamp-1 text-[11px] font-semibold leading-4 text-[#39312f] hover:text-[#2867b2] sm:text-xs"
-                          >
-                            {product.name}
-                          </Link>
-                          <p className="mt-0.5 text-[9px] text-[#817975]">
-                            {product.category?.name}
-                            {product.sizes?.length ? ` · ${product.sizes.join(", ")}` : ""}
-                          </p>
-                          <div className="mt-2 flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#332c2a] sm:text-sm">
-                              Rs. {price.toLocaleString()}
-                            </span>
-                            {onSale && (
-                              <span className="text-[10px] text-[#a7a09c] line-through">
-                                Rs. {product.price.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            disabled={product.stock <= 0}
-                            onClick={() =>
-                              addToCart({
-                                _id: product._id,
-                                name: product.name,
-                                slug: product.slug,
-                                image,
-                                price,
-                                quantity: 1,
-                              })
-                            }
-                            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-sm bg-[#33291f] py-2 text-[10px] font-semibold text-white transition-colors hover:bg-[#574331] disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-xs"
-                          >
-                            <ShoppingCart size={13} />
-                            {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })
+                  paginatedProducts.map((product) => (
+                    <ProductCard
+                      key={product._id}
+                      product={product as StoreProductCardData}
+                    />
+                  ))
                 )}
               </div>
             )}
@@ -1467,7 +1334,7 @@ function ShopContent({
             <header className="flex h-14 shrink-0 items-center justify-center border-b border-[#e7e7e7]">
               <h2
                 id="sale-filter-title"
-                className="text-base font-semibold text-[#171717]"
+                className="text-base font-semibold text-[#102d40]"
               >
                 Filter
               </h2>
@@ -1724,7 +1591,7 @@ function ShopContent({
             <header className="flex h-14 shrink-0 items-center justify-center border-b border-[#e7e7e7]">
               <h2
                 id="department-filter-title"
-                className="text-base font-semibold text-[#171717]"
+                className="text-base font-semibold text-[#102d40]"
               >
                 Filter
               </h2>
@@ -1930,7 +1797,7 @@ function ShopContent({
                       key={section.id}
                       type="button"
                       onClick={() => setFilterSection(section.id)}
-                      className="flex min-h-[74px] w-full items-center justify-between text-left text-sm uppercase tracking-wide text-[#171717]"
+                      className="flex min-h-[74px] w-full items-center justify-between text-left text-sm uppercase tracking-wide text-[#102d40]"
                     >
                       {section.title}
                       <ChevronRight size={21} strokeWidth={1.5} />

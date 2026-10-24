@@ -13,7 +13,7 @@ export default function CategoryError({
       <button
         type="button"
         onClick={reset}
-        className="mt-6 rounded-md bg-[#173246] px-5 py-2.5 text-sm font-semibold text-white"
+        className="mt-6 rounded-md bg-[#102d40] px-5 py-2.5 text-sm font-semibold text-white"
       >
         Try again
       </button>

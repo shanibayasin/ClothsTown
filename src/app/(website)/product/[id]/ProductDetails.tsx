@@ -30,7 +30,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
         _id: product._id,
         name: product.name,
         slug: product.slug,
-        image: product.images?.[0] || "/images/placeholder-product.jpg",
+        image: product.images?.[0] || "/placeholder-product.svg",
         price: product.discountPrice && product.discountPrice > 0 
           ? product.discountPrice 
           : product.price,

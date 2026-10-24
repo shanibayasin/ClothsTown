@@ -242,7 +242,7 @@ function TrackOrderForm() {
                   >
                     <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-slate-50">
                       <Image
-                        src={item.image || "/images/placeholder-product.jpg"}
+                        src={item.image || "/placeholder-product.svg"}
                         alt={item.name}
                         fill
                         sizes="40px"

@@ -1,25 +1,25 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { Heart, ShoppingBag, Trash2 } from "lucide-react";
+import { Heart } from "lucide-react";
 
-import { useWishlist } from "@/context/WishlistContext";
+import { useWishlist, type WishlistItem } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
+import ProductCard from "@/app/components/product/ProductCard";
 
 export default function WishlistPage() {
   const { wishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
 
-  const moveToCart = (item: any) => {
+  const moveToCart = (item: WishlistItem) => {
     addToCart({
       _id: item._id,
       name: item.name,
       slug: item.slug,
       image: item.image,
       price: item.price,
-      size: item.size || "",
-      color: item.color || "",
+      size: "",
+      color: "",
       quantity: 1,
     });
 
@@ -62,61 +62,15 @@ export default function WishlistPage() {
           </p>
         </div>
 
-        {/* Dynamic Product Grid Display */}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {wishlist.map((item: any) => (
-            <div
+          {wishlist.map((item) => (
+            <ProductCard
               key={item._id}
-              className="overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between"
-            >
-              {/* Product Image Wrapper */}
-              <div>
-                <Link href={`/product/${item.slug}`}>
-                  <div className="relative h-[360px] w-full bg-gray-100 overflow-hidden">
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      className="object-cover transition duration-500 hover:scale-105"
-                      priority
-                    />
-                  </div>
-                </Link>
-
-                {/* Card Context Descriptions */}
-                <div className="p-5">
-                  <h3 className="line-clamp-2 text-lg font-semibold text-gray-900">
-                    {item.name}
-                  </h3>
-
-                  <p className="mt-3 text-xl font-bold text-[#6f1d46]">
-                    Rs. {item.price.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              {/* Functional Interaction Buttons */}
-              <div className="p-5 pt-0">
-                <div className="mt-2 flex gap-3">
-                  <button
-                    onClick={() => moveToCart(item)}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#6f1d46] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#5a1738]"
-                  >
-                    <ShoppingBag size={18} />
-                    Add to Cart
-                  </button>
-
-                  <button
-                    onClick={() => removeFromWishlist(item._id)}
-                    aria-label="Remove item from wishlist"
-                    className="flex h-12 w-12 items-center justify-center rounded-xl border border-red-200 text-red-600 transition hover:bg-red-600 hover:text-white"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
+              product={item}
+              isWishlisted
+              onToggleWishlist={() => removeFromWishlist(item._id)}
+              onAddToCart={() => moveToCart(item)}
+            />
           ))}
         </div>
       </div>

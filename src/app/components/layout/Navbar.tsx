@@ -277,7 +277,7 @@ export default function Navbar() {
           title: "Just in",
           links: [
             { label: "New Arrivals", href: "/new-arrivals" },
-            { label: "Latest Products", href: "/shop?view=all" },
+            { label: "All Products", href: "/shop?view=all" },
           ],
         },
       ],
@@ -345,7 +345,7 @@ export default function Navbar() {
                 <path d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className={`truncate whitespace-nowrap font-bold tracking-tight ${isAccountPage ? "text-[14px] sm:text-xl lg:text-[24px]" : "text-[14px] sm:text-xl lg:text-[30px]"}`}>
-                ClothesTown<span className={`font-medium text-[#9aa5ad] ${isAccountPage ? "text-[11px] sm:text-sm lg:text-[18px]" : "text-[11px] sm:text-sm lg:text-[26px]"}`}>.com</span>
+                ClothesTown
               </span>
             </Link>
           </div>

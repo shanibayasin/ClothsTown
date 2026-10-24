@@ -219,7 +219,7 @@ export default function CollectionProductManager({
                   />
                   <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
                     <Image
-                      src={product.images?.[0] || "/images/placeholder-product.jpg"}
+                      src={product.images?.[0] || "/placeholder-product.svg"}
                       alt=""
                       fill
                       sizes="56px"

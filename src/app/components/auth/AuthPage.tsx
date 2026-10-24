@@ -51,7 +51,7 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
           compact ? "text-[21px] sm:text-2xl" : "text-2xl sm:text-[26px]"
         }`}
       >
-        ClothesTown<span className="font-normal text-white/80">.com</span>
+        ClothesTown
       </span>
     </span>
   );

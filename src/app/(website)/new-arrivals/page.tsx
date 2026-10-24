@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Grid2X2,
   Headset,
-  Heart,
   List,
   PackageCheck,
   RefreshCw,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import ProductCard from "@/app/components/product/ProductCard";
 import ProductFilterDrawer, {
   EMPTY_PRODUCT_FILTERS,
   type ProductFilterValues,
@@ -100,23 +100,6 @@ function productPrice(product: ArrivalProduct) {
   return product.discountPrice && product.discountPrice > 0
     ? product.discountPrice
     : product.price;
-}
-
-function colorHex(color: string) {
-  const normalized = color.trim().toLowerCase();
-  if (/^#(?:[0-9a-f]{3}){1,2}$/i.test(normalized)) return normalized;
-  const colorMap: Record<string, string> = {
-    beige: "#cdbb9d",
-    black: "#202020",
-    blue: "#527eaa",
-    brown: "#805640",
-    gray: "#92999d",
-    green: "#526d57",
-    navy: "#19364e",
-    red: "#a13e42",
-    white: "#f8f7f4",
-  };
-  return colorMap[normalized] ?? "#9aa3a9";
 }
 
 function getGender(name: string) {
@@ -751,13 +734,13 @@ export default function NewArrivalsPage() {
                         [product._id]: color,
                       }))
                     }
-                    wished={isInWishlist(product._id)}
+                    isWishlisted={isInWishlist(product._id)}
                     onToggleWishlist={() =>
                       toggleWishlist({
                         _id: product._id,
                         name: product.name,
                         slug: product.slug,
-                        image: productImage(product),
+                        image: productImage(product) || "/placeholder-product.svg",
                         price: productPrice(product),
                       })
                     }
@@ -897,162 +880,6 @@ export default function NewArrivalsPage() {
         </div>
       )}
     </main>
-  );
-}
-
-function ProductCard({
-  product,
-  layout,
-  selectedColor,
-  onSelectColor,
-  wished,
-  onToggleWishlist,
-  onAddToCart,
-}: {
-  product: ArrivalProduct;
-  layout: "grid" | "list";
-  selectedColor: string;
-  onSelectColor: (color: string) => void;
-  wished: boolean;
-  onToggleWishlist: () => void;
-  onAddToCart: () => void;
-}) {
-  const image = productImage(product);
-  const price = productPrice(product);
-  const onSale = productIsOnSale(product);
-  const productColors = product.colors ?? [];
-
-  return (
-    <article
-      className={`group min-w-0 overflow-hidden ${
-        layout === "list"
-          ? "grid grid-cols-[38%_1fr] gap-4 border-b border-[#e8e2dc] bg-white pb-4 sm:grid-cols-[220px_1fr] sm:gap-6"
-          : "rounded-lg bg-white p-1.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(30,41,59,0.12)] sm:p-2"
-      }`}
-    >
-      <div
-        className={`relative overflow-hidden ${
-          layout === "list"
-            ? "aspect-[0.82] rounded-sm bg-[#f0ece6]"
-            : "aspect-[1/1.08] rounded-md bg-[#f3efec]"
-        }`}
-      >
-        {image ? (
-          <Link
-            href={`/product/${product.slug}`}
-            aria-label={`View ${product.name}`}
-            className="absolute inset-0"
-          >
-            <Image
-              src={image}
-              alt={product.name}
-              fill
-              sizes={
-                layout === "list"
-                  ? "(max-width: 640px) 38vw, 220px"
-                  : "(max-width: 640px) 48vw, (max-width: 1280px) 30vw, 270px"
-              }
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.045]"
-            />
-          </Link>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-[#758087]">
-            Image unavailable
-          </div>
-        )}
-        {(onSale || product.newArrival) && (
-          <span className="absolute left-2 top-2 rounded-sm bg-[#d94d68] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
-            {onSale ? "Sale" : "New"}
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={onToggleWishlist}
-          aria-label={
-            wished
-              ? `Remove ${product.name} from wishlist`
-              : `Add ${product.name} to wishlist`
-          }
-          aria-pressed={wished}
-          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:scale-105 hover:text-red-500"
-        >
-          <Heart
-            size={16}
-            aria-hidden="true"
-            className={wished ? "fill-red-500 text-red-500" : ""}
-          />
-        </button>
-      </div>
-
-      <div className={`px-1 pb-1 pt-2.5 ${layout === "list" ? "sm:pt-2" : ""}`}>
-        <Link
-          href={`/product/${product.slug}`}
-          className="line-clamp-1 text-[11px] font-semibold leading-4 text-[#39312f] hover:text-[#2867b2] sm:text-xs"
-        >
-          {product.name}
-        </Link>
-        <p className="mt-0.5 text-[9px] text-[#817975]">
-          {categoryName(product)}
-          {product.sizes?.length ? ` · ${product.sizes.join(", ")}` : ""}
-        </p>
-        {product.shortDescription && layout === "list" && (
-          <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#6b777e]">
-            {product.shortDescription}
-          </p>
-        )}
-        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-xs font-bold text-[#332c2a] sm:text-sm">
-            Rs. {price.toLocaleString()}
-          </span>
-          {onSale && (
-            <span className="text-[10px] text-[#a7a09c] line-through">
-              Rs. {product.price.toLocaleString()}
-            </span>
-          )}
-        </div>
-
-        {productColors.length > 0 && (
-          <div className="mt-3 flex items-center gap-1.5">
-            {productColors.slice(0, 6).map((color) => (
-              <button
-                key={color}
-                type="button"
-                title={color}
-                aria-label={`Select ${color}`}
-                aria-pressed={selectedColor === color}
-                onClick={() => onSelectColor(color)}
-                className={`flex size-5 items-center justify-center rounded-full border ${
-                  selectedColor === color
-                    ? "border-[#102d40]"
-                    : "border-transparent"
-                }`}
-              >
-                <span
-                  aria-hidden="true"
-                  className="size-3.5 rounded-full border border-black/10"
-                  style={{ backgroundColor: colorHex(color) }}
-                />
-              </button>
-            ))}
-          </div>
-        )}
-
-        <button
-          type="button"
-          disabled={product.stock === 0}
-          onClick={onAddToCart}
-          className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-sm bg-[#33291f] px-2 text-[10px] font-semibold text-white transition-colors hover:bg-[#574331] disabled:cursor-not-allowed disabled:bg-slate-300 sm:text-xs"
-        >
-          {product.stock === 0 ? (
-            "Out of stock"
-          ) : (
-            <>
-              Add to Cart <ArrowRight size={13} aria-hidden="true" />
-            </>
-          )}
-        </button>
-      </div>
-    </article>
   );
 }
 

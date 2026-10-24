@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 export default function CategoryPageBanner({
   name,
@@ -13,6 +16,7 @@ export default function CategoryPageBanner({
   description?: string | null;
   position?: "left" | "center" | "right";
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const contentAlignment = {
     left: "items-start text-left",
     center: "items-center text-center",
@@ -30,10 +34,11 @@ export default function CategoryPageBanner({
   }[position];
   const bannerTitle = title?.trim() || name;
   const bannerDescription = description?.trim();
+  const showImage = Boolean(image && !imageFailed);
 
   return (
-    <header className="relative isolate mb-6 flex aspect-[3.2/1] min-h-[170px] max-h-[460px] overflow-hidden rounded-xl bg-[#f3eee8] px-5 py-6 sm:px-10 sm:py-10">
-      {image && (
+    <header className="relative isolate mb-6 flex aspect-[3.2/1] min-h-[170px] max-h-[460px] overflow-hidden rounded-xl bg-[#f3f4f5] px-5 py-6 sm:px-10 sm:py-10">
+      {showImage && image && (
         <>
           <Image
             src={image}
@@ -43,17 +48,18 @@ export default function CategoryPageBanner({
             unoptimized
             sizes="(max-width: 768px) 100vw, 1440px"
             className="object-cover"
+            onError={() => setImageFailed(true)}
           />
           <div aria-hidden="true" className={`absolute inset-0 ${overlay}`} />
         </>
       )}
       <div
         className={`relative z-10 flex w-full flex-col justify-center ${contentAlignment} ${
-          image ? "text-white" : "text-[#173246]"
+          showImage ? "text-white" : "text-[#102d40]"
         }`}
       >
         <p className={`text-[10px] font-semibold uppercase tracking-[0.2em] sm:text-xs ${
-          image ? "text-white/80" : "text-[#7b654b]"
+          showImage ? "text-white/80" : "text-[#536875]"
         }`}>
           ClothesTown collection
         </p>
@@ -62,12 +68,12 @@ export default function CategoryPageBanner({
         </h1>
         {bannerDescription ? (
           <p className={`mt-2 max-w-2xl text-sm sm:text-base ${
-            image ? "text-white/90" : "text-slate-600"
+            showImage ? "text-white/90" : "text-[#536875]"
           }`}>
             {bannerDescription}
           </p>
         ) : (
-          <p className={`mt-2 text-sm ${image ? "text-white/90" : "text-slate-600"}`}>
+          <p className={`mt-2 text-sm ${showImage ? "text-white/90" : "text-[#536875]"}`}>
             Explore {name} products
           </p>
         )}

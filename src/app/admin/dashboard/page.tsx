@@ -439,7 +439,7 @@ export default function DashboardPage() {
                     <div key={product._id} className="flex min-w-0 items-center gap-3 px-4 py-2.5">
                       <div className="relative size-9 shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50">
                         <Image
-                          src={product.images?.[0] || "/placeholder.png"}
+                          src={product.images?.[0] || "/placeholder-product.svg"}
                           alt={product.name}
                           fill
                           sizes="36px"
@@ -471,7 +471,7 @@ export default function DashboardPage() {
                       <div className="flex min-w-0 items-center gap-2.5">
                         <div className="relative size-8 shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50">
                           <Image
-                            src={product.images?.[0] || "/placeholder.png"}
+                            src={product.images?.[0] || "/placeholder-product.svg"}
                             alt={product.name}
                             fill
                             sizes="32px"

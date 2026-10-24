@@ -68,7 +68,7 @@ export default function CartPage() {
                   >
                     <div className="relative row-span-2 aspect-square w-16 overflow-hidden rounded-lg border border-slate-100 bg-slate-50 sm:row-span-1 sm:flex sm:h-14 sm:w-14 sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent">
                       <Image
-                        src={item.image || "/images/placeholder-product.jpg"}
+                        src={item.image || "/placeholder-product.svg"}
                         alt={item.name}
                         fill
                         sizes="64px"

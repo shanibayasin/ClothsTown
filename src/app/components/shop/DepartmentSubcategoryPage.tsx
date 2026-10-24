@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Types } from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import { getActiveProductFilter, getOnSaleProductFilter } from "@/lib/products";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
+import Collection from "@/models/Collection";
 import ProductCard, { type StoreProductCardData } from "@/app/components/product/ProductCard";
 import UrlProductFilters from "@/app/components/shop/UrlProductFilters";
 import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
@@ -65,18 +67,16 @@ export default async function DepartmentSubcategoryPage({
   if (maxPrice !== undefined && Number.isFinite(maxPrice) && maxPrice >= 0) {
     filter.price = { ...(filter.price as object), $lte: maxPrice };
   }
-  const size = first(query.size);
-  const color = first(query.color);
-  const brand = first(query.brand);
-  const fabric = first(query.fabric);
   const sizesSelected = values(query.size);
   const colorsSelected = values(query.color);
   const brandsSelected = values(query.brand);
   const fabricsSelected = values(query.fabric);
-  const productType = first(query.productType);
   const productTypesSelected = values(query.productType);
+  const seasonsSelected = values(query.season);
+  const collectionsSelected = values(query.collection);
   const sale = first(query.sale) === "true";
   const available = first(query.available) === "true";
+  const conditions: Record<string, unknown>[] = [];
   if (sizesSelected.length) filter.sizes = { $in: sizesSelected };
   if (colorsSelected.length) filter.colors = { $in: colorsSelected };
   if (brandsSelected.length) filter.brand = { $in: brandsSelected };
@@ -84,9 +84,20 @@ export default async function DepartmentSubcategoryPage({
   if (productTypesSelected.length) {
     filter.productType = { $in: productTypesSelected };
   }
-  if (sale) {
-    filter.$and = [getOnSaleProductFilter()];
+  if (seasonsSelected.length) filter.season = { $in: seasonsSelected };
+  if (collectionsSelected.length) {
+    const collectionIds = collectionsSelected.filter((id) => Types.ObjectId.isValid(id));
+    conditions.push({
+      $or: [
+        { collection: { $in: collectionIds } },
+        { collections: { $in: collectionIds } },
+      ],
+    });
   }
+  if (sale) {
+    conditions.push(getOnSaleProductFilter());
+  }
+  if (conditions.length) filter.$and = conditions;
   if (available) filter.stock = { $gt: 0 };
 
   const sort = first(query.sort) ?? "newest";
@@ -103,6 +114,8 @@ export default async function DepartmentSubcategoryPage({
     brands,
     fabrics,
     productTypes,
+    seasons,
+    productCollectionIds,
     highestPrice,
   ] = await Promise.all([
     Product.countDocuments(activeFilter),
@@ -111,11 +124,27 @@ export default async function DepartmentSubcategoryPage({
     Product.distinct("brand", getActiveProductFilter({ category: category._id })),
     Product.distinct("fabric", getActiveProductFilter({ category: category._id })),
     Product.distinct("productType", getActiveProductFilter({ category: category._id })),
+    Product.distinct("season", getActiveProductFilter({ category: category._id })),
+    Promise.all([
+      Product.distinct("collection", getActiveProductFilter({ category: category._id })),
+      Product.distinct("collections", getActiveProductFilter({ category: category._id })),
+    ]).then(([single, multiple]) =>
+      [...new Set([...single, ...multiple]
+        .filter((id) => id != null && Types.ObjectId.isValid(String(id)))
+        .map(String))]
+    ),
     Product.findOne(getActiveProductFilter({ category: category._id }))
       .sort({ price: -1 })
       .select("price")
       .lean(),
   ]);
+  const collections = await Collection.find({
+    status: true,
+    _id: { $in: productCollectionIds },
+  })
+    .select("_id title")
+    .sort({ title: 1 })
+    .lean();
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const products = await Product.find(activeFilter)
@@ -125,24 +154,23 @@ export default async function DepartmentSubcategoryPage({
     .lean();
 
   return (
-    <main className="mx-auto min-h-[60vh] max-w-[1440px] px-4 py-8 sm:px-6 lg:px-10">
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-slate-500">
-        <Link href="/" className="hover:text-slate-900">Home</Link>
+    <main className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 py-8 sm:px-6 lg:px-10">
+      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[#536875]">
+        <Link href="/" className="hover:text-[#102d40]">Home</Link>
         <span className="mx-2">/</span>
-        <Link href={`/shop/${parentCategory.slug}`} className="hover:text-slate-900 capitalize">{parentCategory.name}</Link>
+        <Link href={`/shop/${parentCategory.slug}`} className="capitalize hover:text-[#102d40]">{parentCategory.name}</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium text-slate-700">{category.name}</span>
+        <span className="font-medium text-[#102d40]">{category.name}</span>
       </nav>
       <CategoryPageBanner
+        key={category._id.toString()}
         name={category.name}
-        image={category.bannerImage || category.image}
+        image={category.bannerImage}
         title={category.bannerTitle}
         description={category.bannerDescription}
         position={category.bannerPosition}
       />
-      <p className="-mt-4 mb-6 text-sm text-slate-600">{total} available products</p>
-
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e7edf1] pb-4">
         <UrlProductFilters
           options={{
             size: sizes
@@ -160,6 +188,13 @@ export default async function DepartmentSubcategoryPage({
             fabric: fabrics
               .filter((value): value is string => typeof value === "string" && Boolean(value))
               .map((value) => ({ value, label: value })),
+            season: seasons
+              .filter((value): value is string => typeof value === "string" && Boolean(value))
+              .map((value) => ({ value, label: value })),
+            collection: collections.map((collection) => ({
+              value: collection._id.toString(),
+              label: collection.title,
+            })),
           }}
           value={{
             ...EMPTY_PRODUCT_FILTERS,
@@ -168,13 +203,17 @@ export default async function DepartmentSubcategoryPage({
             brand: brandsSelected,
             productType: productTypesSelected,
             fabric: fabricsSelected,
+            season: seasonsSelected,
+            collection: collectionsSelected,
             minPrice: Number(minPriceValue) || 0,
             maxPrice: Number(maxPriceValue) || 0,
             availability: available,
             onSale: sale,
           }}
           priceCeiling={Math.max(1, Number(highestPrice?.price) || 100000)}
+          showCollection={collections.length > 0}
         />
+        <p className="text-xs font-medium text-[#536875]">{total} products</p>
         <ProductSortSelect
           value={sort}
           options={[
@@ -186,54 +225,10 @@ export default async function DepartmentSubcategoryPage({
         />
       </div>
 
-      <form method="get" className="hidden">
-        <label className="text-xs font-medium text-slate-600">Minimum price
-          <input type="number" name="minPrice" min="0" defaultValue={minPriceValue} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-        </label>
-        <label className="text-xs font-medium text-slate-600">Maximum price
-          <input type="number" name="maxPrice" min="0" defaultValue={maxPriceValue} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-        </label>
-        {([
-          ["brand", "Brand", brands, brand],
-          ["fabric", "Fabric / material", fabrics, fabric],
-          ["productType", "Product type", productTypes, productType],
-          ["size", "Size", sizes, size],
-          ["color", "Color", colors, color],
-        ] as const).map(([key, label, values, selected]) => (
-          <label key={key} className="text-xs font-medium text-slate-600">{label}
-            <select name={key} defaultValue={selected ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-              <option value="">Any {label.toLowerCase()}</option>
-              {values
-                .filter((value): value is string => typeof value === "string" && value.length > 0)
-                .sort()
-                .map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
-          </label>
-        ))}
-        <label className="text-xs font-medium text-slate-600">Sort
-          <select name="sort" defaultValue={sort} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-            <option value="newest">Newest</option>
-            <option value="price-low">Price: low to high</option>
-            <option value="price-high">Price: high to low</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
-        <label className="flex items-center gap-2 self-end pb-2 text-xs font-medium text-slate-600">
-          <input type="checkbox" name="sale" value="true" defaultChecked={sale} /> Sale items only
-        </label>
-        <label className="flex items-center gap-2 self-end pb-2 text-xs font-medium text-slate-600">
-          <input type="checkbox" name="available" value="true" defaultChecked={available} /> In stock only
-        </label>
-        <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
-          <button type="submit" className="min-h-10 rounded-md bg-[#173246] px-5 text-sm font-semibold text-white hover:bg-[#244c63]">Apply filters</button>
-          <Link href={`/shop/${department}/${slug}`} className="inline-flex min-h-10 items-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-700">Clear</Link>
-        </div>
-      </form>
-
       {products.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 px-5 py-20 text-center">
-          <h2 className="text-xl font-semibold text-slate-800">No products found</h2>
-          <p className="mt-2 text-sm text-slate-500">There are no matching products in this category yet.</p>
+        <div className="rounded-xl border border-dashed border-[#e7edf1] px-5 py-20 text-center">
+          <h2 className="text-xl font-semibold text-[#102d40]">No products found</h2>
+          <p className="mt-2 text-sm text-[#536875]">There are no matching products in this category yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
@@ -245,9 +240,9 @@ export default async function DepartmentSubcategoryPage({
 
       {totalPages > 1 && (
         <nav aria-label="Product pagination" className="mt-8 flex items-center justify-center gap-3">
-          {currentPage > 1 && <Link href={pageHref(department, slug, query, currentPage - 1)} className="rounded-md border border-slate-200 px-4 py-2 text-sm">Previous</Link>}
-          <span className="text-sm text-slate-600">Page {currentPage} of {totalPages}</span>
-          {currentPage < totalPages && <Link href={pageHref(department, slug, query, currentPage + 1)} className="rounded-md border border-slate-200 px-4 py-2 text-sm">Next</Link>}
+          {currentPage > 1 && <Link href={pageHref(department, slug, query, currentPage - 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Previous</Link>}
+          <span className="text-sm text-[#536875]">Page {currentPage} of {totalPages}</span>
+          {currentPage < totalPages && <Link href={pageHref(department, slug, query, currentPage + 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Next</Link>}
         </nav>
       )}
     </main>

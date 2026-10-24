@@ -91,6 +91,32 @@ function colorValue(value: string, swatch?: string) {
   return namedColors[value.trim().toLowerCase()] ?? "#94a3b8";
 }
 
+function normalizeFilters(
+  filters: Partial<ProductFilterValues> | null | undefined
+): ProductFilterValues {
+  return {
+    category: Array.isArray(filters?.category) ? filters.category : [],
+    collection: Array.isArray(filters?.collection) ? filters.collection : [],
+    gender: Array.isArray(filters?.gender) ? filters.gender : [],
+    size: Array.isArray(filters?.size) ? filters.size : [],
+    color: Array.isArray(filters?.color) ? filters.color : [],
+    brand: Array.isArray(filters?.brand) ? filters.brand : [],
+    productType: Array.isArray(filters?.productType) ? filters.productType : [],
+    fabric: Array.isArray(filters?.fabric) ? filters.fabric : [],
+    season: Array.isArray(filters?.season) ? filters.season : [],
+    minPrice:
+      typeof filters?.minPrice === "number" && Number.isFinite(filters.minPrice)
+        ? filters.minPrice
+        : 0,
+    maxPrice:
+      typeof filters?.maxPrice === "number" && Number.isFinite(filters.maxPrice)
+        ? filters.maxPrice
+        : 0,
+    availability: filters?.availability === true,
+    onSale: filters?.onSale === true,
+  };
+}
+
 function countSelected(filters: ProductFilterValues, priceCeiling: number) {
   return (
     FILTER_GROUPS.reduce((count, group) => count + filters[group.key].length, 0) +
@@ -110,6 +136,7 @@ export default function ProductFilterDrawer({
   onApply,
   showGender = false,
   showCategory = false,
+  showCollection = false,
   singleSelectKeys = [],
 }: {
   options: Partial<Record<ProductFilterKey, ProductFilterOption[]>>;
@@ -118,10 +145,12 @@ export default function ProductFilterDrawer({
   onApply: (filters: ProductFilterValues) => void;
   showGender?: boolean;
   showCategory?: boolean;
+  showCollection?: boolean;
   singleSelectKeys?: ProductFilterKey[];
 }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState(() => normalizeFilters(value));
+  const normalizedValue = normalizeFilters(value);
   const maximum = Math.max(1, priceCeiling);
 
   useEffect(() => {
@@ -156,18 +185,18 @@ export default function ProductFilterDrawer({
       <button
         type="button"
         onClick={() => {
-          setDraft(value);
+          setDraft(normalizedValue);
           setOpen(true);
         }}
         aria-expanded={open}
         aria-controls="product-filter-drawer"
-        className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#172a33] hover:text-primary"
+        className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#102d40] hover:text-[#536875]"
       >
         <SlidersHorizontal size={15} aria-hidden="true" />
         Filter
-        {countSelected(value, maximum) > 0 && (
-          <span className="flex size-5 items-center justify-center rounded-full bg-[#33291f] text-[10px] text-white">
-            {countSelected(value, maximum)}
+        {countSelected(normalizedValue, maximum) > 0 && (
+          <span className="flex size-5 items-center justify-center rounded-full bg-[#102d40] text-[10px] text-white">
+            {countSelected(normalizedValue, maximum)}
           </span>
         )}
       </button>
@@ -195,15 +224,15 @@ export default function ProductFilterDrawer({
               open ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <header className="relative flex h-14 shrink-0 items-center justify-center border-b border-[#ece8e4]">
-              <h2 id="product-filter-title" className="text-sm font-semibold text-[#282321]">
+            <header className="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e7edf1]">
+              <h2 id="product-filter-title" className="text-sm font-semibold text-[#102d40]">
                 Filter
               </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close filters"
-                className="absolute right-4 flex size-9 items-center justify-center rounded-full text-[#514944] transition hover:bg-[#f5f2ef]"
+                className="absolute right-4 flex size-9 items-center justify-center rounded-full text-[#536875] transition hover:bg-[#f3f4f5]"
               >
                 <X size={20} strokeWidth={1.6} />
               </button>
@@ -213,19 +242,21 @@ export default function ProductFilterDrawer({
               {FILTER_GROUPS.filter(({ key }) =>
                 key === "category"
                   ? showCategory
+                  : key === "collection"
+                    ? showCollection
                   : key === "gender"
                   ? showGender && (options.gender?.length ?? 0) > 0
                     : (options[key]?.length ?? 0) > 0
               ).map(({ key, title }) => (
-                <details key={key} className="group border-b border-[#ece8e4]" open>
-                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#302b28] [&::-webkit-details-marker]:hidden">
+                <details key={key} className="group border-b border-[#e7edf1]" open>
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
                     <span className="flex items-center gap-2">
                       {title}
                       {draft[key].length > 0 && (
-                        <span className="text-xs text-[#8a7566]">({draft[key].length})</span>
+                        <span className="text-xs text-[#536875]">({draft[key].length})</span>
                       )}
                     </span>
-                    <span className="text-lg font-light text-[#706761] transition-transform group-open:rotate-45">+</span>
+                    <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
                   </summary>
                   <div className="grid gap-3 pb-5 sm:grid-cols-2">
                     {(options[key] ?? []).map((option) =>
@@ -235,13 +266,13 @@ export default function ProductFilterDrawer({
                           type="button"
                           onClick={() => toggleOption(key, option.value)}
                           aria-pressed={draft.color.includes(option.value)}
-                          className="flex min-h-9 items-center gap-2 text-left text-xs text-[#514944]"
+                          className="flex min-h-9 items-center gap-2 text-left text-xs text-[#536875]"
                         >
                           <span
                             className={`flex size-6 items-center justify-center rounded-full border ${
                               draft.color.includes(option.value)
-                                ? "border-[#33291f] ring-1 ring-[#33291f] ring-offset-2"
-                                : "border-[#ded9d4]"
+                                ? "border-[#102d40] ring-1 ring-[#102d40] ring-offset-2"
+                                : "border-[#e7edf1]"
                             }`}
                           >
                             <span
@@ -254,13 +285,13 @@ export default function ProductFilterDrawer({
                       ) : (
                         <label
                           key={option.value}
-                          className="flex cursor-pointer items-center gap-2.5 text-xs text-[#514944]"
+                          className="flex cursor-pointer items-center gap-2.5 text-xs text-[#536875]"
                         >
                           <input
                             type="checkbox"
                             checked={draft[key].includes(option.value)}
                             onChange={() => toggleOption(key, option.value)}
-                            className="size-4 accent-[#33291f]"
+                            className="size-4 accent-[#102d40]"
                           />
                           {option.label}
                         </label>
@@ -270,13 +301,13 @@ export default function ProductFilterDrawer({
                 </details>
               ))}
 
-              <details className="group border-b border-[#ece8e4]" open>
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#302b28] [&::-webkit-details-marker]:hidden">
+              <details className="group border-b border-[#e7edf1]" open>
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
                   Price Range
-                  <span className="text-lg font-light text-[#706761] transition-transform group-open:rotate-45">+</span>
+                  <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
                 </summary>
                 <div className="space-y-4 pb-5">
-                  <div className="flex items-center justify-between text-xs text-[#756d67]">
+                  <div className="flex items-center justify-between text-xs text-[#536875]">
                     <span>Rs. {draft.minPrice.toLocaleString()}</span>
                     <span>Rs. {(draft.maxPrice || maximum).toLocaleString()}</span>
                   </div>
@@ -297,7 +328,7 @@ export default function ProductFilterDrawer({
                           ),
                         }))
                       }
-                      className="w-full accent-[#33291f]"
+                      className="w-full accent-[#102d40]"
                     />
                   </label>
                   <label className="block">
@@ -317,18 +348,18 @@ export default function ProductFilterDrawer({
                           ),
                         }))
                       }
-                      className="w-full accent-[#33291f]"
+                      className="w-full accent-[#102d40]"
                     />
                   </label>
                 </div>
               </details>
 
-              <details className="group border-b border-[#ece8e4]" open>
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#302b28] [&::-webkit-details-marker]:hidden">
+              <details className="group border-b border-[#e7edf1]" open>
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
                   Availability
-                  <span className="text-lg font-light text-[#706761] transition-transform group-open:rotate-45">+</span>
+                  <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
                 </summary>
-                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[#514944]">
+                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[#536875]">
                   <input
                     type="checkbox"
                     checked={draft.availability}
@@ -338,18 +369,18 @@ export default function ProductFilterDrawer({
                         availability: event.target.checked,
                       }))
                     }
-                    className="size-4 accent-[#33291f]"
+                    className="size-4 accent-[#102d40]"
                   />
                   In stock only
                 </label>
               </details>
 
-              <details className="group border-b border-[#ece8e4]" open>
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#302b28] [&::-webkit-details-marker]:hidden">
+              <details className="group border-b border-[#e7edf1]" open>
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
                   On Sale
-                  <span className="text-lg font-light text-[#706761] transition-transform group-open:rotate-45">+</span>
+                  <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
                 </summary>
-                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[#514944]">
+                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[#536875]">
                   <input
                     type="checkbox"
                     checked={draft.onSale}
@@ -359,18 +390,18 @@ export default function ProductFilterDrawer({
                         onSale: event.target.checked,
                       }))
                     }
-                    className="size-4 accent-[#33291f]"
+                    className="size-4 accent-[#102d40]"
                   />
                   Sale items only
                 </label>
               </details>
             </div>
 
-            <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-[#ece8e4] bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-7">
+            <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-[#e7edf1] bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-7">
               <button
                 type="button"
                 onClick={() => setDraft(EMPTY_PRODUCT_FILTERS)}
-                className="min-h-11 border border-[#33291f] text-[11px] font-semibold uppercase tracking-wide text-[#33291f] transition hover:bg-[#f8f5f2]"
+                className="min-h-11 border border-[#102d40] text-[11px] font-semibold uppercase tracking-wide text-[#102d40] transition hover:bg-[#f3f4f5]"
               >
                 Remove All
               </button>
@@ -380,7 +411,7 @@ export default function ProductFilterDrawer({
                   onApply(draft);
                   setOpen(false);
                 }}
-                className="min-h-11 bg-[#33291f] text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#574331]"
+                className="min-h-11 bg-[#102d40] text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#173f55]"
               >
                 Apply
               </button>

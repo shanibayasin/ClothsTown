@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Types } from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import { getActiveProductFilter, getOnSaleProductFilter } from "@/lib/products";
 import Category from "@/models/Category";
 import Product from "@/models/Product";
+import Collection from "@/models/Collection";
 import ProductCard, { type StoreProductCardData } from "@/app/components/product/ProductCard";
 import UrlProductFilters from "@/app/components/shop/UrlProductFilters";
 import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
@@ -70,9 +72,12 @@ export default async function StoreCategoryPage({
     .select("_id name slug")
     .lean();
   const categoryIds = [category._id, ...departmentSubcategories.map((item) => item._id)];
-  const selectedSubcategories = values(query.subcategory);
+  const requestedSubcategories = values(query.subcategory);
+  const selectedSubcategories = requestedSubcategories.filter((slug) =>
+    departmentSubcategories.some((item) => item.slug === slug)
+  );
   const filter: Record<string, unknown> = {
-    category: selectedSubcategories.length
+    category: requestedSubcategories.length
       ? {
           $in: departmentSubcategories
             .filter((item) => selectedSubcategories.includes(item.slug))
@@ -90,18 +95,16 @@ export default async function StoreCategoryPage({
   if (Number.isFinite(maximumPrice) && maximumPrice > 0) {
     filter.price = { ...(filter.price as object), $lte: maximumPrice };
   }
-  const size = first(query.size);
-  const color = first(query.color);
-  const brand = first(query.brand);
-  const fabric = first(query.fabric);
   const selectedSizes = values(query.size);
   const selectedColors = values(query.color);
   const selectedBrands = values(query.brand);
   const selectedFabrics = values(query.fabric);
-  const productType = first(query.productType);
   const selectedProductTypes = values(query.productType);
+  const selectedSeasons = values(query.season);
+  const selectedCollections = values(query.collection);
   const sale = first(query.sale) === "true";
   const available = first(query.available) === "true";
+  const conditions: Record<string, unknown>[] = [];
   if (selectedSizes.length) filter.sizes = { $in: selectedSizes };
   if (selectedColors.length) filter.colors = { $in: selectedColors };
   if (selectedBrands.length) filter.brand = { $in: selectedBrands };
@@ -109,9 +112,20 @@ export default async function StoreCategoryPage({
   if (selectedProductTypes.length) {
     filter.productType = { $in: selectedProductTypes };
   }
-  if (sale) {
-    filter.$and = [getOnSaleProductFilter()];
+  if (selectedSeasons.length) filter.season = { $in: selectedSeasons };
+  if (selectedCollections.length) {
+    const collectionIds = selectedCollections.filter((id) => Types.ObjectId.isValid(id));
+    conditions.push({
+      $or: [
+        { collection: { $in: collectionIds } },
+        { collections: { $in: collectionIds } },
+      ],
+    });
   }
+  if (sale) {
+    conditions.push(getOnSaleProductFilter());
+  }
+  if (conditions.length) filter.$and = conditions;
   if (available) filter.stock = { $gt: 0 };
 
   const sort = first(query.sort) ?? "newest";
@@ -121,19 +135,44 @@ export default async function StoreCategoryPage({
         sort === "name" ? { name: 1 } : { createdAt: -1 };
   const page = Math.max(1, Number.parseInt(first(query.page) ?? "1", 10) || 1);
   const activeFilter = getActiveProductFilter(filter);
-  const [total, sizes, colors, brands, fabrics, productTypes, categoryCount, highestPrice] = await Promise.all([
+  const [
+    total,
+    sizes,
+    colors,
+    brands,
+    fabrics,
+    productTypes,
+    seasons,
+    productCollectionIds,
+    highestPrice,
+  ] = await Promise.all([
     Product.countDocuments(activeFilter),
     Product.distinct("sizes", getActiveProductFilter({ category: { $in: categoryIds } })),
     Product.distinct("colors", getActiveProductFilter({ category: { $in: categoryIds } })),
     Product.distinct("brand", getActiveProductFilter({ category: { $in: categoryIds } })),
     Product.distinct("fabric", getActiveProductFilter({ category: { $in: categoryIds } })),
     Product.distinct("productType", getActiveProductFilter({ category: { $in: categoryIds } })),
-    Product.countDocuments(getActiveProductFilter({ category: { $in: categoryIds } })),
+    Product.distinct("season", getActiveProductFilter({ category: { $in: categoryIds } })),
+    Promise.all([
+      Product.distinct("collection", getActiveProductFilter({ category: { $in: categoryIds } })),
+      Product.distinct("collections", getActiveProductFilter({ category: { $in: categoryIds } })),
+    ]).then(([single, multiple]) =>
+      [...new Set([...single, ...multiple]
+        .filter((id) => id != null && Types.ObjectId.isValid(String(id)))
+        .map(String))]
+    ),
     Product.findOne(getActiveProductFilter({ category: { $in: categoryIds } }))
       .sort({ price: -1 })
       .select("price")
       .lean(),
   ]);
+  const collections = await Collection.find({
+    status: true,
+    _id: { $in: productCollectionIds },
+  })
+    .select("_id title")
+    .sort({ title: 1 })
+    .lean();
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const products = await Product.find(activeFilter)
@@ -143,30 +182,27 @@ export default async function StoreCategoryPage({
     .lean();
 
   return (
-    <main className="mx-auto min-h-[60vh] max-w-[1440px] px-4 py-8 sm:px-6 lg:px-10">
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-slate-500">
-        <Link href="/" className="hover:text-slate-900">Home</Link>
+    <main className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 py-8 sm:px-6 lg:px-10">
+      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[#536875]">
+        <Link href="/" className="hover:text-[#102d40]">Home</Link>
         <span className="mx-2">/</span>
-        <Link href="/shop" className="hover:text-slate-900">Shop</Link>
-        <span className="mx-2">/</span>
-        <span className="font-medium text-slate-700">{category.name}</span>
+        <span className="font-medium text-[#102d40]">{category.name}</span>
       </nav>
       <CategoryPageBanner
+        key={category._id.toString()}
         name={category.name}
-        image={category.bannerImage || category.image}
+        image={category.bannerImage}
         title={category.bannerTitle}
         description={category.bannerDescription}
         position={category.bannerPosition}
       />
-      <p className="-mt-4 mb-6 text-sm text-slate-600">{categoryCount} available products</p>
-
       {departmentSubcategories.length > 0 && (
         <nav aria-label={`${category.name} subcategories`} className="mb-6 flex flex-wrap gap-2">
           {departmentSubcategories.map((subcategory) => (
             <Link
               key={subcategory._id.toString()}
               href={`/shop/${category.slug}/${subcategory.slug}`}
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-[#173246] hover:text-[#173246]"
+              className="rounded-full border border-[#e7edf1] px-4 py-2 text-sm font-medium text-[#536875] transition hover:border-[#102d40] hover:text-[#102d40]"
             >
               {subcategory.name}
             </Link>
@@ -174,7 +210,7 @@ export default async function StoreCategoryPage({
         </nav>
       )}
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e7edf1] pb-4">
         <UrlProductFilters
           options={{
             category: departmentSubcategories.map((item) => ({
@@ -186,15 +222,22 @@ export default async function StoreCategoryPage({
             brand: brands.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
             productType: productTypes.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
             fabric: fabrics.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
+            season: seasons.filter((item): item is string => typeof item === "string" && Boolean(item)).map((value) => ({ value, label: value })),
+            collection: collections.map((collection) => ({
+              value: collection._id.toString(),
+              label: collection.title,
+            })),
           }}
           value={{
             ...EMPTY_PRODUCT_FILTERS,
             category: selectedSubcategories,
+            collection: selectedCollections,
             size: selectedSizes,
             color: selectedColors,
             brand: selectedBrands,
             productType: selectedProductTypes,
             fabric: selectedFabrics,
+            season: selectedSeasons,
             minPrice: Number(first(query.minPrice)) || 0,
             maxPrice: Number(first(query.maxPrice)) || 0,
             availability: available,
@@ -202,7 +245,9 @@ export default async function StoreCategoryPage({
           }}
           priceCeiling={Math.max(1, Number(highestPrice?.price) || 100000)}
           showCategory={departmentSubcategories.length > 0}
+          showCollection={collections.length > 0}
         />
+        <p className="text-xs font-medium text-[#536875]">{total} products</p>
         <ProductSortSelect
           value={sort}
           options={[
@@ -214,81 +259,10 @@ export default async function StoreCategoryPage({
         />
       </div>
 
-      <form method="get" className="hidden">
-        <label className="text-xs font-medium text-slate-600">
-          Minimum price
-          <input type="number" name="minPrice" min="0" defaultValue={first(query.minPrice)} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-        </label>
-        <label className="text-xs font-medium text-slate-600">
-          Maximum price
-          <input type="number" name="maxPrice" min="0" defaultValue={first(query.maxPrice)} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-        </label>
-        <label className="text-xs font-medium text-slate-600">
-          Size
-          <select name="size" defaultValue={size ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-            <option value="">Any size</option>
-            {sizes.filter((item): item is string => typeof item === "string").sort().map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
-        </label>
-        <label className="text-xs font-medium text-slate-600">
-          Color
-          <select name="color" defaultValue={color ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-            <option value="">Any color</option>
-            {colors.filter((item): item is string => typeof item === "string").sort().map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
-        </label>
-        {categorySlug === "men" && (
-          <>
-            <label className="text-xs font-medium text-slate-600">
-              Brand
-              <select name="brand" defaultValue={brand ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-                <option value="">Any brand</option>
-                {brands.filter((item): item is string => typeof item === "string" && item.length > 0).sort().map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="text-xs font-medium text-slate-600">
-              Fabric / material
-              <select name="fabric" defaultValue={fabric ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-                <option value="">Any fabric</option>
-                {fabrics.filter((item): item is string => typeof item === "string" && item.length > 0).sort().map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="text-xs font-medium text-slate-600">
-              Product type
-              <select name="productType" defaultValue={productType ?? ""} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-                <option value="">Any type</option>
-                {productTypes.filter((item): item is string => typeof item === "string" && item.length > 0).sort().map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 self-end pb-2 text-xs font-medium text-slate-600">
-              <input type="checkbox" name="sale" value="true" defaultChecked={sale} />
-              Sale items only
-            </label>
-            <label className="flex items-center gap-2 self-end pb-2 text-xs font-medium text-slate-600">
-              <input type="checkbox" name="available" value="true" defaultChecked={available} />
-              In stock only
-            </label>
-          </>
-        )}
-        <label className="text-xs font-medium text-slate-600">
-          Sort
-          <select name="sort" defaultValue={sort} className="mt-1 min-h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-            <option value="newest">Newest</option>
-            <option value="price-low">Price: low to high</option>
-            <option value="price-high">Price: high to low</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
-        <div className="flex gap-2 sm:col-span-2 lg:col-span-5">
-          <button type="submit" className="min-h-10 rounded-md bg-[#173246] px-5 text-sm font-semibold text-white hover:bg-[#244c63]">Apply filters</button>
-          <Link href={`/shop/${categorySlug}`} className="inline-flex min-h-10 items-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-700">Clear</Link>
-        </div>
-      </form>
-
       {products.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 px-5 py-20 text-center">
-          <h2 className="text-xl font-semibold text-slate-800">No products found</h2>
-          <p className="mt-2 text-sm text-slate-500">Try adjusting your filters or check back later.</p>
+        <div className="rounded-xl border border-dashed border-[#e7edf1] px-5 py-20 text-center">
+          <h2 className="text-xl font-semibold text-[#102d40]">No products found</h2>
+          <p className="mt-2 text-sm text-[#536875]">Try adjusting your filters or check back later.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
@@ -300,9 +274,9 @@ export default async function StoreCategoryPage({
 
       {totalPages > 1 && (
         <nav aria-label="Product pagination" className="mt-8 flex items-center justify-center gap-3">
-          {currentPage > 1 && <Link href={pageHref(categorySlug, query, currentPage - 1)} className="rounded-md border border-slate-200 px-4 py-2 text-sm">Previous</Link>}
-          <span className="text-sm text-slate-600">Page {currentPage} of {totalPages}</span>
-          {currentPage < totalPages && <Link href={pageHref(categorySlug, query, currentPage + 1)} className="rounded-md border border-slate-200 px-4 py-2 text-sm">Next</Link>}
+          {currentPage > 1 && <Link href={pageHref(categorySlug, query, currentPage - 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Previous</Link>}
+          <span className="text-sm text-[#536875]">Page {currentPage} of {totalPages}</span>
+          {currentPage < totalPages && <Link href={pageHref(categorySlug, query, currentPage + 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Next</Link>}
         </nav>
       )}
     </main>

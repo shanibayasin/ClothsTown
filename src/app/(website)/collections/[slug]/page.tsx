@@ -1,8 +1,9 @@
-import Image from "next/image";
-import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import Collection from "@/models/Collection";
 import Product from "@/models/Product";
+import ProductCard, {
+  type StoreProductCardData,
+} from "@/app/components/product/ProductCard";
 
 export const dynamic = "force-dynamic";
 
@@ -91,85 +92,12 @@ export default async function CollectionPage({
         <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
 
           {products.map((product) => (
-
-            <div
+            <ProductCard
               key={product._id.toString()}
-              className="overflow-hidden rounded-3xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-            >
-
-              <div className="relative h-96">
-
-                <Image
-                  src={
-                    product.images?.[0] ||
-                    "/images/placeholder-product.jpg"
-                  }
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                />
-
-                {product.newArrival && (
-                  <span className="absolute left-3 top-3 rounded-full bg-green-600 px-3 py-1 text-xs text-white">
-                    NEW
-                  </span>
-                )}
-
-                {product.featured && (
-                  <span className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs text-white">
-                    Featured
-                  </span>
-                )}
-
-              </div>
-
-              <div className="p-6">
-
-                <h2 className="text-2xl font-semibold">
-                  {product.name}
-                </h2>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  {collection.title}
-                </p>
-
-                <div className="mt-4">
-
-                  {product.discountPrice ? (
-
-                    <div className="flex items-center gap-3">
-
-                      <span className="text-xl font-bold text-primary">
-                        Rs. {product.discountPrice}
-                      </span>
-
-                      <span className="text-gray-400 line-through">
-                        Rs. {product.price}
-                      </span>
-
-                    </div>
-
-                  ) : (
-
-                    <span className="text-xl font-bold text-primary">
-                      Rs. {product.price}
-                    </span>
-
-                  )}
-
-                </div>
-
-                <Link
-                  href={`/product/${product.slug}`}
-                  className="mt-6 block rounded-xl bg-primary py-3 text-center font-semibold text-white transition hover:bg-[#5a1738]"
-                >
-                  View Product
-                </Link>
-
-              </div>
-
-            </div>
-
+              product={
+                JSON.parse(JSON.stringify(product)) as StoreProductCardData
+              }
+            />
           ))}
 
         </div>

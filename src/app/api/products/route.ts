@@ -205,16 +205,27 @@ export async function GET(request: Request) {
       100,
       Math.max(1, Number.parseInt(url.searchParams.get("limit") ?? "100", 10) || 100)
     );
-    const products = await Product.find(filter)
+    const offset = Math.max(
+      0,
+      Number.parseInt(url.searchParams.get("offset") ?? "0", 10) || 0
+    );
+    const [total, products] = await Promise.all([
+      Product.countDocuments(filter),
+      Product.find(filter)
       .populate("category")
       .populate("collection")
       .populate("collections")
       .sort({ [sortField]: sortDirection, _id: 1 })
+      .skip(offset)
       .limit(limit)
-      .lean();
+      .lean(),
+    ]);
 
     return NextResponse.json(products.map(normalizeProductAliases), {
-      headers: { "Cache-Control": "no-store" },
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Total-Count": String(total),
+      },
     });
   } catch (error) {
     console.error("GET PRODUCTS ERROR:", error);
