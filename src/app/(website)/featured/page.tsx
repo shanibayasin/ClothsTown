@@ -21,9 +21,9 @@ export default async function FeaturedPage() {
   return (
     <main className="min-h-screen">
       <nav aria-label="Breadcrumb" className="mx-auto max-w-7xl px-6 py-3 text-xs text-[#806d75]">
-        <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+        <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium text-[#321b27]">Featured</span>
+        <span className="font-medium text-[var(--brand-primary)]">Featured</span>
       </nav>
       <HeroBanner
         name="Featured Collection"

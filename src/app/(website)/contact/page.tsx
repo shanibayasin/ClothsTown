@@ -19,7 +19,7 @@ export default function ContactPage() {
     <main className="min-h-screen bg-white text-[#171717]">
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[#6f1d46] sm:px-6"
+        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[var(--brand-primary)] sm:px-6"
       >
         <Link href="/" className="hover:underline">
           Home
@@ -48,7 +48,7 @@ export default function ContactPage() {
               onChange={(event) =>
                 setForm((current) => ({ ...current, name: event.target.value }))
               }
-              className="h-9 w-full border border-[#aaa] px-4 text-xs outline-none placeholder:text-[#806d75] focus:border-[#6f1d46]"
+              className="h-9 w-full border border-[#aaa] px-4 text-xs outline-none placeholder:text-[#806d75] focus:border-[var(--brand-primary)]"
             />
 
             <label className="sr-only" htmlFor="contact-email">
@@ -65,7 +65,7 @@ export default function ContactPage() {
               onChange={(event) =>
                 setForm((current) => ({ ...current, email: event.target.value }))
               }
-              className="h-9 w-full border border-[#aaa] px-4 text-xs outline-none placeholder:text-[#806d75] focus:border-[#6f1d46]"
+              className="h-9 w-full border border-[#aaa] px-4 text-xs outline-none placeholder:text-[#806d75] focus:border-[var(--brand-primary)]"
             />
           </div>
 
@@ -82,7 +82,7 @@ export default function ContactPage() {
             onChange={(event) =>
               setForm((current) => ({ ...current, phone: event.target.value }))
             }
-            className="h-9 w-full border border-[#aaa] px-4 text-xs outline-none placeholder:text-[#806d75] focus:border-[#6f1d46]"
+            className="h-9 w-full border border-[#aaa] px-4 text-xs outline-none placeholder:text-[#806d75] focus:border-[var(--brand-primary)]"
           />
 
           <label className="sr-only" htmlFor="contact-comment">
@@ -97,12 +97,12 @@ export default function ContactPage() {
             onChange={(event) =>
               setForm((current) => ({ ...current, comment: event.target.value }))
             }
-            className="w-full resize-y border border-[#888] px-4 py-2 text-xs outline-none placeholder:text-[#806d75] focus:border-[#6f1d46]"
+            className="w-full resize-y border border-[#888] px-4 py-2 text-xs outline-none placeholder:text-[#806d75] focus:border-[var(--brand-primary)]"
           />
 
           <button
             type="submit"
-            className="mt-4 min-w-[72px] bg-[#171717] px-5 py-2.5 text-xs font-medium text-white transition hover:bg-[#6f1d46]"
+            className="mt-4 min-w-[72px] bg-[#171717] px-5 py-2.5 text-xs font-medium text-white transition hover:bg-[var(--brand-primary)]"
           >
             Send
           </button>

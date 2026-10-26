@@ -3,9 +3,9 @@
 import {
   createContext,
   useContext,
-  useState,
   ReactNode,
   useMemo,
+  useSyncExternalStore,
 } from "react";
 
 export interface CartItem {
@@ -33,6 +33,70 @@ interface CartContextType {
   clearCart: () => void;
 }
 
+const CART_STORAGE_KEY = "clothestown_cart";
+const CART_CHANGE_EVENT = "clothestown:cart-change";
+const EMPTY_CART: CartItem[] = [];
+let cachedCartRaw: string | null = null;
+let cachedCart: CartItem[] = EMPTY_CART;
+
+function isCartItem(value: unknown): value is CartItem {
+  if (typeof value !== "object" || value === null) return false;
+  const item = value as Partial<CartItem>;
+  return (
+    typeof item._id === "string" &&
+    typeof item.name === "string" &&
+    typeof item.slug === "string" &&
+    typeof item.image === "string" &&
+    typeof item.price === "number" &&
+    Number.isFinite(item.price) &&
+    item.price >= 0 &&
+    Number.isInteger(item.quantity) &&
+    Number(item.quantity) > 0 &&
+    (item.size === undefined || typeof item.size === "string") &&
+    (item.color === undefined || typeof item.color === "string")
+  );
+}
+
+function getCartSnapshot() {
+  if (typeof window === "undefined") return EMPTY_CART;
+
+  try {
+    const stored = window.localStorage.getItem(CART_STORAGE_KEY) ?? "[]";
+    if (stored === cachedCartRaw) return cachedCart;
+
+    cachedCartRaw = stored;
+    const parsed: unknown = JSON.parse(stored);
+    cachedCart = Array.isArray(parsed) ? parsed.filter(isCartItem) : EMPTY_CART;
+  } catch {
+    cachedCartRaw = null;
+    cachedCart = EMPTY_CART;
+  }
+
+  return cachedCart;
+}
+
+function subscribeToCart(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(CART_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(CART_CHANGE_EVENT, onChange);
+  };
+}
+
+function updateCart(updater: (current: CartItem[]) => CartItem[]) {
+  const nextCart = updater(getCartSnapshot());
+  const serialized = JSON.stringify(nextCart);
+  cachedCart = nextCart;
+  cachedCartRaw = serialized;
+
+  try {
+    window.localStorage.setItem(CART_STORAGE_KEY, serialized);
+  } catch {}
+
+  window.dispatchEvent(new Event(CART_CHANGE_EVENT));
+}
+
 const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({
@@ -40,7 +104,11 @@ export function CartProvider({
 }: {
   children: ReactNode;
 }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const cart = useSyncExternalStore(
+    subscribeToCart,
+    getCartSnapshot,
+    () => EMPTY_CART
+  );
 
   // Derived total amount calculated automatically via memo matrix
   const cartTotal = useMemo(() => {
@@ -48,7 +116,7 @@ export function CartProvider({
   }, [cart]);
 
   const addToCart = (product: CartItem) => {
-    setCart((prev) => {
+    updateCart((prev) => {
       const productKey = getCartItemKey(product);
       const exists = prev.find((item) => getCartItemKey(item) === productKey);
 
@@ -65,13 +133,13 @@ export function CartProvider({
   };
 
   const removeFromCart = (id: string) => {
-    setCart((prev) =>
+    updateCart((prev) =>
       prev.filter((item) => getCartItemKey(item) !== id && item._id !== id)
     );
   };
 
   const increaseQty = (id: string) => {
-    setCart((prev) =>
+    updateCart((prev) =>
       prev.map((item) =>
         getCartItemKey(item) === id || item._id === id
           ? { ...item, quantity: item.quantity + 1 }
@@ -81,7 +149,7 @@ export function CartProvider({
   };
 
   const decreaseQty = (id: string) => {
-    setCart((prev) =>
+    updateCart((prev) =>
       prev.map((item) =>
         getCartItemKey(item) === id || item._id === id
           ? { ...item, quantity: Math.max(1, item.quantity - 1) }
@@ -91,7 +159,7 @@ export function CartProvider({
   };
 
   const clearCart = () => {
-    setCart([]);
+    updateCart(() => []);
   };
 
   return (

@@ -52,9 +52,9 @@ export default function HeroBanner({
     right: "items-end text-right",
   }[position];
   const overlay = {
-    left: "bg-gradient-to-r from-[#fffaf6]/95 via-[#fffaf6]/75 to-transparent",
-    center: "bg-[#fffaf6]/55",
-    right: "bg-gradient-to-l from-[#fffaf6]/95 via-[#fffaf6]/75 to-transparent",
+    left: "bg-gradient-to-r from-[var(--page-background)]/95 via-[var(--page-background)]/75 to-transparent",
+    center: "bg-[var(--page-background)]/55",
+    right: "bg-gradient-to-l from-[var(--page-background)]/95 via-[var(--page-background)]/75 to-transparent",
   }[position];
   const objectPosition = {
     left: "object-left",
@@ -64,7 +64,7 @@ export default function HeroBanner({
 
   return (
     <header
-      className={`relative isolate mb-7 aspect-[1.55/1] min-h-[220px] max-h-[500px] overflow-hidden bg-gradient-to-r from-[#f2e5e9] via-[#fbf7f3] to-[#efe5da] sm:aspect-[2.8/1] sm:min-h-[260px] lg:aspect-[4/1] lg:min-h-[320px] ${
+      className={`relative isolate mb-7 aspect-[1.55/1] min-h-[220px] max-h-[500px] overflow-hidden bg-gradient-to-r from-[var(--section-background)] via-[var(--page-background)] to-[var(--brand-secondary)] sm:aspect-[2.8/1] sm:min-h-[260px] lg:aspect-[4/1] lg:min-h-[320px] ${
         fullBleed ? "relative left-1/2 w-screen -translate-x-1/2" : "w-full"
       } ${className ?? ""}`}
     >
@@ -85,26 +85,26 @@ export default function HeroBanner({
       )}
       <div
         className={`relative z-10 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-6 py-7 sm:px-10 lg:px-16 ${alignment} ${
-          showImage ? "text-[#321b27]" : "text-[#321b27]"
+          showImage ? "text-[var(--brand-primary)]" : "text-[var(--brand-primary)]"
         }`}
       >
         {bannerSubtitle && (
-          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#6f1d46] sm:text-xs sm:tracking-[0.24em]">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-primary)] sm:text-xs sm:tracking-[0.24em]">
             {bannerSubtitle}
           </p>
         )}
-        <Heading className="mt-2 max-w-[min(56vw,760px)] whitespace-pre-line text-[clamp(1.75rem,4.8vw,4.5rem)] font-semibold leading-[1.04] tracking-tight text-[#321b27]">
+        <Heading className="mt-2 max-w-[min(56vw,760px)] whitespace-pre-line text-[clamp(1.75rem,4.8vw,4.5rem)] font-semibold leading-[1.04] tracking-tight text-[var(--brand-primary)]">
           {bannerTitle}
         </Heading>
         {bannerDescription && (
-          <p className="mt-3 max-w-[min(48vw,620px)] whitespace-pre-line text-xs leading-relaxed text-[#594650] sm:text-sm lg:text-base">
+          <p className="mt-3 max-w-[min(48vw,620px)] whitespace-pre-line text-xs leading-relaxed text-[var(--text-secondary)] sm:text-sm lg:text-base">
             {bannerDescription}
           </p>
         )}
         {bannerButtonText && bannerButtonLink && (
           <Link
             href={bannerButtonLink}
-            className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-sm bg-[#6f1d46] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#541536] sm:mt-6 sm:px-6 sm:text-sm"
+            className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-sm bg-[var(--brand-primary)] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[var(--brand-primary-hover)] sm:mt-6 sm:px-6 sm:text-sm"
           >
             {bannerButtonText}
             <ArrowRight size={15} aria-hidden="true" />

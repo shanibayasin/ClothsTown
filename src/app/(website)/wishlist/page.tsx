@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 
 import { useWishlist, type WishlistItem } from "@/context/WishlistContext";
@@ -10,8 +11,14 @@ import ProductCard from "@/app/components/product/ProductCard";
 export default function WishlistPage() {
   const { wishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
+  const router = useRouter();
 
   const moveToCart = (item: WishlistItem) => {
+    if (item.sizes?.length || item.colors?.length) {
+      router.push(`/product/${item.slug}`);
+      return;
+    }
+
     addToCart({
       _id: item._id,
       name: item.name,
@@ -28,9 +35,9 @@ export default function WishlistPage() {
 
   if (wishlist.length === 0) {
     return (
-      <main className="min-h-screen bg-[#fdf8fa] flex items-center justify-center px-6">
+      <main className="min-h-screen bg-[var(--page-background)] flex items-center justify-center px-6">
         <div className="text-center">
-          <Heart size={70} className="mx-auto text-[#6f1d46]" />
+          <Heart size={70} className="mx-auto text-[var(--brand-primary)]" />
 
           <h1 className="mt-6 text-3xl font-bold text-gray-900">
             Your Wishlist is Empty
@@ -42,7 +49,7 @@ export default function WishlistPage() {
 
           <Link
             href="/shop"
-            className="mt-8 inline-flex rounded-xl bg-[#6f1d46] px-8 py-4 text-white font-semibold hover:bg-[#5a1738] transition-colors"
+            className="mt-8 inline-flex rounded-xl bg-[var(--brand-primary)] px-8 py-4 font-semibold text-white transition-colors hover:bg-primary-dark"
           >
             Continue Shopping
           </Link>
@@ -52,7 +59,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fdf8fa] py-16">
+    <main className="min-h-screen bg-[var(--page-background)] py-16">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-gray-900">My Wishlist</h1>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import slugify from "slugify";
 import { adminFetch } from "@/lib/admin-fetch";
 import { prepareImageForUpload } from "@/lib/image-upload";
 import { CATEGORY_CATALOG } from "@/lib/category-catalog";
@@ -18,6 +19,8 @@ interface Category {
   bannerButtonLink?: string;
   bannerPosition?: "left" | "center" | "right";
   status: boolean;
+  parentCategory?: string | null;
+  routeGroup?: string;
 }
 
 interface Props {
@@ -36,6 +39,7 @@ const initialState = {
   bannerButtonText: "",
   bannerButtonLink: "",
   bannerPosition: "left" as const,
+  parentCategory: "",
   status: true,
 };
 
@@ -56,13 +60,33 @@ export default function CategoryForm({
           bannerButtonText: editing.bannerButtonText || "",
           bannerButtonLink: editing.bannerButtonLink || "",
           bannerPosition: editing.bannerPosition || "left",
+          parentCategory: editing.parentCategory || "",
           status: editing.status,
         }
       : initialState
   );
   const [loading, setLoading] = useState(false);
-
   const [uploading, setUploading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/categories?admin=true", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load parent categories.");
+        return response.json();
+      })
+      .then((data: unknown) => {
+        if (active && Array.isArray(data)) setCategories(data as Category[]);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load parent categories:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function uploadImage(
     e: React.ChangeEvent<HTMLInputElement>,
@@ -113,6 +137,9 @@ export default function CategoryForm({
 
     if (!form.name.trim()) {
       return alert("Category name is required.");
+    }
+    if (!editing && !form.parentCategory) {
+      return alert("Choose a top-level department for this subcategory.");
     }
     if (form.bannerTitle.trim().length > 160) {
       return alert("Banner title must be 160 characters or fewer.");
@@ -168,7 +195,7 @@ export default function CategoryForm({
     <div className="rounded-2xl bg-white p-6 shadow">
 
       <div className="mb-6 flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold text-[#6f1d46]">
+        <h2 className="text-2xl font-bold text-[var(--brand-primary)]">
           {editing ? "Edit Category" : "Add Category"}
         </h2>
         {editing && (
@@ -195,30 +222,84 @@ export default function CategoryForm({
             Category Name
           </label>
 
-          <select
-            value={form.slug}
-            disabled={Boolean(editing)}
-            onChange={(event) => {
-              const category = CATEGORY_CATALOG.find(
-                (item) => item.slug === event.target.value
-              );
-              if (!category) return;
-              setForm({
-                ...form,
-                name: category.name,
-                slug: category.slug,
-              });
-            }}
-            className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[#6f1d46]"
-          >
-            <option value="">Select a predefined category</option>
-            {CATEGORY_CATALOG.map((category) => (
-              <option key={category.slug} value={category.slug}>
-                {category.group} / {category.name}
-              </option>
-            ))}
-          </select>
+          {editing && !CATEGORY_CATALOG.some((category) => category.slug === editing.slug) ? (
+            <input
+              value={form.name}
+              readOnly
+              className="h-11 w-full rounded-lg border border-gray-300 bg-slate-50 px-4 text-sm text-slate-600"
+            />
+          ) : !editing ? (
+            <input
+              value={form.name}
+              maxLength={120}
+              onChange={(event) => {
+                const name = event.target.value;
+                setForm((current) => ({
+                  ...current,
+                  name,
+                  slug: slugify(name, { lower: true, strict: true }),
+                }));
+              }}
+              placeholder="e.g., Linen Shirts"
+              required
+              className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[var(--brand-primary)]"
+            />
+          ) : (
+            <select
+              value={form.slug}
+              disabled={Boolean(editing)}
+              onChange={(event) => {
+                const category = CATEGORY_CATALOG.find(
+                  (item) => item.slug === event.target.value
+                );
+                if (!category) return;
+                setForm({
+                  ...form,
+                  name: category.name,
+                  slug: category.slug,
+                });
+              }}
+              className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[var(--brand-primary)]"
+            >
+              <option value="">Select a predefined category</option>
+              {CATEGORY_CATALOG.map((category) => (
+                <option key={category.slug} value={category.slug}>
+                  {category.group} / {category.name}
+                </option>
+              ))}
+            </select>
+          )}
 
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold" htmlFor="parentCategory">
+            Parent category <span className="font-normal text-slate-400">{editing ? "(optional)" : "(required)"}</span>
+          </label>
+          <select
+            id="parentCategory"
+            value={form.parentCategory}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, parentCategory: event.target.value }))
+            }
+            className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[var(--brand-primary)]"
+          >
+            <option value="">Top-level category</option>
+            {categories
+              .filter((category) =>
+                !category.parentCategory &&
+                category.status !== false &&
+                category._id !== editing?._id &&
+                ["men", "women", "girls", "boys", "accessories"].includes(
+                  category.routeGroup ?? category.slug
+                )
+              )
+              .map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+          </select>
         </div>
 
         {/* Image */}
@@ -301,7 +382,7 @@ export default function CategoryForm({
               <div className="mt-2 flex gap-3">
                 <label
                   htmlFor="category-banner-upload"
-                  className="cursor-pointer text-xs font-semibold text-[#6f1d46] hover:underline"
+                  className="cursor-pointer text-xs font-semibold text-[var(--brand-primary)] hover:underline"
                 >
                   Replace image
                 </label>
@@ -330,7 +411,7 @@ export default function CategoryForm({
               maxLength={160}
               value={form.bannerTitle}
               onChange={(event) => setForm((prev) => ({ ...prev, bannerTitle: event.target.value }))}
-              className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[#6f1d46]"
+              className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[var(--brand-primary)]"
             />
           </div>
 
@@ -344,7 +425,7 @@ export default function CategoryForm({
               rows={3}
               value={form.bannerDescription}
               onChange={(event) => setForm((prev) => ({ ...prev, bannerDescription: event.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#6f1d46]"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[var(--brand-primary)]"
             />
           </div>
 
@@ -359,7 +440,7 @@ export default function CategoryForm({
                 maxLength={80}
                 value={form.bannerButtonText}
                 onChange={(event) => setForm((prev) => ({ ...prev, bannerButtonText: event.target.value }))}
-                className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[#6f1d46]"
+                className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
             <div>
@@ -373,7 +454,7 @@ export default function CategoryForm({
                 placeholder="/shop/women"
                 value={form.bannerButtonLink}
                 onChange={(event) => setForm((prev) => ({ ...prev, bannerButtonLink: event.target.value }))}
-                className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[#6f1d46]"
+                className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
           </div>
@@ -391,7 +472,7 @@ export default function CategoryForm({
                   setForm((prev) => ({ ...prev, bannerPosition: position }));
                 }
               }}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm outline-none focus:border-[#6f1d46]"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm outline-none focus:border-[var(--brand-primary)]"
             >
               <option value="left">Left</option>
               <option value="center">Center</option>
@@ -430,7 +511,7 @@ export default function CategoryForm({
         <button
           type="submit"
           disabled={loading || uploading}
-          className="h-11 w-full rounded-lg bg-[#6f1d46] font-medium text-white transition hover:bg-[#581739] disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 w-full rounded-lg bg-[var(--brand-primary)] font-medium text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading
             ? "Saving..."

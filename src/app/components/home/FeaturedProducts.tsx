@@ -44,12 +44,12 @@ export default function FeaturedSection() {
     <section className="bg-white py-6 sm:py-8">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12">
         <div className="mb-5 flex items-center justify-between sm:mb-6">
-          <h2 className="text-[17px] font-bold tracking-tight text-[#102d40] sm:text-xl">
+          <h2 className="text-[17px] font-bold tracking-tight text-[var(--brand-primary)] sm:text-xl">
             Featured Products
           </h2>
           <Link
             href="/featured"
-            className="group inline-flex items-center gap-1 text-[10px] font-medium text-[#536875] transition hover:text-[#102d40] sm:text-xs"
+            className="group inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--brand-primary)] sm:text-xs"
           >
             View All
             <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
@@ -60,9 +60,9 @@ export default function FeaturedSection() {
           <div className="scrollbar-none -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-8 sm:gap-4 sm:px-8 lg:-mx-12 lg:gap-5 lg:px-12">
             {Array.from({ length: 5 }, (_, index) => (
               <div key={index} className="w-[68%] shrink-0 snap-start animate-pulse sm:w-[32%] lg:w-[23%] xl:w-[18.5%]">
-                <div className="aspect-[3/4] rounded-md bg-[#f8f1f2]" />
-                <div className="mt-2 h-3 w-3/4 rounded bg-[#f3e8eb]" />
-                <div className="mt-2 h-3 w-1/2 rounded bg-[#f3e8eb]" />
+                <div className="aspect-[3/4] rounded-md bg-[var(--section-background)]" />
+                <div className="mt-2 h-3 w-3/4 rounded bg-[var(--section-background)]" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-[var(--section-background)]" />
               </div>
             ))}
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -13,6 +13,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
+import ProductImage from "@/app/components/product/ProductImage";
 import { adminFetch } from "@/lib/admin-fetch";
 import { getCanonicalProductFields } from "@/lib/products";
 
@@ -172,8 +173,8 @@ export default function ProductTable({
   useEffect(() => {
     let active = true;
     void Promise.all([
-      fetch("/api/categories", { cache: "no-store" }),
-      fetch("/api/collections", { cache: "no-store" }),
+      fetch("/api/categories?admin=true", { cache: "no-store" }),
+      fetch("/api/collections?admin=true", { cache: "no-store" }),
     ])
       .then(async ([categoryResponse, collectionResponse]) => {
         if (!categoryResponse.ok || !collectionResponse.ok) {
@@ -424,7 +425,7 @@ export default function ProductTable({
 
   return (
     <section className="overflow-hidden rounded-xl border border-[#e9e5df] bg-white shadow-sm">
-      <div className="grid grid-cols-2 gap-2 border-b border-[#eeeae4] bg-[#fbfaf8] p-3 sm:grid-cols-4 sm:gap-3 sm:p-4">
+      <div className="grid grid-cols-2 gap-2 border-b border-[#eeeae4] bg-[var(--page-background)] p-3 sm:grid-cols-4 sm:gap-3 sm:p-4">
         {([
           ["Total Products", totalInScope, ""],
           ["Active", counts.active, "active"],
@@ -800,11 +801,15 @@ export default function ProductTable({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {product.images?.[0] ? (
-                        <Image src={product.images[0]} alt={product.name} width={48} height={56} unoptimized className="h-14 w-12 rounded-md border border-slate-100 object-cover" />
-                      ) : (
-                        <div className="flex h-14 w-12 items-center justify-center rounded-md bg-slate-100 text-slate-400"><Package size={17} /></div>
-                      )}
+                      <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-md border border-slate-100 bg-slate-100">
+                        <ProductImage
+                          src={product.images?.[0]}
+                          alt={product.name}
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      </div>
                       <div className="min-w-0">
                         <p className="max-w-52 truncate text-xs font-semibold text-[#292521]">{product.name}</p>
                         <div className="mt-1 flex gap-1">
@@ -821,7 +826,9 @@ export default function ProductTable({
                   <td className="px-4 py-3 text-xs text-slate-600">{collectionName || "—"}</td>
                   <td className="px-4 py-3 text-xs font-medium text-slate-800">Rs. {product.price.toLocaleString()}</td>
                   <td className="px-4 py-3 text-xs text-slate-600">
-                    {product.discountPrice && product.discountPrice > 0
+                    {product.discountPrice &&
+                    product.discountPrice > 0 &&
+                    product.discountPrice < product.price
                       ? `Rs. ${product.discountPrice.toLocaleString()}`
                       : "—"}
                   </td>
@@ -868,7 +875,7 @@ export default function ProductTable({
           </button>
         </div>
       </div>
-      <div className="grid gap-3 border-t border-[#eeeae4] bg-[#fbfaf8] p-3 sm:p-4">
+      <div className="grid gap-3 border-t border-[#eeeae4] bg-[var(--page-background)] p-3 sm:p-4">
         <section className="min-w-0 rounded-lg border border-slate-100 bg-white p-3">
           <h3 className="text-xs font-bold text-slate-800">Bulk Actions</h3>
           <p className="mt-1 text-[10px] text-slate-500">

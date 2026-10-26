@@ -132,22 +132,12 @@ export function getNewArrivalProductFilter(): import("mongoose").QueryFilter<Pro
 
 export function getOnSaleProductFilter(): import("mongoose").QueryFilter<ProductQuery> {
   return {
-    $or: [
-      { onSale: true },
-      {
-        $and: [
-          { onSale: { $exists: false } },
-          {
-            $expr: {
-              $and: [
-                { $gt: ["$discountPrice", 0] },
-                { $lt: ["$discountPrice", "$price"] },
-              ],
-            },
-          },
-        ],
-      },
-    ],
+    $expr: {
+      $and: [
+        { $gt: ["$discountPrice", 0] },
+        { $lt: ["$discountPrice", "$price"] },
+      ],
+    },
   };
 }
 

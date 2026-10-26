@@ -16,7 +16,7 @@ export default function SectionTitle({
   return (
     <div className={clsx(center && "text-center", className)}>
       {subtitle && (
-        <p className="mb-2 text-sm font-medium uppercase tracking-[0.3em] text-secondary">
+        <p className="mb-2 text-sm font-medium uppercase tracking-[0.3em] text-secondary-foreground">
           {subtitle}
         </p>
       )}

@@ -54,19 +54,36 @@ export default async function DepartmentSubcategoryPage({
   const routeGroup = CATEGORY_GROUPS.find((group) => group.slug === department);
   if (!routeGroup) notFound();
   const definition = getCategoryDefinition(slug.toLowerCase());
-  if (!definition || definition.routeGroup !== routeGroup.routeGroup) notFound();
-  const databaseCategory = await Category.findOne({
-    slug: definition.slug,
-    status: true,
-  })
+  const [databaseParent, storedCategory] = await Promise.all([
+    Category.findOne({ slug: routeGroup.slug, status: true }).select("_id").lean(),
+    Category.findOne({ slug: slug.toLowerCase(), status: true })
+      .select("_id name slug image bannerImage bannerTitle bannerDescription bannerButtonText bannerButtonLink bannerPosition parentCategory")
+      .lean(),
+  ]);
+  const isStoredSubcategory = Boolean(
+    databaseParent &&
+    storedCategory?.parentCategory?.toString() === databaseParent._id.toString()
+  );
+  const isCatalogSubcategory = Boolean(
+    definition && definition.routeGroup === routeGroup.routeGroup
+  );
+  if (!isStoredSubcategory && !isCatalogSubcategory) notFound();
+
+  const databaseCategory = isStoredSubcategory
+    ? storedCategory
+    : await Category.findOne({
+        slug: definition!.slug,
+        status: true,
+      })
     .select("_id name slug image bannerImage bannerTitle bannerDescription bannerButtonText bannerButtonLink bannerPosition")
     .lean();
+  if (!databaseCategory) notFound();
   const category = {
-    ...definition,
+    ...(definition ?? {}),
     ...databaseCategory,
-    _id: databaseCategory?._id ?? definition.slug,
-    name: definition.name,
-    slug: definition.slug,
+    _id: databaseCategory?._id ?? slug,
+    name: databaseCategory?.name ?? definition?.name ?? slug,
+    slug: databaseCategory?.slug ?? definition?.slug ?? slug,
   };
   const categoryFilter = databaseCategory
     ? { category: databaseCategory._id }
@@ -175,12 +192,12 @@ export default async function DepartmentSubcategoryPage({
 
   return (
     <main className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 py-8 sm:px-6 lg:px-10">
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[#536875]">
-        <Link href="/" className="hover:text-[#102d40]">Home</Link>
+      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[var(--text-secondary)]">
+        <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
-        <Link href={`/shop/${department}`} className="capitalize hover:text-[#102d40]">{routeGroup.name}</Link>
+        <Link href={`/shop/${department}`} className="capitalize hover:text-[var(--brand-primary)]">{routeGroup.name}</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium text-[#102d40]">{category.name}</span>
+        <span className="font-medium text-[var(--brand-primary)]">{category.name}</span>
       </nav>
       <HeroBanner
         key={category._id.toString()}
@@ -193,7 +210,7 @@ export default async function DepartmentSubcategoryPage({
         position={category.bannerPosition}
         priority
       />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e7edf1] pb-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border-color)] pb-4">
         <UrlProductFilters
           options={{
             size: sortProductSizes(
@@ -243,7 +260,7 @@ export default async function DepartmentSubcategoryPage({
           showCollection={collections.length > 0}
           showGender={genders.length > 0}
         />
-        <p className="text-xs font-medium text-[#536875]">{total} products</p>
+        <p className="text-xs font-medium text-[var(--text-secondary)]">{total} products</p>
         <ProductSortSelect
           value={sort}
           options={[
@@ -256,9 +273,9 @@ export default async function DepartmentSubcategoryPage({
       </div>
 
       {products.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#e7edf1] px-5 py-20 text-center">
-          <h2 className="text-xl font-semibold text-[#102d40]">No products found</h2>
-          <p className="mt-2 text-sm text-[#536875]">There are no matching products in this category yet.</p>
+        <div className="rounded-xl border border-dashed border-[var(--border-color)] px-5 py-20 text-center">
+          <h2 className="text-xl font-semibold text-[var(--brand-primary)]">No products found</h2>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">There are no matching products in this category yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
@@ -270,9 +287,9 @@ export default async function DepartmentSubcategoryPage({
 
       {totalPages > 1 && (
         <nav aria-label="Product pagination" className="mt-8 flex items-center justify-center gap-3">
-          {currentPage > 1 && <Link href={pageHref(department, slug, query, currentPage - 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Previous</Link>}
-          <span className="text-sm text-[#536875]">Page {currentPage} of {totalPages}</span>
-          {currentPage < totalPages && <Link href={pageHref(department, slug, query, currentPage + 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Next</Link>}
+          {currentPage > 1 && <Link href={pageHref(department, slug, query, currentPage - 1)} className="rounded-md border border-[var(--border-color)] px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand-primary)]">Previous</Link>}
+          <span className="text-sm text-[var(--text-secondary)]">Page {currentPage} of {totalPages}</span>
+          {currentPage < totalPages && <Link href={pageHref(department, slug, query, currentPage + 1)} className="rounded-md border border-[var(--border-color)] px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand-primary)]">Next</Link>}
         </nav>
       )}
     </main>

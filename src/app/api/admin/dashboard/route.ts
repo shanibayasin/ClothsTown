@@ -22,11 +22,13 @@ export async function GET(request: Request) {
     const totalProducts = await Product.countDocuments(getActiveProductFilter());
     const totalOrders = await Order.countDocuments();
     const customers = await Order.distinct("email");
+    const completedOrderFilter = { status: { $ne: "Cancelled" } };
 
     // ============================
     // TOTAL REVENUE
     // ============================
     const revenueData = await Order.aggregate([
+      { $match: completedOrderFilter },
       {
         $group: {
           _id: null,
@@ -44,6 +46,7 @@ export async function GET(request: Request) {
     today.setHours(0, 0, 0, 0);
 
     const todayOrders = await Order.find({
+      ...completedOrderFilter,
       createdAt: { $gte: today },
     });
 
@@ -61,6 +64,7 @@ export async function GET(request: Request) {
     startCurrentMonth.setHours(0, 0, 0, 0);
 
     const currentMonthOrders = await Order.find({
+      ...completedOrderFilter,
       createdAt: { $gte: startCurrentMonth },
     });
 
@@ -76,6 +80,7 @@ export async function GET(request: Request) {
     startLastMonth.setMonth(startLastMonth.getMonth() - 1);
 
     const lastMonthOrders = await Order.find({
+      ...completedOrderFilter,
       createdAt: {
         $gte: startLastMonth,
         $lt: startCurrentMonth,
@@ -104,6 +109,7 @@ export async function GET(request: Request) {
     // MONTHLY SALES
     // ============================
     const monthlySales = await Order.aggregate([
+      { $match: completedOrderFilter },
       {
         $group: {
           _id: { month: { $month: "$createdAt" } },
@@ -122,6 +128,7 @@ export async function GET(request: Request) {
     const weeklySales = await Order.aggregate([
       {
         $match: {
+          ...completedOrderFilter,
           createdAt: {
             $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
           },
@@ -161,6 +168,7 @@ export async function GET(request: Request) {
     const dailySales = await Order.aggregate([
       {
         $match: {
+          ...completedOrderFilter,
           createdAt: { $gte: startOfLastSevenDays },
         },
       },
@@ -246,6 +254,7 @@ export async function GET(request: Request) {
     // TOP SELLING PRODUCTS
     // ============================
     const topSellingProducts = await Order.aggregate([
+      { $match: completedOrderFilter },
       { $unwind: "$products" },
       {
         $group: {

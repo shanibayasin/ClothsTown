@@ -52,7 +52,7 @@ function AdminLoginForm() {
     <main className="flex min-h-screen items-center justify-center bg-[#f4f6f8] px-4 py-10">
       <section className="w-full max-w-[420px] rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_18px_55px_rgba(18,38,53,0.1)] sm:p-9">
         <div className="flex items-center gap-3">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-[#142536] text-white">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-white">
             <svg
               aria-hidden="true"
               viewBox="0 0 72 56"
@@ -69,7 +69,7 @@ function AdminLoginForm() {
             </svg>
           </span>
           <div>
-            <p className="text-lg font-bold tracking-tight text-[#142536]">
+            <p className="text-lg font-bold tracking-tight text-[var(--brand-primary)]">
               ClothesTown
             </p>
             <p className="text-xs text-slate-500">Store administration</p>
@@ -134,7 +134,7 @@ function AdminLoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="h-11 w-full rounded-lg bg-[#142536] text-sm font-semibold text-white transition hover:bg-[#203f59] disabled:cursor-wait disabled:opacity-60"
+            className="h-11 w-full rounded-lg bg-[var(--brand-primary)] text-sm font-semibold text-white transition hover:bg-[#203f59] disabled:cursor-wait disabled:opacity-60"
           >
             {isSubmitting ? "Signing in…" : "Sign in"}
           </button>

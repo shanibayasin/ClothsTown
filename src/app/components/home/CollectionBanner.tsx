@@ -45,7 +45,7 @@ export default function CollectionBanner() {
     async function fetchCollections() {
       try {
         const [collectionsRes, categoriesRes] = await Promise.all([
-          fetch("/api/collections", { cache: "no-store" }),
+          fetch("/api/collections/public", { cache: "no-store" }),
           fetch("/api/categories", { cache: "no-store" }),
         ]);
         const [collections, categories] = await Promise.all([
@@ -146,13 +146,13 @@ export default function CollectionBanner() {
                 <div
                   className={`absolute inset-0 ${
                     card.isMen
-                      ? "bg-linear-to-r from-[#102633]/95 from-0% via-[#102633]/85 via-43% via-[#102633]/30 via-63% to-transparent to-80%"
+                      ? "bg-linear-to-r from-[var(--brand-primary)]/95 from-0% via-[var(--brand-primary)]/85 via-43% via-[var(--brand-primary)]/30 via-63% to-transparent to-80%"
                       : "bg-linear-to-r from-[#f5e9dd]/95 from-0% via-[#f5e9dd]/90 via-43% via-[#f5e9dd]/35 via-63% to-transparent to-80%"
                   }`}
                 />
                 <div
                   className={`relative z-10 w-[64%] px-5 py-6 sm:px-7 lg:px-9 ${
-                    card.isMen ? "text-white" : "text-[#172a33]"
+                    card.isMen ? "text-white" : "text-[var(--brand-primary)]"
                   }`}
                 >
                   <h2 className="max-w-[300px] text-[17px] font-bold leading-tight sm:text-[19px] lg:text-[23px]">
@@ -166,8 +166,8 @@ export default function CollectionBanner() {
                   <span
                     className={`mt-4 inline-flex h-10 min-w-[132px] items-center justify-between gap-2 rounded-lg px-5 text-[10px] font-semibold transition-colors sm:mt-5 sm:text-[11px] lg:h-11 lg:min-w-[148px] lg:px-6 ${
                       card.isMen
-                        ? "bg-white text-[#172a33] group-hover:bg-[#f3f4f5]"
-                        : "bg-[#102d40] text-white group-hover:bg-primary"
+                        ? "bg-white text-[var(--brand-primary)] group-hover:bg-[var(--section-background)]"
+                        : "bg-[var(--brand-primary)] text-white group-hover:bg-primary"
                     }`}
                   >
                     Shop Now

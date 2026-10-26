@@ -14,7 +14,7 @@ export default function ProductSortSelect({
   const searchParams = useSearchParams();
 
   return (
-    <label className="flex items-center gap-2 text-xs font-medium text-[#536875]">
+    <label className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
       <span>Sort by</span>
       <select
         value={value}
@@ -24,7 +24,7 @@ export default function ProductSortSelect({
           params.set("page", "1");
           router.push(`${pathname}?${params.toString()}`);
         }}
-        className="min-h-9 rounded-md border border-[#e7edf1] bg-white px-3 text-xs text-[#102d40]"
+        className="min-h-9 rounded-md border border-[var(--border-color)] bg-white px-3 text-xs text-[var(--brand-primary)]"
       >
         {options.map(([optionValue, label]) => (
           <option key={optionValue} value={optionValue}>{label}</option>

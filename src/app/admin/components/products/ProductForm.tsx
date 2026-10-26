@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import {
   Check,
   Image as ImageIcon,
@@ -19,19 +18,24 @@ import {
   createProductSlug,
   getCanonicalProductFields,
 } from "@/lib/products";
+import ProductImage from "@/app/components/product/ProductImage";
 import type { AdminProduct } from "./ProductTable";
 
 interface Category {
   _id: string;
   name: string;
+  slug?: string;
   parentCategory?: string | null;
   gender?: ProductFormState["gender"];
   group?: string;
+  routeGroup?: string;
+  status?: boolean;
 }
 
 interface Collection {
   _id: string;
   title: string;
+  status?: boolean;
 }
 
 interface ProductFormProps {
@@ -65,7 +69,6 @@ interface ProductFormState {
   sizes: string[];
   colors: string[];
   featured: boolean;
-  onSale: boolean;
   newArrival: boolean;
   status: boolean;
   publicationStatus: "active" | "draft" | "inactive";
@@ -93,7 +96,6 @@ const initialState: ProductFormState = {
   sizes: [],
   colors: [],
   featured: false,
-  onSale: false,
   newArrival: false,
   status: true,
   publicationStatus: "active",
@@ -110,13 +112,18 @@ function createFormState(
       ...initialState,
       newArrival: forceNewArrival,
       category: preselectedCategoryId,
-      gender:
-        categories.find((category) => category._id === preselectedCategoryId)
-          ?.gender ?? initialState.gender,
+      gender: getCategoryGender(
+        categories.find((category) => category._id === preselectedCategoryId),
+        categories
+      ),
     };
   }
 
   const productFields = getCanonicalProductFields(editing);
+  const editingCategoryId =
+    typeof editing.category === "object"
+      ? editing.category?._id ?? ""
+      : editing.category ?? "";
 
   return {
     ...initialState,
@@ -134,29 +141,47 @@ function createFormState(
     discountPrice: String(editing.discountPrice ?? ""),
     stock: String(editing.stock ?? ""),
     sku: editing.sku ?? "",
-    category:
-      typeof editing.category === "object"
-        ? editing.category?._id ?? ""
-        : editing.category ?? "",
-    gender: editing.gender ?? "unisex",
+    category: editingCategoryId,
+    gender:
+      editing.gender ??
+      getCategoryGender(
+        categories.find((category) => category._id === editingCategoryId),
+        categories
+      ),
     collections: productFields.collectionIds,
     images: editing.images ?? [],
     sizes: editing.sizes ?? [],
     colors: editing.colors ?? [],
     featured: productFields.featured,
-    onSale:
-      editing.onSale === true ||
-      (editing.onSale === undefined &&
-        Number(editing.discountPrice) > 0 &&
-        Number(editing.discountPrice) < Number(editing.price)),
     newArrival: forceNewArrival || productFields.newArrival,
     status: productFields.publicationStatus === "active",
     publicationStatus: productFields.publicationStatus,
   };
 }
 
-const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL"];
-const colorOptions = ["Black", "White", "Brown", "Beige", "Navy", "Grey", "Olive", "Maroon"];
+const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL", "Free Size"];
+const colorOptions = ["Black", "White", "Brown", "Beige", "Navy", "Grey", "Olive", "Maroon", "Blue", "Pink"];
+
+function getCategoryGender(category: Category | undefined, categories: Category[]) {
+  if (!category) return initialState.gender;
+  if (category.gender) return category.gender;
+
+  const parent = category.parentCategory
+    ? categories.find((item) => item._id === category.parentCategory)
+    : undefined;
+  const routeGroup = category.routeGroup ?? parent?.routeGroup;
+  if (routeGroup === "men" || routeGroup === "women" || routeGroup === "girls" || routeGroup === "boys") {
+    return routeGroup;
+  }
+
+  const group = category.group ?? parent?.group;
+  const audienceName = `${group ?? ""} ${parent?.name ?? category.name}`.toLowerCase();
+  if (audienceName.includes("women")) return "women";
+  if (audienceName.includes("men")) return "men";
+  if (audienceName.includes("girls")) return "girls";
+  if (audienceName.includes("boys")) return "boys";
+  return initialState.gender;
+}
 
 export default function ProductForm({
   editing,
@@ -177,6 +202,19 @@ export default function ProductForm({
 
   const resolvedCategories = categories.length > 0 ? categories : loadedCategories;
   const resolvedCollections = collections.length > 0 ? collections : loadedCollections;
+  const selectedCategory = resolvedCategories.find((category) => category._id === form.category);
+  const selectedRootCategoryId = selectedCategory?.parentCategory || selectedCategory?._id || "";
+  const departmentOptions = resolvedCategories.filter((category) =>
+    !category.parentCategory &&
+    (category._id === selectedRootCategoryId ||
+      ["men", "women", "girls", "boys", "accessories"].includes(
+        category.routeGroup ?? category.slug ?? ""
+      ) ||
+      resolvedCategories.some((child) => child.parentCategory === category._id))
+  );
+  const subcategoryOptions = resolvedCategories.filter(
+    (category) => category.parentCategory === selectedRootCategoryId
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -184,8 +222,8 @@ export default function ProductForm({
     async function loadOptions() {
       try {
         const [catRes, colRes] = await Promise.all([
-          fetch("/api/categories", { cache: "no-store" }),
-          fetch("/api/collections", { cache: "no-store" }),
+          fetch("/api/categories?admin=true", { cache: "no-store" }),
+          fetch("/api/collections?admin=true", { cache: "no-store" }),
         ]);
 
         const [catData, colData] = await Promise.all([
@@ -201,8 +239,7 @@ export default function ProductForm({
                 "_id" in item &&
                 typeof item._id === "string" &&
                 "name" in item &&
-                typeof item.name === "string" &&
-                (!("status" in item) || item.status !== false)
+                typeof item.name === "string"
             )
           : [];
 
@@ -214,8 +251,7 @@ export default function ProductForm({
                 "_id" in item &&
                 typeof item._id === "string" &&
                 "title" in item &&
-                typeof item.title === "string" &&
-                (!("status" in item) || item.status !== false)
+                typeof item.title === "string"
             )
           : [];
 
@@ -242,14 +278,24 @@ export default function ProductForm({
   ) => {
     const { name, value, type } = e.target;
 
-    if (name === "category") {
-      const selectedCategory = resolvedCategories.find(
-        (category) => category._id === value
-      );
+    if (name === "parentCategory") {
+      const selectedParent = resolvedCategories.find((category) => category._id === value);
       setForm((previous) => ({
         ...previous,
-        category: value,
-        gender: selectedCategory?.gender ?? previous.gender,
+        category: value || "",
+        gender: getCategoryGender(selectedParent, resolvedCategories),
+      }));
+      return;
+    }
+
+    if (name === "category") {
+      const selectedSubcategory = resolvedCategories.find((category) => category._id === value);
+      const audienceCategory = selectedSubcategory ??
+        resolvedCategories.find((category) => category._id === selectedRootCategoryId);
+      setForm((previous) => ({
+        ...previous,
+        category: value || selectedRootCategoryId,
+        gender: getCategoryGender(audienceCategory, resolvedCategories),
       }));
       return;
     }
@@ -276,11 +322,23 @@ export default function ProductForm({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const selectedFiles = Array.from(files);
+    const availableSlots = Math.max(0, 20 - form.images.length);
+    if (selectedFiles.length > availableSlots) {
+      setMessage({
+        type: "error",
+        text: `A product can have at most 20 images. You can add ${availableSlots} more.`,
+      });
+      e.target.value = "";
+      return;
+    }
+
     setUploading(true);
+    setMessage(null);
     const uploaded: string[] = [];
 
     try {
-      for (const file of Array.from(files)) {
+      for (const file of selectedFiles) {
         try {
           const formData = new FormData();
           formData.append("file", await prepareImageForUpload(file));
@@ -292,8 +350,10 @@ export default function ProductForm({
 
           const data = await res.json();
           if (!res.ok) {
-            if (res.status === 401) return;
             throw new Error(data.error || data.message || `Upload failed (${res.status}).`);
+          }
+          if (typeof data.url !== "string" || !data.url.trim()) {
+            throw new Error("The upload service did not return an image URL.");
           }
           uploaded.push(data.url);
         } catch (error) {
@@ -334,6 +394,9 @@ export default function ProductForm({
     }
     if (!form.category) {
       return setMessage({ type: "error", text: "Please select a category." });
+    }
+    if (!editing && form.images.length === 0) {
+      return setMessage({ type: "error", text: "Upload at least one product image." });
     }
     if (!form.price || !Number.isFinite(Number(form.price)) || Number(form.price) <= 0) {
       return setMessage({ type: "error", text: "Valid price is required." });
@@ -481,17 +544,34 @@ export default function ProductForm({
               />
             </div>
             <div>
-              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Category</label>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Department</label>
               <select
-                name="category"
-                value={form.category}
+                name="parentCategory"
+                value={selectedRootCategoryId}
                 onChange={handleChange}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
               >
-                <option value="">Select Category</option>
-                {resolvedCategories.map((cat) => (
+                <option value="">Select Department</option>
+                {departmentOptions.map((cat) => (
                   <option key={cat._id} value={cat._id}>
-                    {cat.group ? `${cat.group} / ${cat.name}` : cat.name}
+                    {cat.name}{cat.status === false ? " (inactive)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">Subcategory</label>
+              <select
+                name="category"
+                value={selectedCategory?.parentCategory ? form.category : ""}
+                onChange={handleChange}
+                disabled={!selectedRootCategoryId || subcategoryOptions.length === 0}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50 disabled:text-slate-400 sm:text-sm"
+              >
+                <option value="">Use department category</option>
+                {subcategoryOptions.map((subcategory) => (
+                  <option key={subcategory._id} value={subcategory._id}>
+                    {subcategory.name}{subcategory.status === false ? " (inactive)" : ""}
                   </option>
                 ))}
               </select>
@@ -609,7 +689,7 @@ export default function ProductForm({
                       }
                       className="size-4 accent-primary"
                     />
-                    {col.title}
+                    {col.title}{col.status === false ? " (inactive)" : ""}
                   </label>
                 ))}
                 {resolvedCollections.length === 0 && (
@@ -813,7 +893,7 @@ export default function ProductForm({
           >
             <UploadCloud size={18} className="mb-1.5 text-[#655b50]" aria-hidden="true" />
             <h4 className="text-[11px] font-semibold text-[#24211e]">{uploading ? "Uploading images..." : "Upload product images"}</h4>
-            <p className="mt-0.5 text-[10px] text-slate-500">JPG, PNG, or WEBP · Max 5MB each</p>
+            <p className="mt-0.5 text-[10px] text-slate-500">JPG, PNG, GIF, or WEBP · Max 4 MB each</p>
           </label>
           <input
             id="images"
@@ -837,12 +917,11 @@ export default function ProductForm({
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {form.images.map((img, index) => (
                   <div key={img} className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    <Image
+                    <ProductImage
                       src={img}
-                      alt="Preview"
+                      alt={`${form.name || "Product"} image ${index + 1}`}
                       width={400}
                       height={400}
-                      unoptimized
                       className="aspect-square h-auto w-full object-cover transition duration-300 group-hover:scale-105"
                     />
                     <div className="absolute left-1.5 top-1.5 rounded-full bg-[#33291f] px-2 py-1 text-[9px] font-bold text-white">
@@ -873,16 +952,12 @@ export default function ProductForm({
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
+            <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[var(--brand-primary)]/40 hover:bg-[var(--page-background)]">
               <input type="checkbox" name="featured" checked={form.featured} onChange={handleChange} className="h-4 w-4 accent-primary" />
               <span className="text-xs font-medium text-slate-700 sm:text-sm">Featured Item</span>
             </label>
-            <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
-              <input type="checkbox" name="onSale" checked={form.onSale} onChange={handleChange} className="h-4 w-4 accent-primary" />
-              <span className="text-xs font-medium text-slate-700 sm:text-sm">Sale Item</span>
-            </label>
             {forceNewArrival ? (
-              <div className="flex min-h-12 items-center gap-3 rounded-xl border border-[#6f1d46]/30 bg-[#fff8fa] px-3 py-2.5">
+              <div className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--brand-primary)]/30 bg-[var(--page-background)] px-3 py-2.5">
                 <input
                   type="checkbox"
                   checked
@@ -895,7 +970,7 @@ export default function ProductForm({
                 </span>
               </div>
             ) : (
-              <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[#6f1d46]/40 hover:bg-[#fff8fa]">
+              <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 transition hover:border-[var(--brand-primary)]/40 hover:bg-[var(--page-background)]">
                 <input type="checkbox" name="newArrival" checked={form.newArrival} onChange={handleChange} className="h-4 w-4 accent-primary" />
                 <span className="text-xs font-medium text-slate-700 sm:text-sm">New Arrival</span>
               </label>
@@ -913,12 +988,11 @@ export default function ProductForm({
             </div>
             <div className="relative overflow-hidden rounded-lg bg-[#f1efec]">
               {form.images[0] ? (
-                <Image
+                <ProductImage
                   src={form.images[0]}
                   alt="Preview"
                   width={700}
                   height={900}
-                  unoptimized
                   className="aspect-[4/4.3] w-full object-cover"
                 />
               ) : (

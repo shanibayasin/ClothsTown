@@ -26,8 +26,8 @@ export default function SalesChart({ data }: Props) {
         <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 4 }}>
           <defs>
             <linearGradient id="dashboard-revenue-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6f1d46" stopOpacity={0.2} />
-              <stop offset="100%" stopColor="#6f1d46" stopOpacity={0.01} />
+              <stop offset="0%" stopColor="var(--brand-primary)" stopOpacity={0.2} />
+              <stop offset="100%" stopColor="var(--brand-primary)" stopOpacity={0.01} />
             </linearGradient>
           </defs>
           <CartesianGrid stroke="#eef1f4" strokeDasharray="4 4" vertical={false} />
@@ -53,10 +53,10 @@ export default function SalesChart({ data }: Props) {
           <Area
             type="monotone"
             dataKey="revenue"
-            stroke="#6f1d46"
+            stroke="var(--brand-primary)"
             strokeWidth={2.5}
             fill="url(#dashboard-revenue-fill)"
-            activeDot={{ r: 4, fill: "#6f1d46", stroke: "#fff", strokeWidth: 2 }}
+            activeDot={{ r: 4, fill: "var(--brand-primary)", stroke: "#fff", strokeWidth: 2 }}
           />
         </AreaChart>
       </ResponsiveContainer>

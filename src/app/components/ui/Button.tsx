@@ -17,12 +17,12 @@ export default function Button({
   return (
     <button
       className={clsx(
-        "rounded-full px-6 py-3 text-sm font-medium transition-all duration-300",
+        "rounded-control px-6 py-3 text-sm font-medium transition-[var(--transition-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-55",
         {
-          "bg-primary text-white hover:bg-primary-dark":
+          "bg-primary text-white shadow-sm hover:bg-primary-dark disabled:hover:bg-primary":
             variant === "primary",
 
-          "border border-primary text-primary hover:bg-section":
+          "border border-primary bg-card text-primary hover:bg-section disabled:hover:bg-card":
             variant === "secondary",
         },
         className

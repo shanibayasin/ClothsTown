@@ -13,7 +13,7 @@ export default function Badge({
   return (
     <span
       className={clsx(
-        "inline-flex rounded-full bg-section px-4 py-1 text-xs font-semibold uppercase tracking-wider text-primary",
+        "inline-flex rounded-full bg-secondary/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary",
         className
       )}
     >

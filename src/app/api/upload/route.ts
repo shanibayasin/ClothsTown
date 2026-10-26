@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 import { requireAdmin } from "@/lib/admin-auth";
+import { isSupportedImage } from "@/lib/image-validation";
 
 export const runtime = "nodejs";
 
@@ -22,13 +23,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "Please upload an image file." },
-        { status: 400 }
-      );
-    }
-
     if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
         { error: "Image is too large. Please choose a smaller image." },
@@ -38,6 +32,13 @@ export async function POST(request: Request) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const mimeType = file.type.toLowerCase() === "image/jpg" ? "image/jpeg" : file.type.toLowerCase();
+    if (!isSupportedImage(buffer, mimeType)) {
+      return NextResponse.json(
+        { error: "Upload a valid PNG, JPEG, GIF, or WebP image." },
+        { status: 400 }
+      );
+    }
 
     const hasCloudinaryConfig = Boolean(
       process.env.CLOUDINARY_CLOUD_NAME &&
@@ -46,7 +47,6 @@ export async function POST(request: Request) {
     );
 
     if (!hasCloudinaryConfig) {
-      const mimeType = file.type || "application/octet-stream";
       const dataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
 
       return NextResponse.json({

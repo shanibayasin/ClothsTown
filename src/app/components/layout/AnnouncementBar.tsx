@@ -8,7 +8,7 @@ export default function AnnouncementBar() {
   const isAccountPage = pathname === "/login" || pathname === "/register";
 
   return (
-    <div className="bg-[#14242b] text-white">
+    <div className="bg-primary text-white">
       <div className={`mx-auto flex max-w-[1440px] items-center justify-between gap-3 px-4 font-medium sm:px-6 lg:px-8 ${isAccountPage ? "h-[30px] text-[8px] sm:h-[30px] sm:text-[9px] lg:h-[30px] lg:px-14 lg:text-[10px]" : "h-7 text-[9px] sm:h-10 sm:text-[11px] lg:h-14 lg:text-[14px]"}`}>
         <div className={`flex min-w-0 items-center ${isAccountPage ? "gap-3 sm:gap-5 lg:gap-6" : "gap-3 sm:gap-5 lg:gap-8"}`}>
           <span className="flex shrink-0 items-center gap-1.5 lg:gap-2">

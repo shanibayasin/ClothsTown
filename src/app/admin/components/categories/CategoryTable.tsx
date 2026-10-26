@@ -36,7 +36,7 @@ export default function CategoryTable({
 
     async function loadCategories() {
       try {
-        const res = await fetch("/api/categories", {
+        const res = await fetch("/api/categories?admin=true", {
           cache: "no-store",
         });
         if (!res.ok) {
@@ -79,7 +79,7 @@ export default function CategoryTable({
         throw new Error(result.message ?? "Failed to delete category.");
       }
 
-      const response = await fetch("/api/categories", { cache: "no-store" });
+      const response = await fetch("/api/categories?admin=true", { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Failed to refresh categories (${response.status}).`);
       }
@@ -112,7 +112,7 @@ export default function CategoryTable({
       <div className="flex items-center justify-between border-b p-6">
 
         <div>
-          <h2 className="text-xl font-bold text-[#6f1d46]">
+          <h2 className="text-xl font-bold text-[var(--brand-primary)]">
             Categories
           </h2>
 
@@ -134,7 +134,7 @@ export default function CategoryTable({
             onChange={(e) =>
               setSearch(e.target.value)
             }
-            className="h-11 w-full rounded-xl border pl-10 pr-4 outline-none focus:border-[#6f1d46]"
+            className="h-11 w-full rounded-xl border pl-10 pr-4 outline-none focus:border-[var(--brand-primary)]"
           />
 
         </div>

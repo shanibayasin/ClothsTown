@@ -68,6 +68,10 @@ export async function PUT(
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: "Invalid category ID." }, { status: 400 });
     }
+    const existingCategory = await Category.findById(id).select("name slug");
+    if (!existingCategory) {
+      return NextResponse.json({ message: "Category not found" }, { status: 404 });
+    }
     const body: unknown = await request.json();
     if (typeof body !== "object" || body === null || Array.isArray(body)) {
       return NextResponse.json({ message: "Category data must be an object." }, { status: 400 });
@@ -92,26 +96,36 @@ export async function PUT(
               .replace(/^-|-$/g, "");
       const definition = getCategoryDefinition(requestedSlug);
       if (!definition) {
-        return NextResponse.json(
-          { message: "Categories must use one of the 20 predefined Clothestown entries." },
-          { status: 400 }
-        );
+        if (requestedSlug !== existingCategory.slug || input.name.trim() !== existingCategory.name) {
+          return NextResponse.json(
+            { message: "Categories must use one of the 20 predefined Clothestown entries." },
+            { status: 400 }
+          );
+        }
+        name = existingCategory.name;
+        slug = existingCategory.slug;
+      } else {
+        name = definition.name;
+        slug = definition.slug;
       }
-      name = definition.name;
-      slug = definition.slug;
     } else if (input.slug !== undefined) {
       if (typeof input.slug !== "string" || !input.slug.trim()) {
         return NextResponse.json({ message: "Category slug is required." }, { status: 400 });
       }
       const definition = getCategoryDefinition(input.slug.trim().toLowerCase());
       if (!definition) {
-        return NextResponse.json(
-          { message: "Categories must use one of the 20 predefined Clothestown entries." },
-          { status: 400 }
-        );
+        if (input.slug.trim().toLowerCase() !== existingCategory.slug) {
+          return NextResponse.json(
+            { message: "Categories must use one of the 20 predefined Clothestown entries." },
+            { status: 400 }
+          );
+        }
+        name = existingCategory.name;
+        slug = existingCategory.slug;
+      } else {
+        name = definition.name;
+        slug = definition.slug;
       }
-      name = definition.name;
-      slug = definition.slug;
     }
 
     if (slug !== undefined && !slug) {
@@ -162,18 +176,19 @@ export async function PUT(
     const update: Record<string, unknown> = {};
     if (name !== undefined && slug !== undefined) {
       const definition = getCategoryDefinition(slug);
-      if (!definition) {
+      if (definition) {
+        update.name = definition.name;
+        update.slug = definition.slug;
+        update.group = definition.group;
+        update.routeGroup = definition.routeGroup;
+        update.gender = definition.gender;
+        update.sortOrder = definition.sortOrder;
+      } else if (slug !== existingCategory.slug || name !== existingCategory.name) {
         return NextResponse.json(
           { message: "Categories must use one of the 20 predefined Clothestown entries." },
           { status: 400 }
         );
       }
-      update.name = definition.name;
-      update.slug = definition.slug;
-      update.group = definition.group;
-      update.routeGroup = definition.routeGroup;
-      update.gender = definition.gender;
-      update.sortOrder = definition.sortOrder;
     }
     if (input.image !== undefined) update.image = input.image;
     if (input.bannerImage !== undefined) update.bannerImage = input.bannerImage;
@@ -271,6 +286,19 @@ export async function DELETE(
       );
     }
 
+    const childCategoryCount = await Category.countDocuments({
+      parentCategory: category._id,
+    });
+    if (childCategoryCount > 0) {
+      return NextResponse.json(
+        {
+          message:
+            `Cannot delete “${category.name}” while ${childCategoryCount} subcategor${childCategoryCount === 1 ? "y is" : "ies are"} assigned to it. Reassign or delete those subcategories first.`,
+        },
+        { status: 409 }
+      );
+    }
+
     const attachedProductCount = await Product.countDocuments({
       category: category._id,
     });
@@ -284,10 +312,6 @@ export async function DELETE(
       );
     }
 
-    await Category.updateMany(
-      { parentCategory: category._id },
-      { $set: { parentCategory: null } }
-    );
     const deletedCategory = await Category.findByIdAndDelete(id);
 
     if (!deletedCategory) {

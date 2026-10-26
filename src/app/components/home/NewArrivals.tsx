@@ -46,12 +46,12 @@ export default function NewArrivals() {
     <section className="bg-white py-7 sm:py-9">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-tight text-[#172a33] sm:text-xl">
+          <h2 className="text-lg font-bold tracking-tight text-[var(--brand-primary)] sm:text-xl">
             New Arrivals
           </h2>
           <Link
             href="/new-arrivals"
-            className="group inline-flex items-center gap-1 text-[11px] font-semibold text-[#172a33] transition hover:text-primary sm:text-xs"
+            className="group inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brand-primary)] transition hover:text-primary sm:text-xs"
           >
             View All
             <ArrowRight
@@ -65,9 +65,9 @@ export default function NewArrivals() {
           <div className="scrollbar-none -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:gap-4 sm:px-6 lg:mx-0 lg:gap-5 lg:px-0">
             {Array.from({ length: 5 }, (_, index) => (
               <div key={index} className="w-[68%] shrink-0 snap-start animate-pulse sm:w-[32%] lg:w-[23%] xl:w-[18.5%]">
-                <div className="aspect-[3/4] rounded-md bg-[#f8f1f2]" />
-                <div className="mt-2 h-3 w-3/4 rounded bg-[#f3e8eb]" />
-                <div className="mt-2 h-3 w-1/2 rounded bg-[#f3e8eb]" />
+                <div className="aspect-[3/4] rounded-md bg-[var(--section-background)]" />
+                <div className="mt-2 h-3 w-3/4 rounded bg-[var(--section-background)]" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-[var(--section-background)]" />
               </div>
             ))}
           </div>

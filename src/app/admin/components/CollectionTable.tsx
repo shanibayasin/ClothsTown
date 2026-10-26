@@ -39,7 +39,7 @@ export default function CollectionTable({
   const [loading, setLoading] = useState(true);
 
   const loadCollections = useCallback(async () => {
-    const res = await fetch("/api/collections", {
+    const res = await fetch("/api/collections?admin=true", {
       cache: "no-store",
     });
     if (!res.ok) throw new Error(`Failed to fetch collections (${res.status}).`);
@@ -121,7 +121,7 @@ export default function CollectionTable({
             onChange={(e) =>
               setSearch(e.target.value)
             }
-            className="h-11 w-full rounded-xl border pl-10 pr-4 outline-none focus:border-[#6f1d46]"
+            className="h-11 w-full rounded-xl border pl-10 pr-4 outline-none focus:border-[var(--brand-primary)]"
           />
 
         </div>
@@ -243,7 +243,7 @@ export default function CollectionTable({
                       >
                         <Copy
                           size={15}
-                          className="text-gray-500 hover:text-[#6f1d46]"
+                          className="text-gray-500 hover:text-[var(--brand-primary)]"
                         />
                       </button>
 

@@ -17,6 +17,9 @@ interface Order {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionOrderId, setActionOrderId] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -25,10 +28,15 @@ export default function OrdersPage() {
   async function fetchOrders() {
     try {
       const res = await fetch("/api/orders");
-      const data = await res.json();
+      const data = (await res.json()) as Order[] | { message?: string };
+      if (!res.ok || !Array.isArray(data)) {
+        throw new Error("message" in data ? data.message : "Failed to load orders.");
+      }
       setOrders(data);
+      setErrorMessage("");
     } catch (error) {
       console.error(error);
+      setErrorMessage(error instanceof Error ? error.message : "Failed to load orders.");
     } finally {
       setLoading(false);
     }
@@ -38,27 +46,41 @@ export default function OrdersPage() {
     id: string,
     status: string
   ) {
-    await fetch(`/api/orders/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        status,
-      }),
-    });
-
-    fetchOrders();
+    setActionOrderId(id);
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      const response = await fetch(`/api/orders/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error("Failed to update the order status.");
+      setSuccessMessage("Order status updated.");
+      await fetchOrders();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to update the order status.");
+    } finally {
+      setActionOrderId("");
+    }
   }
 
   async function deleteOrder(id: string) {
     if (!confirm("Delete this order?")) return;
 
-    await fetch(`/api/orders/${id}`, {
-      method: "DELETE",
-    });
-
-    fetchOrders();
+    setActionOrderId(id);
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      const response = await fetch(`/api/orders/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete the order.");
+      setSuccessMessage("Order deleted.");
+      await fetchOrders();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to delete the order.");
+    } finally {
+      setActionOrderId("");
+    }
   }
 
   function badge(status: string) {
@@ -92,15 +114,18 @@ export default function OrdersPage() {
           Orders
         </h1>
 
-        <span className="rounded-xl bg-[#6f1d46] px-4 py-2 text-white">
+        <span className="rounded-xl bg-[var(--brand-primary)] px-4 py-2 text-white">
           {orders.length} Orders
         </span>
 
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow">
+      {errorMessage && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</p>}
+      {successMessage && <p role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</p>}
 
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+
+        <table className="w-full min-w-[920px]">
 
           <thead className="bg-gray-50">
 
@@ -199,13 +224,14 @@ export default function OrdersPage() {
 
                     <select
                       value={order.status}
+                      disabled={actionOrderId === order._id}
                       onChange={(e) =>
                         updateStatus(
                           order._id,
                           e.target.value
                         )
                       }
-                      className={`rounded-lg px-3 py-2 ${badge(
+                      className={`rounded-md px-3 py-2 disabled:opacity-60 ${badge(
                         order.status
                       )}`}
                     >
@@ -251,10 +277,12 @@ export default function OrdersPage() {
                       </Link>
 
                       <button
+                        type="button"
+                        disabled={actionOrderId === order._id}
                         onClick={() =>
                           deleteOrder(order._id)
                         }
-                        className="rounded-lg bg-red-500 px-4 py-2 text-white"
+                        className="rounded-md bg-red-500 px-4 py-2 text-white disabled:cursor-wait disabled:opacity-60"
                       >
                         Delete
                       </button>

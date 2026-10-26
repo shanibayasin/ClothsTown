@@ -158,11 +158,11 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             {editingId ? (
               <>
-                <Edit3 size={20} className="text-[#6f1d46]" /> Edit Collection
+                <Edit3 size={20} className="text-[var(--brand-primary)]" /> Edit Collection
               </>
             ) : (
               <>
-                <FolderPlus size={20} className="text-[#6f1d46]" /> Add New Collection
+                <FolderPlus size={20} className="text-[var(--brand-primary)]" /> Add New Collection
               </>
             )}
           </h2>
@@ -190,7 +190,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
               value={form.title}
               onChange={handleChange}
               placeholder="e.g., Summer Collection"
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d46]/20 focus:border-[#6f1d46] transition-all"
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] transition-all"
               required
             />
           </div>
@@ -210,7 +210,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
             {form.slug && (
               <p className="mt-2 text-xs text-slate-500">
                 URL:
-                <span className="ml-1 font-semibold text-[#6f1d46]">
+                <span className="ml-1 font-semibold text-[var(--brand-primary)]">
                   /collections/{form.slug}
                 </span>
               </p>
@@ -227,7 +227,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
               value={form.subtitle}
               onChange={handleChange}
               placeholder="e.g., Winter Essentials"
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d46]/20 focus:border-[#6f1d46] transition-all"
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] transition-all"
               required
             />
           </div>
@@ -243,7 +243,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
               value={form.buttonText}
               onChange={handleChange}
               placeholder="e.g., Shop Collection"
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d46]/20 focus:border-[#6f1d46] transition-all"
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] transition-all"
             />
           </div>
 
@@ -255,7 +255,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
               value={form.buttonLink}
               onChange={handleChange}
               placeholder="e.g., /shop/summer-collection"
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d46]/20 focus:border-[#6f1d46] transition-all"
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] transition-all"
             />
           </div>
         </div>
@@ -271,7 +271,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
             value={form.description}
             onChange={handleChange}
             placeholder="Describe the fabric traits, aesthetic style themes..."
-            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d46]/20 focus:border-[#6f1d46] transition-all resize-none"
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] transition-all resize-none"
             required
           />
         </div>
@@ -283,17 +283,17 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
           </label>
 
           {!form.image ? (
-            <label className={`flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 hover:border-[#6f1d46] transition-all cursor-pointer group ${uploading ? 'pointer-events-none opacity-60' : ''}`}>
+            <label className={`flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 hover:border-[var(--brand-primary)] transition-all cursor-pointer group ${uploading ? 'pointer-events-none opacity-60' : ''}`}>
               {uploading ? (
                 <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="h-6 w-6 text-[#6f1d46] animate-spin" />
+                  <Loader2 className="h-6 w-6 text-[var(--brand-primary)] animate-spin" />
                   <p className="text-sm text-slate-600 font-medium">Processing assets...</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload size={28} className="text-slate-400 mb-2 group-hover:text-[#6f1d46] group-hover:scale-105 transition-all" />
+                  <Upload size={28} className="text-slate-400 mb-2 group-hover:text-[var(--brand-primary)] group-hover:scale-105 transition-all" />
                   <p className="mb-1 text-sm text-slate-600 font-medium">Click to upload banner</p>
-                  <p className="text-xs text-slate-400">Optimal aspect ratio 16:9 (Max 5MB)</p>
+                  <p className="text-xs text-slate-400">Optimal aspect ratio 16:9 (Max 4 MB)</p>
                 </div>
               )}
               <input
@@ -339,7 +339,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
               onChange={handleChange}
               className="sr-only peer" 
             />
-            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#6f1d46]"></div>
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand-primary)]"></div>
           </label>
         </div>
 
@@ -359,7 +359,7 @@ export default function CollectionForm({ editing, onSuccess }: Props) {
           <button
             type="submit"
             disabled={loading || uploading}
-            className="px-5 py-2.5 bg-[#6f1d46] hover:bg-[#5d163a] text-white rounded-xl text-sm font-semibold shadow-sm transition-colors flex items-center gap-2 cursor-pointer disabled:bg-slate-300 disabled:cursor-not-allowed disabled:pointer-events-none"
+            className="px-5 py-2.5 flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--brand-primary)] text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? "Saving Records..." : editingId ? "Update Collection" : "Publish Collection"}

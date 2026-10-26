@@ -6,12 +6,17 @@ import { requireAdmin } from "@/lib/admin-auth";
 // =========================================================
 // 1. GET ALL COLLECTIONS
 // =========================================================
-export async function GET() {
+export async function GET(request: Request) {
+  const includeInactive = new URL(request.url).searchParams.get("admin") === "true";
+  if (includeInactive) {
+    const unauthorized = requireAdmin(request);
+    if (unauthorized) return unauthorized;
+  }
+
   try {
     await connectDB();
 
-    // Latest collections sab se pehle show karne ke liye sort lagaya hai
-    const collections = await Collection.find().sort({
+    const collections = await Collection.find(includeInactive ? {} : { status: true }).sort({
       createdAt: -1,
     });
 

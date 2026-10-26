@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import ProductImage from "@/app/components/product/ProductImage";
 import { ArrowLeft, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { getCartItemKey, useCart } from "@/context/CartContext";
 
@@ -67,8 +67,8 @@ export default function CartPage() {
                     className="grid grid-cols-[64px_minmax(0,1fr)_24px] items-center gap-x-3 gap-y-3 border-b border-slate-100 px-3 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_100px_120px_100px_24px] sm:gap-4 sm:px-5 sm:py-3.5"
                   >
                     <div className="relative row-span-2 aspect-square w-16 overflow-hidden rounded-lg border border-slate-100 bg-slate-50 sm:row-span-1 sm:flex sm:h-14 sm:w-14 sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent">
-                      <Image
-                        src={item.image || "/placeholder-product.svg"}
+                      <ProductImage
+                        src={item.image}
                         alt={item.name}
                         fill
                         sizes="64px"

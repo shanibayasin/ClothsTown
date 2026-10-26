@@ -1,4 +1,4 @@
-import mongoose, { Schema, models, model } from "mongoose";
+import { Schema, models, model } from "mongoose";
 
 const OrderSchema = new Schema(
   {
@@ -56,6 +56,11 @@ const OrderSchema = new Schema(
     ],
 
     total: Number,
+
+    inventoryReserved: {
+      type: Boolean,
+      default: false,
+    },
 
     status: {
       type: String,

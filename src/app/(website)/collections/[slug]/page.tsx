@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import Collection from "@/models/Collection";
 import Product from "@/models/Product";
+import { getActiveProductFilter } from "@/lib/products";
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
@@ -36,8 +37,9 @@ export default async function CollectionPage({
     );
   }
 
-  const collection: any = await Collection.findOne({
+  const collection = await Collection.findOne({
     slug: normalizedSlug,
+    status: true,
   }).lean();
 
   if (!collection) {
@@ -50,13 +52,14 @@ export default async function CollectionPage({
     );
   }
 
-  const products: any[] = await Product.find({
-    $or: [
-      { collections: collection._id },
-      { collection: collection._id },
-    ],
-    status: true,
-  })
+  const products = await Product.find(
+    getActiveProductFilter({
+      $or: [
+        { collections: collection._id },
+        { collection: collection._id },
+      ],
+    })
+  )
     .populate("category")
     .populate("collection")
     .populate("collections")
@@ -65,11 +68,11 @@ export default async function CollectionPage({
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-8">
       <nav aria-label="Breadcrumb" className="mb-3 text-xs text-[#806d75]">
-        <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+        <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
-        <Link href="/collections" className="hover:text-[#6f1d46]">Collections</Link>
+        <Link href="/collections" className="hover:text-[var(--brand-primary)]">Collections</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium text-[#321b27]">{collection.title}</span>
+        <span className="font-medium text-[var(--brand-primary)]">{collection.title}</span>
       </nav>
       <HeroBanner
         name={collection.title}

@@ -14,7 +14,7 @@ export default async function CollectionsPage() {
     return (
       <main className="min-h-screen bg-[#faf7f8]">
         <section className="mx-auto max-w-7xl px-6 py-20 text-center">
-          <h1 className="text-4xl font-bold text-[#6f1d46]">
+          <h1 className="text-4xl font-bold text-[var(--brand-primary)]">
             Collections temporarily unavailable
           </h1>
           <p className="mt-4 text-gray-500">

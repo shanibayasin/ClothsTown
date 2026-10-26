@@ -8,6 +8,7 @@ import {
   Heart,
   ShoppingCart,
   User,
+  Search,
   X,
   ChevronDown,
   Snowflake,
@@ -17,6 +18,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
 import ProductSearch from "@/app/components/layout/ProductSearch";
+import BrandLogo from "@/app/components/layout/BrandLogo";
 import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 type Collection = {
@@ -71,6 +73,7 @@ export default function Navbar() {
   const [showDepartmentMenu, setShowDepartmentMenu] = useState("");
   const [showCollectionMenu, setShowCollectionMenu] = useState(false);
   const [openMegaMenu, setOpenMegaMenu] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const currentYear = new Date().getFullYear();
@@ -186,11 +189,13 @@ export default function Navbar() {
     const closeOnOutsideClick = (event: MouseEvent) => {
       if (!headerRef.current?.contains(event.target as Node)) {
         setOpenMegaMenu("");
+        setSearchOpen(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpenMegaMenu("");
+        setSearchOpen(false);
         setIsOpen(false);
       }
     };
@@ -205,13 +210,13 @@ export default function Navbar() {
 
   const navigationItems = useMemo(
     () => [
-      { name: "NEW IN", href: "/new-arrivals", key: "NEW IN" },
-      { name: "WOMEN", href: "/shop/women", key: "WOMEN" },
-      { name: "MEN", href: "/shop/men", key: "MEN" },
-      { name: "GIRLS", href: "/shop/girls", key: "GIRLS" },
-      { name: "BOYS", href: "/shop/boys", key: "BOYS" },
-      { name: "SALE", href: "/shop?sale=true", key: "SALE" },
-      { name: "ACCESSORIES", href: "/shop/accessories", key: "ACCESSORIES" },
+      { name: "Men", href: "/shop/men", key: "MEN" },
+      { name: "Women", href: "/shop/women", key: "WOMEN" },
+      { name: "Girls", href: "/shop/girls", key: "GIRLS" },
+      { name: "Boys", href: "/shop/boys", key: "BOYS" },
+      { name: "Accessories", href: "/shop/accessories", key: "ACCESSORIES" },
+      { name: "New Arrivals", href: "/new-arrivals", key: "NEW IN" },
+      { name: "Sale", href: "/shop?sale=true", key: "SALE" },
     ],
     []
   );
@@ -290,6 +295,16 @@ export default function Navbar() {
       MEN: department("Men", "/shop/men", "men"),
       GIRLS: department("Girls", "/shop/girls", "girls"),
       BOYS: department("Boys", "/shop/boys", "boys"),
+      MORE: [
+        {
+          title: "Shop more",
+          links: [
+            { label: "Girls", href: "/shop/girls" },
+            { label: "Boys", href: "/shop/boys" },
+            { label: "Collections", href: "/collections" },
+          ],
+        },
+      ],
       SALE: [
         {
           title: "Shop Sale",
@@ -351,61 +366,142 @@ export default function Navbar() {
     <>
       <header
         ref={headerRef}
-        className={`sticky top-0 z-100 border-b border-gray-200 transition-all duration-300 ${
+        className={`sticky top-0 z-100 border-b border-[var(--border-color)] transition-all duration-300 ${
           scrolled
-            ? "bg-white/95 shadow-md backdrop-blur-xl"
-            : "bg-white"
+            ? "bg-[var(--page-background)]/95 shadow-sm backdrop-blur-xl"
+            : "bg-[var(--page-background)]"
         }`}
       >
-        <div className={`mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:px-6 md:grid-cols-[minmax(220px,0.85fr)_minmax(180px,1.45fr)_minmax(190px,0.6fr)] md:gap-5 lg:gap-8 lg:px-8 ${isAccountPage ? "h-[58px] sm:h-[66px] md:h-[72px] lg:h-[72px] lg:grid-cols-[minmax(210px,0.85fr)_minmax(180px,1.45fr)_minmax(165px,0.6fr)] lg:px-14" : "h-[58px] sm:h-[68px] md:h-[82px] lg:h-[98px]"}`}>
+        <div className="relative mx-auto grid h-[58px] w-full max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:h-16 sm:px-6 md:h-[68px] md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-4 lg:px-10">
           <div className="flex min-w-0 items-center">
-            <Link href="/" aria-label="ClothesTown home" className="flex min-w-0 items-center gap-2 text-[#102633] sm:gap-3">
-              <svg aria-hidden="true" viewBox="0 0 72 56" className={`shrink-0 ${isAccountPage ? "h-7 w-9 sm:h-8 sm:w-10 lg:h-8 lg:w-11" : "h-7 w-9 sm:h-11 sm:w-14 lg:h-14 lg:w-[70px]"}`} fill="none">
-                <path d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className={`truncate whitespace-nowrap font-bold tracking-tight ${isAccountPage ? "text-[14px] sm:text-xl lg:text-[24px]" : "text-[14px] sm:text-xl lg:text-[30px]"}`}>
-                ClothesTown
-              </span>
+            <Link
+              href="/"
+              aria-label="ClothesTown home"
+              onClick={() => {
+                setOpenMegaMenu("");
+                setSearchOpen(false);
+              }}
+              className="flex min-w-0 items-center gap-1.5 text-[var(--brand-primary)] sm:gap-2"
+            >
+              <BrandLogo />
             </Link>
           </div>
 
-          <ProductSearch id="header-product-search" accountPage={isAccountPage} />
+          <nav aria-label="Main navigation" className="hidden min-w-0 items-center justify-center gap-2 md:flex lg:gap-5 xl:gap-7">
+            <Link
+              href="/"
+              aria-current={pathname === "/" ? "page" : undefined}
+              onClick={() => {
+                setOpenMegaMenu("");
+                setSearchOpen(false);
+              }}
+              className={`relative flex h-[68px] shrink-0 items-center text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-xs ${
+                pathname === "/" ? "text-[var(--brand-primary)]" : "text-[var(--text-primary)] hover:text-[var(--brand-secondary-foreground)]"
+              }`}
+            >
+              Home
+              {pathname === "/" && <span className="absolute bottom-3 left-0 right-0 h-px bg-[var(--brand-secondary)]" />}
+            </Link>
+            {navigationItems
+              .filter((item) => !["GIRLS", "BOYS"].includes(item.key))
+              .map((item) => {
+                const hasMenu = ["MEN", "WOMEN", "ACCESSORIES"].includes(item.key);
+                const active =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href.split("?")[0]}/`);
+                const isMenuOpen = openMegaMenu === item.key;
 
-          <div className="flex shrink-0 items-center">
+                if (!hasMenu) {
+                  return (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => {
+                        setOpenMegaMenu("");
+                        setSearchOpen(false);
+                      }}
+                      className={`shrink-0 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-xs ${
+                        active ? "text-[var(--brand-primary)]" : "text-[var(--text-primary)] hover:text-[var(--brand-secondary-foreground)]"
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    aria-haspopup="true"
+                    aria-expanded={isMenuOpen}
+                    aria-controls="navbar-mega-menu"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      setOpenMegaMenu((current) => current === item.key ? "" : item.key);
+                    }}
+                    className={`flex shrink-0 items-center gap-0.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-xs ${
+                      active || isMenuOpen ? "text-[var(--brand-primary)]" : "text-[var(--text-primary)] hover:text-[var(--brand-secondary-foreground)]"
+                    }`}
+                  >
+                    {item.name}
+                    <ChevronDown size={11} aria-hidden="true" />
+                  </button>
+                );
+              })}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-0.5 text-[var(--brand-primary)] sm:gap-1">
+            <button
+              type="button"
+              aria-label={searchOpen ? "Close product search" : "Open product search"}
+              aria-expanded={searchOpen}
+              onClick={() => {
+                setOpenMegaMenu("");
+                setSearchOpen((current) => !current);
+              }}
+              className="hidden size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9 md:flex"
+            >
+              {searchOpen ? <X size={16} /> : <Search size={16} strokeWidth={1.7} />}
+            </button>
             <Link
               href="/login"
               aria-label="Account login and registration"
-              className={`flex flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] text-[#102633] transition hover:text-primary md:border-l-0 ${isAccountPage ? "h-10 min-w-9 px-1.5 sm:h-12 sm:min-w-[58px] sm:px-2 lg:h-10 lg:min-w-[58px] lg:px-1" : "h-10 min-w-9 px-1.5 sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"}`}
+              className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9"
             >
-              <User size={20} strokeWidth={1.8} className={isAccountPage ? "sm:size-5 lg:size-[19px]" : "lg:size-[26px]"} />
-              <span className={`hidden leading-none sm:block ${isAccountPage ? "text-[9px]" : "text-xs lg:text-[14px]"}`}>Account</span>
+              <User size={16} strokeWidth={1.7} />
             </Link>
 
-            <Link href="/wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`} className={`flex flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] text-[#102633] transition hover:text-primary ${isAccountPage ? "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[58px] sm:px-2 lg:h-10 lg:min-w-[58px] lg:px-1" : "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"}`}>
+            <Link href="/wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`} className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9">
               <span className="relative">
-                <Heart size={18} strokeWidth={1.8} className={isAccountPage ? "sm:size-5 lg:size-[19px]" : "sm:size-5 lg:size-[26px]"} />
-                {wishlistCount > 0 && <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">{wishlistCount}</span>}
+                <Heart size={16} strokeWidth={1.7} />
+                {wishlistCount > 0 && <span className="absolute -right-2 -top-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--brand-secondary)] px-1 text-[8px] font-bold text-white">{wishlistCount}</span>}
               </span>
-              <span className={`hidden leading-none sm:block ${isAccountPage ? "text-[9px]" : "text-xs lg:text-[14px]"}`}>Wishlist</span>
             </Link>
 
-            <Link href="/cart" aria-label={`Cart${totalCartItems ? `, ${totalCartItems} items` : ""}`} className={`flex flex-col items-center justify-center gap-0.5 border-l border-[#dfe4e8] text-[#102633] transition hover:text-primary ${isAccountPage ? "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[58px] sm:px-2 lg:h-10 lg:min-w-[58px] lg:px-1" : "h-9 min-w-8 px-1 sm:h-12 sm:min-w-[72px] sm:px-3 lg:h-[54px] lg:min-w-[112px]"}`}>
+            <Link href="/cart" aria-label={`Cart${totalCartItems ? `, ${totalCartItems} items` : ""}`} className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9">
               <span className="relative">
-                <ShoppingCart size={18} strokeWidth={1.8} className={isAccountPage ? "sm:size-5 lg:size-[19px]" : "sm:size-5 lg:size-[26px]"} />
-                <span className="absolute -right-2.5 -top-2.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{totalCartItems}</span>
+                <ShoppingCart size={16} strokeWidth={1.7} />
+                {totalCartItems > 0 && <span className="absolute -right-2 -top-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--brand-secondary)] px-1 text-[8px] font-bold text-white">{totalCartItems}</span>}
               </span>
-              <span className={`hidden leading-none sm:block ${isAccountPage ? "text-[9px]" : "text-xs lg:text-[14px]"}`}>Cart</span>
             </Link>
             <button
               type="button"
               onClick={() => setIsOpen(true)}
               aria-label="Open navigation menu"
               aria-expanded={isOpen}
-              className="ml-1 flex size-9 shrink-0 items-center justify-center rounded-md text-[#102633] transition hover:bg-gray-100 md:hidden"
+              className="ml-0.5 flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] md:hidden"
             >
-              <Menu size={22} />
+              <Menu size={20} />
             </button>
           </div>
+
+          {searchOpen && (
+            <div className="absolute right-3 top-full z-50 w-[min(400px,calc(100vw-24px))] rounded-b-lg border border-[var(--border-color)] bg-white p-3 shadow-lg sm:right-6 md:right-10">
+              <ProductSearch id="header-product-search" accountPage={isAccountPage} />
+            </div>
+          )}
         </div>
 
         <ProductSearch id="mobile-product-search" compact />
@@ -429,10 +525,10 @@ export default function Navbar() {
                       type="button"
                       aria-expanded={showCollectionMenu}
                       onClick={() => setShowCollectionMenu((prev) => !prev)}
-                      className={`flex h-full items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-primary" : "text-[#172a33] hover:text-primary"}`}
+                      className={`flex h-full items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-primary" : "text-[var(--brand-primary)] hover:text-primary"}`}
                     >
                       {link.name}
-                      <Snowflake size={16} className="text-[#3b82f6]" />
+                      <Snowflake size={16} className="text-secondary-foreground" />
                     </button>
                     {showCollectionMenu && (
                       <div className="absolute left-0 top-full z-50 w-72 rounded-b-xl border border-gray-200 bg-white p-3 shadow-xl">
@@ -477,12 +573,12 @@ export default function Navbar() {
                       href={link.href}
                       aria-haspopup="true"
                       aria-expanded={menuOpen}
-                      className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
+                      className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[var(--brand-primary)]" : "text-[var(--brand-primary)] hover:text-primary"}`}
                     >
                       Accessories
                       <ChevronDown size={14} strokeWidth={2.2} />
                       {active && (
-                        <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[#102633] lg:bottom-[7px]" />
+                        <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[var(--brand-primary)] lg:bottom-[7px]" />
                       )}
                     </Link>
                     {menuOpen && (
@@ -522,7 +618,7 @@ export default function Navbar() {
                             <Link
                               href={link.href}
                               onClick={() => setShowDepartmentMenu("")}
-                              className="relative block min-h-[240px] overflow-hidden rounded-sm bg-[#f5f2ed]"
+                              className="relative block min-h-[240px] overflow-hidden rounded-sm bg-[var(--section-background)]"
                             >
                               <Image
                                 src={accessoriesMenuImage}
@@ -536,7 +632,7 @@ export default function Navbar() {
                             <Link
                               href={link.href}
                               onClick={() => setShowDepartmentMenu("")}
-                              className="flex min-h-[240px] items-center justify-center bg-[#f5f2ed] text-sm font-semibold uppercase tracking-wide text-[#172a33]"
+                              className="flex min-h-[240px] items-center justify-center bg-[var(--section-background)] text-sm font-semibold uppercase tracking-wide text-[var(--brand-primary)]"
                             >
                               Shop Accessories
                             </Link>
@@ -545,7 +641,7 @@ export default function Navbar() {
                         <Link
                           href={link.href}
                           onClick={() => setShowDepartmentMenu("")}
-                          className="mt-5 inline-block border-t border-gray-100 pt-4 text-sm font-semibold text-[#172a33] hover:text-primary"
+                          className="mt-5 inline-block border-t border-gray-100 pt-4 text-sm font-semibold text-[var(--brand-primary)] hover:text-primary"
                         >
                           Shop All Accessories
                         </Link>
@@ -575,12 +671,12 @@ export default function Navbar() {
                       href={link.href}
                       aria-haspopup="true"
                       aria-expanded={menuOpen}
-                      className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
+                      className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[var(--brand-primary)]" : "text-[var(--brand-primary)] hover:text-primary"}`}
                     >
                       {sectionName}
                       <ChevronDown size={14} strokeWidth={2.2} />
                       {active && (
-                        <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[#102633] lg:bottom-[7px]" />
+                        <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[var(--brand-primary)] lg:bottom-[7px]" />
                       )}
                     </Link>
                     {menuOpen && (
@@ -588,7 +684,7 @@ export default function Navbar() {
                         <Link
                           href={link.href}
                           onClick={() => setShowDepartmentMenu("")}
-                          className="block border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-[#172a33] transition hover:bg-gray-50 hover:text-primary"
+                          className="block border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-[var(--brand-primary)] transition hover:bg-gray-50 hover:text-primary"
                         >
                           All {sectionName} Wear
                         </Link>
@@ -617,55 +713,16 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[#102633]" : "text-[#172a33] hover:text-primary"}`}
+                  className={`relative flex h-full shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-semibold transition-colors lg:text-[14px] ${active ? "text-[var(--brand-primary)]" : "text-[var(--brand-primary)] hover:text-primary"}`}
                 >
                   {link.name}
                   {"hasChevron" in link && link.hasChevron && <ChevronDown size={14} strokeWidth={2.2} />}
-                  {active && <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[#102633] lg:bottom-[7px]" />}
+                  {active && <span className="absolute bottom-1 left-0 right-0 h-[3px] rounded-full bg-[var(--brand-primary)] lg:bottom-[7px]" />}
                 </Link>
               );
             })}
           </div>
         </nav>
-
-        {!isAccountPage && (
-          <nav aria-label="Main navigation" className="relative z-30 hidden border-t border-white/10 bg-black text-white md:block">
-            <div className="mx-auto flex h-11 max-w-[1440px] items-center justify-center gap-4 overflow-x-auto px-4 sm:gap-7 lg:h-[58px] lg:gap-12">
-              {navigationItems.map((item) => {
-                const isOpen = openMegaMenu === item.key;
-                const active = pathname === item.href || pathname.startsWith(`${item.href.split("?")[0]}/`);
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    aria-haspopup="true"
-                    aria-expanded={isOpen}
-                    aria-controls="navbar-mega-menu"
-                    onClick={() =>
-                      setOpenMegaMenu((current) =>
-                        current === item.key ? "" : item.key
-                      )
-                    }
-                    className={`flex h-full shrink-0 items-center gap-1 border-b-2 px-1 text-[10px] font-semibold tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:text-xs lg:text-[13px] ${
-                      item.key === "SALE"
-                        ? "border-transparent text-red-500 hover:text-red-400"
-                        : isOpen || active
-                          ? "border-white text-white"
-                          : "border-transparent text-white hover:text-gray-300"
-                    }`}
-                  >
-                    {item.name}
-                    <ChevronDown
-                      size={13}
-                      aria-hidden="true"
-                      className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        )}
 
         {!isAccountPage && (
           <div
@@ -761,7 +818,7 @@ export default function Navbar() {
                           />
                         </button>
                         {menuExpanded && (
-                          <div id={`mobile-menu-${link.name.toLowerCase().replaceAll(" ", "-")}`} className="mb-4 ml-3 space-y-4 border-l border-[#e5e7eb] pl-4">
+                          <div id={`mobile-menu-${link.name.toLowerCase().replaceAll(" ", "-")}`} className="mb-4 ml-3 space-y-4 border-l border-border pl-4">
                             {groups.map((group) => (
                               <section key={group.title}>
                                 <h2 className="pb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
@@ -824,7 +881,7 @@ export default function Navbar() {
 
               {/* Mobile Account Access CTA */}
               <div className="mt-10 px-6">
-                <div className="rounded-2xl border border-[#f0dce5] bg-[#faf5f7] p-4">
+                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--section-background)] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
                     My Account
                   </p>

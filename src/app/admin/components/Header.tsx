@@ -43,7 +43,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   });
 
   return (
-    <header className="flex h-16 md:h-20 items-center justify-between border-b bg-white px-4 md:px-8 shadow-sm">
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 shadow-soft md:h-20 md:px-8">
       
       {/* LEFT SIDE: LOGO/MENU & TITLE WITH BREADCRUMBS */}
       <div className="flex items-center gap-3">
@@ -51,18 +51,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
           type="button"
           onClick={onMenuClick}
           aria-label="Toggle navigation menu"
-          className="rounded-lg border p-2 transition-colors hover:bg-gray-50 lg:hidden"
+          className="rounded-control border border-border p-2 transition-colors hover:bg-section lg:hidden"
         >
-          <Menu size={20} className="text-gray-600" />
+          <Menu size={20} className="text-muted" />
         </button>
 
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight text-primary md:text-2xl">
             {pageTitle}
           </h1>
 
           {/* Clean Dynamic Breadcrumbs Wrapper */}
-          <nav className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs font-medium text-gray-400">
+          <nav className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted">
             <Link href="/admin" className="hover:text-primary transition-colors">
               Home
             </Link>
@@ -75,11 +75,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
               return (
                 <div key={item.href} className="flex items-center gap-1.5">
-                  <ChevronRight size={12} className="text-gray-300" />
+                  <ChevronRight size={12} className="text-border" />
                   
                   {isLast ? (
                     // Last/Current Page link nahi hoga aur iska color dark hoga
-                    <span className="text-gray-600 font-semibold selection:bg-transparent">
+                    <span className="font-semibold text-text selection:bg-transparent">
                       {item.name}
                     </span>
                   ) : (
@@ -102,17 +102,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="flex items-center gap-3">
         
         {/* Search Action */}
-        <button className="flex h-10 w-10 items-center justify-center rounded-xl border text-gray-500 hover:bg-gray-50 transition-all">
+        <button className="flex h-10 w-10 items-center justify-center rounded-control border border-border text-muted transition-colors hover:bg-section">
           <Search size={18} />
         </button>
 
         {/* Notifications Trigger */}
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border text-gray-500 hover:bg-gray-50 transition-all">
+        <button className="relative flex h-10 w-10 items-center justify-center rounded-control border border-border text-muted transition-colors hover:bg-section">
           <Bell size={18} />
-          <span className="absolute right-2.5 top-2.5 h-2 w-2 animate-pulse rounded-full bg-black"></span>
+          <span className="absolute right-2.5 top-2.5 h-2 w-2 animate-pulse rounded-full bg-secondary"></span>
         </button>
 
-        <div className="hidden md:block h-8 w-px bg-gray-200 mx-1"></div>
+        <div className="mx-1 hidden h-8 w-px bg-border md:block"></div>
 
         {/* Identity / User Session Control */}
         <div className="flex items-center gap-3 select-none">
@@ -121,10 +121,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
 
           <div className="hidden md:block leading-tight">
-            <h4 className="text-sm font-semibold text-gray-800">
+            <h4 className="text-sm font-semibold text-text">
               Admin
             </h4>
-            <p className="text-[11px] font-medium text-gray-400">
+            <p className="text-[11px] font-medium text-muted">
               Administrator
             </p>
           </div>

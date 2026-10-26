@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { Search } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
+import ProductImage from "@/app/components/product/ProductImage";
 
 interface CollectionProduct {
   _id: string;
@@ -165,7 +165,7 @@ export default function CollectionProductManager({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search products..."
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-[#6f1d46]"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-[var(--brand-primary)]"
           />
         </label>
       </div>
@@ -201,7 +201,7 @@ export default function CollectionProductManager({
                   key={product._id}
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 transition ${
                     selected
-                      ? "border-[#6f1d46]/40 bg-[#fff8fa]"
+                      ? "border-[var(--brand-primary)]/40 bg-[var(--page-background)]"
                       : "border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -215,11 +215,11 @@ export default function CollectionProductManager({
                           : [...current, product._id]
                       )
                     }
-                    className="size-4 shrink-0 accent-[#6f1d46]"
+                    className="size-4 shrink-0 accent-[var(--brand-primary)]"
                   />
                   <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                    <Image
-                      src={product.images?.[0] || "/placeholder-product.svg"}
+                    <ProductImage
+                      src={product.images?.[0]}
                       alt=""
                       fill
                       sizes="56px"
@@ -247,7 +247,7 @@ export default function CollectionProductManager({
           type="button"
           onClick={() => void saveAssignments()}
           disabled={loading || saving}
-          className="min-h-10 rounded-lg bg-[#6f1d46] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5d163a] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-10 rounded-lg bg-[var(--brand-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save products"}
         </button>

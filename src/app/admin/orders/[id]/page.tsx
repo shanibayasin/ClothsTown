@@ -1,4 +1,4 @@
-import Image from "next/image";
+import ProductImage from "@/app/components/product/ProductImage";
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
 
@@ -8,6 +8,15 @@ interface Props {
   }>;
 }
 
+interface OrderProductView {
+  image: string;
+  name: string;
+  size: string;
+  color: string;
+  quantity: number;
+  price: number;
+}
+
 export default async function OrderDetails({
   params,
 }: Props) {
@@ -15,7 +24,7 @@ export default async function OrderDetails({
 
   const { id } = await params;
 
-  const order: any = await Order.findById(id).lean();
+  const order = await Order.findById(id).lean();
 
   if (!order) {
     return (
@@ -135,7 +144,7 @@ export default async function OrderDetails({
 
         <div className="space-y-6">
 
-          {order.products.map((product: any, index: number) => (
+          {order.products.map((product: OrderProductView, index: number) => (
 
             <div
               key={index}
@@ -144,7 +153,7 @@ export default async function OrderDetails({
 
               <div className="relative h-32 w-28 overflow-hidden rounded-lg">
 
-                <Image
+                <ProductImage
                   src={product.image}
                   alt={product.name}
                   fill
@@ -177,7 +186,7 @@ export default async function OrderDetails({
 
                 <div className="text-right">
 
-                  <p className="text-lg font-bold text-[#6f1d46]">
+                  <p className="text-lg font-bold text-[var(--brand-primary)]">
                     Rs. {product.price}
                   </p>
 
@@ -233,7 +242,7 @@ export default async function OrderDetails({
 
           <span>Grand Total</span>
 
-          <span className="text-[#6f1d46]">
+          <span className="text-[var(--brand-primary)]">
             Rs. {order.total}
           </span>
 
@@ -241,7 +250,7 @@ export default async function OrderDetails({
 
         <button
           onClick={() => window.print()}
-          className="mt-6 rounded-xl bg-[#6f1d46] px-8 py-3 text-white"
+          className="mt-6 rounded-xl bg-[var(--brand-primary)] px-8 py-3 text-white"
         >
           Print Invoice
         </button>

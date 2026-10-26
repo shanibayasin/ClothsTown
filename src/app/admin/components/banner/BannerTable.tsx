@@ -112,7 +112,7 @@ export default function BannerTable({
             placeholder="Filter arrays by title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-xl border border-slate-200 pl-10 pr-4 text-sm outline-none focus:border-[#6f1d46] transition bg-white"
+            className="h-10 w-full rounded-xl border border-slate-200 pl-10 pr-4 text-sm outline-none focus:border-[var(--brand-primary)] transition bg-white"
           />
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function BannerTable({
               filtered.map((item) => (
                 <tr
                   key={item._id}
-                  className="hover:bg-[#faf5f7]/30 transition duration-150"
+                  className="hover:bg-[var(--section-background)]/30 transition duration-150"
                 >
                   {/* Visual Image Render */}
                   <td className="p-4 pl-6">

@@ -1,13 +1,16 @@
 export const theme = {
   colors: {
-    primary: "#6F1D46",
-    primaryDark: "#4B1532",
-    secondary: "#D98DA5",
-    background: "#FFF8F8",
-    section: "#FDF1F4",
-    text: "#5F5F5F",
-    heading: "#4B1532",
-    border: "#E8C8D2",
+    primary: "var(--brand-primary)",
+    primaryDark: "var(--brand-primary-hover)",
+    secondary: "var(--brand-secondary)",
+    secondaryForeground: "var(--brand-secondary-foreground)",
+    background: "var(--page-background)",
+    section: "var(--section-background)",
+    card: "var(--card-background)",
+    text: "var(--text-primary)",
+    muted: "var(--text-secondary)",
+    heading: "var(--brand-primary)",
+    border: "var(--border-color)",
   },
 
   spacing: {
@@ -16,9 +19,9 @@ export const theme = {
   },
 
   radius: {
-    sm: "rounded-md",
-    md: "rounded-xl",
-    lg: "rounded-2xl",
+    sm: "rounded-control",
+    md: "rounded-card",
+    lg: "rounded-panel",
     full: "rounded-full",
   },
 };

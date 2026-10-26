@@ -50,9 +50,9 @@ export default async function CategoryPage({
   return (
     <main className="mx-auto min-h-[60vh] max-w-7xl bg-white px-6 py-8">
       <nav aria-label="Breadcrumb" className="mb-3 text-xs text-[#6d5961]">
-        <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+        <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium text-[#321b27]">{category.name}</span>
+        <span className="font-medium text-[var(--brand-primary)]">{category.name}</span>
       </nav>
       <HeroBanner
         name={category.name}

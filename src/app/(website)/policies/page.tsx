@@ -9,10 +9,10 @@ const policies = [
       <p>
         Delivery options, charges, and estimated timing are shown during
         checkout when available. For help with an existing shipment, visit{" "}
-        <Link className="text-[#6f1d46] underline" href="/track-order">
+        <Link className="text-[var(--brand-primary)] underline" href="/track-order">
           Track Order
         </Link>{" "}
-        or <Link className="text-[#6f1d46] underline" href="/contact">contact us</Link>.
+        or <Link className="text-[var(--brand-primary)] underline" href="/contact">contact us</Link>.
       </p>
     ),
   },
@@ -23,7 +23,7 @@ const policies = [
       <p>
         Please contact us with your order details to ask about an exchange.
         Eligibility and next steps depend on the item and order. See our{" "}
-        <Link className="text-[#6f1d46] underline" href="/contact">
+        <Link className="text-[var(--brand-primary)] underline" href="/contact">
           Contact Us
         </Link>{" "}
         page for support.
@@ -48,7 +48,7 @@ const policies = [
       <p>
         Information you provide is used to support your shopping experience and
         respond to your requests. For questions about your personal
-        information, please <Link className="text-[#6f1d46] underline" href="/contact">contact us</Link>.
+        information, please <Link className="text-[var(--brand-primary)] underline" href="/contact">contact us</Link>.
       </p>
     ),
   },
@@ -60,7 +60,7 @@ const policies = [
         By using this site, you agree to provide accurate information and use
         the store lawfully. Product availability, pricing, and order details
         are presented during shopping and checkout. Please{" "}
-        <Link className="text-[#6f1d46] underline" href="/contact">contact us</Link>{" "}
+        <Link className="text-[var(--brand-primary)] underline" href="/contact">contact us</Link>{" "}
         if you have a question.
       </p>
     ),
@@ -72,7 +72,7 @@ export default function PoliciesPage() {
     <main className="min-h-[70vh] bg-white text-[#111]">
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[#6f1d46] sm:px-6"
+        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[var(--brand-primary)] sm:px-6"
       >
         <Link href="/" className="hover:underline">Home</Link>
         <ChevronRight size={12} aria-hidden="true" />

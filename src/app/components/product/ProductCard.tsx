@@ -1,11 +1,13 @@
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { getCategoryDefinition } from "@/lib/category-catalog";
+import ProductImage from "./ProductImage";
 
 export interface StoreProductCardData {
   _id: string;
@@ -63,15 +65,19 @@ export default function ProductCard({
   onToggleWishlist,
   onAddToCart,
 }: ProductCardProps) {
+  const router = useRouter();
   const { addToCart } = useCart();
   const wishlist = useWishlist();
   const discountPrice = product.discountPrice ?? 0;
   const hasDiscount = discountPrice > 0 && discountPrice < product.price;
-  const onSale = product.onSale === true || (product.onSale === undefined && hasDiscount);
+  const onSale = hasDiscount;
   const currentPrice = hasDiscount ? discountPrice : product.price;
-  const image = product.images?.find(Boolean) || product.image || "/placeholder-product.svg";
+  const sourceImage = product.images?.find(Boolean) || product.image || "";
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const image = failedImage === sourceImage ? "" : sourceImage;
   const wished = isWishlisted ?? wishlist.isInWishlist(product._id);
-  const outOfStock = product.stock === 0;
+  const outOfStock = typeof product.stock !== "number" || product.stock <= 0;
+  const requiresVariant = Boolean(product.sizes?.length || product.colors?.length);
   const categoryName =
     typeof product.category === "object" && product.category
       ? getCategoryDefinition(product.category.slug ?? "")?.name ?? ""
@@ -80,6 +86,11 @@ export default function ProductCard({
   function handleAddToCart() {
     if (onAddToCart) {
       onAddToCart();
+      return;
+    }
+
+    if (requiresVariant) {
+      router.push(`/product/${product.slug}`);
       return;
     }
 
@@ -105,6 +116,8 @@ export default function ProductCard({
       slug: product.slug,
       image,
       price: currentPrice,
+      sizes: product.sizes ?? [],
+      colors: product.colors ?? [],
     });
   }
 
@@ -112,21 +125,21 @@ export default function ProductCard({
     <article
       className={`group min-w-0 ${
         layout === "list"
-          ? "grid grid-cols-[38%_1fr] gap-4 border-b border-[#ead9df] bg-white pb-4 sm:grid-cols-[220px_1fr] sm:gap-6"
+          ? "grid grid-cols-[38%_1fr] gap-4 border-b border-[var(--border-color)] bg-white pb-4 sm:grid-cols-[220px_1fr] sm:gap-6"
           : "overflow-hidden rounded-md bg-white"
       }`}
     >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-[#f8f1f2]">
+      <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-[var(--section-background)]">
         <Link
           href={`/product/${product.slug}`}
           aria-label={`View ${product.name}`}
           className="absolute inset-0"
         >
-          <Image
+          <ProductImage
             src={image}
             alt={product.name}
             fill
-            unoptimized
+            onImageError={() => setFailedImage(sourceImage)}
             sizes={
               layout === "list"
                 ? "(max-width: 640px) 38vw, 220px"
@@ -137,7 +150,7 @@ export default function ProductCard({
         </Link>
 
         {(onSale || product.newArrival || product.isNewArrival || product.featured) && (
-          <span className="absolute left-2 top-2 rounded-sm bg-[#6f1d46] px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-white">
+          <span className="absolute left-2 top-2 rounded-sm bg-[var(--brand-primary)] px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-white">
             {onSale ? "Sale" : product.newArrival || product.isNewArrival ? "New" : "Featured"}
           </span>
         )}
@@ -151,12 +164,12 @@ export default function ProductCard({
               : `Add ${product.name} to wishlist`
           }
           aria-pressed={wished}
-          className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/95 text-[#6f1d46] shadow-sm transition hover:scale-105"
+          className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/95 text-[var(--brand-primary)] shadow-sm transition hover:scale-105"
         >
           <Heart
             size={16}
             aria-hidden="true"
-            className={wished ? "fill-[#6f1d46] text-[#6f1d46]" : ""}
+            className={wished ? "fill-[var(--brand-primary)] text-[var(--brand-primary)]" : ""}
           />
         </button>
 
@@ -164,8 +177,12 @@ export default function ProductCard({
           type="button"
           onClick={handleAddToCart}
           disabled={outOfStock}
-          aria-label={outOfStock ? `${product.name} is out of stock` : `Add ${product.name} to cart`}
-          className="absolute bottom-2 right-2 flex size-9 items-center justify-center rounded-full bg-white text-[#6f1d46] shadow-md transition hover:scale-105 hover:bg-[#6f1d46] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={outOfStock
+            ? `${product.name} is out of stock`
+            : requiresVariant
+              ? `Choose size or color for ${product.name}`
+              : `Add ${product.name} to cart`}
+          className="absolute bottom-2 right-2 flex size-9 items-center justify-center rounded-full bg-white text-[var(--brand-primary)] shadow-md transition hover:scale-105 hover:bg-[var(--brand-primary)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ShoppingBag size={17} aria-hidden="true" />
         </button>
@@ -174,18 +191,18 @@ export default function ProductCard({
       <div className={`min-w-0 pt-2 ${layout === "list" ? "pr-1" : ""}`}>
         <Link
           href={`/product/${product.slug}`}
-          className="block truncate text-[11px] font-medium leading-4 text-[#30232a] hover:text-[#6f1d46] sm:text-xs"
+          className="block truncate text-[11px] font-medium leading-4 text-[var(--text-primary)] hover:text-[var(--brand-primary)] sm:text-xs"
         >
           {product.name}
         </Link>
         {layout === "list" && categoryName && (
-          <p className="mt-0.5 truncate text-[10px] text-[#8b777e]">
+          <p className="mt-0.5 truncate text-[10px] text-muted">
             {categoryName}
             {product.sizes?.length ? ` · ${product.sizes.join(", ")}` : ""}
           </p>
         )}
         {layout === "list" && product.shortDescription && (
-          <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#6d5a61]">
+          <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted">
             {product.shortDescription}
           </p>
         )}
@@ -201,7 +218,7 @@ export default function ProductCard({
                 onClick={() => onSelectColor(color)}
                 className={`flex size-5 items-center justify-center rounded-full border ${
                   selectedColor === color
-                    ? "border-[#6f1d46]"
+                    ? "border-[var(--brand-primary)]"
                     : "border-transparent"
                 }`}
               >
@@ -215,11 +232,11 @@ export default function ProductCard({
           </div>
         )}
         <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-          <span className="text-[11px] font-semibold text-[#30232a] sm:text-xs">
+          <span className="text-[11px] font-semibold text-[var(--text-primary)] sm:text-xs">
             Rs. {currentPrice.toLocaleString()}
           </span>
           {onSale && (
-            <span className="text-[10px] text-[#a58f96] line-through">
+            <span className="text-[10px] text-muted line-through">
               Rs. {product.price.toLocaleString()}
             </span>
           )}

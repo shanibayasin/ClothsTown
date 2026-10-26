@@ -77,6 +77,7 @@ const ProductSchema = new Schema(
     sku: {
       type: String,
       default: "",
+      unique: true,
     },
 
     category: {

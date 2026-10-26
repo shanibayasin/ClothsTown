@@ -3,8 +3,7 @@
 import {
   createContext,
   useContext,
-  useEffect,
-  useState,
+  useSyncExternalStore,
   ReactNode,
 } from "react";
 
@@ -14,6 +13,8 @@ export interface WishlistItem {
   slug: string;
   image: string;
   price: number;
+  sizes?: string[];
+  colors?: string[];
 }
 
 interface WishlistContextType {
@@ -27,35 +28,78 @@ interface WishlistContextType {
 }
 
 const WishlistContext = createContext<WishlistContextType | null>(null);
+const WISHLIST_STORAGE_KEY = "wishlist";
+const WISHLIST_CHANGE_EVENT = "clothestown:wishlist-change";
+const EMPTY_WISHLIST: WishlistItem[] = [];
+let cachedWishlistRaw: string | null = null;
+let cachedWishlist: WishlistItem[] = EMPTY_WISHLIST;
+
+function isWishlistItem(value: unknown): value is WishlistItem {
+  if (typeof value !== "object" || value === null) return false;
+  const item = value as Partial<WishlistItem>;
+  return (
+    typeof item._id === "string" &&
+    typeof item.name === "string" &&
+    typeof item.slug === "string" &&
+    typeof item.image === "string" &&
+    typeof item.price === "number" &&
+    Number.isFinite(item.price) &&
+    item.price >= 0 &&
+    (item.sizes === undefined || Array.isArray(item.sizes)) &&
+    (item.colors === undefined || Array.isArray(item.colors))
+  );
+}
+
+function getWishlistSnapshot() {
+  if (typeof window === "undefined") return EMPTY_WISHLIST;
+
+  try {
+    const stored = window.localStorage.getItem(WISHLIST_STORAGE_KEY) ?? "[]";
+    if (stored === cachedWishlistRaw) return cachedWishlist;
+
+    cachedWishlistRaw = stored;
+    const parsed: unknown = JSON.parse(stored);
+    cachedWishlist = Array.isArray(parsed) ? parsed.filter(isWishlistItem) : EMPTY_WISHLIST;
+  } catch {
+    cachedWishlistRaw = null;
+    cachedWishlist = EMPTY_WISHLIST;
+  }
+
+  return cachedWishlist;
+}
+
+function subscribeToWishlist(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(WISHLIST_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(WISHLIST_CHANGE_EVENT, onChange);
+  };
+}
+
+function updateWishlist(updater: (current: WishlistItem[]) => WishlistItem[]) {
+  const nextWishlist = updater(getWishlistSnapshot());
+  const serialized = JSON.stringify(nextWishlist);
+  cachedWishlist = nextWishlist;
+  cachedWishlistRaw = serialized;
+
+  try {
+    window.localStorage.setItem(WISHLIST_STORAGE_KEY, serialized);
+  } catch {}
+
+  window.dispatchEvent(new Event(WISHLIST_CHANGE_EVENT));
+}
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // 1. Initial Load: Run only once on mount safely in the browser client side
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("wishlist");
-      if (saved) {
-        setWishlist(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error("Failed to parse wishlist from localStorage:", error);
-    } finally {
-      setIsLoaded(true);
-    }
-  }, []);
-
-  // 2. Save Updates: Sync to localStorage only after the initial local state is completely loaded
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("wishlist", JSON.stringify(wishlist));
-    }
-  }, [wishlist, isLoaded]);
+  const wishlist = useSyncExternalStore(
+    subscribeToWishlist,
+    getWishlistSnapshot,
+    () => EMPTY_WISHLIST
+  );
 
   // Add Item to Wishlist
   function addToWishlist(item: WishlistItem) {
-    setWishlist((prev) => {
+    updateWishlist((prev) => {
       const exists = prev.find((p) => p._id === item._id);
       if (exists) return prev;
       return [...prev, item];
@@ -64,12 +108,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   // Remove Item from Wishlist
   function removeFromWishlist(id: string) {
-    setWishlist((prev) => prev.filter((item) => item._id !== id));
+    updateWishlist((prev) => prev.filter((item) => item._id !== id));
   }
 
   // Toggle Wishlist Status
   function toggleWishlist(item: WishlistItem) {
-    setWishlist((prev) => {
+    updateWishlist((prev) => {
       const exists = prev.find((p) => p._id === item._id);
       if (exists) {
         return prev.filter((i) => i._id !== item._id);
@@ -80,7 +124,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   // Clear Entire Wishlist
   function clearWishlist() {
-    setWishlist([]);
+    updateWishlist(() => []);
   }
 
   // Check if Product Exists in Current State

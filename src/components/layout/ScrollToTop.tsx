@@ -16,8 +16,8 @@ export default function ScrollToTop() {
 
     // Ek clean reset function jo screen ko bina kisi animation ke top par locked rakhe
     const forceScrollTop = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as any });
-      document.documentElement.scrollTo({ top: 0, left: 0, behavior: "instant" as any });
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      document.documentElement.scrollTo({ top: 0, left: 0, behavior: "instant" });
       document.body.scrollTop = 0;
     };
 

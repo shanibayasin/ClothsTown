@@ -61,33 +61,55 @@ export default async function StoreCategoryPage({
   if (!routeGroup && !categoryDefinition) notFound();
 
   await connectDB();
+  const rootCategory = routeGroup
+    ? await Category.findOne({ slug: routeGroup.slug, status: true }).lean()
+    : null;
+  const storedSubcategories = rootCategory
+    ? await Category.find({ parentCategory: rootCategory._id, status: true })
+        .sort({ sortOrder: 1, name: 1 })
+        .lean()
+    : [];
   const catalogSubcategories = routeGroup
     ? CATEGORY_CATALOG.filter((item) => item.routeGroup === routeGroup.routeGroup)
     : [];
   const categorySlugs = routeGroup
-    ? catalogSubcategories.map((item) => item.slug)
+    ? (storedSubcategories.length ? storedSubcategories : catalogSubcategories).map((item) => item.slug)
     : [categoryDefinition!.slug];
-  const databaseCategories = await Category.find({
-    status: true,
-    slug: { $in: categorySlugs },
-  })
-    .sort({ sortOrder: 1, name: 1 })
-    .lean();
+  const databaseCategories = storedSubcategories.length
+    ? storedSubcategories
+    : await Category.find({
+        status: true,
+        slug: { $in: categorySlugs },
+      })
+        .sort({ sortOrder: 1, name: 1 })
+        .lean();
   const databaseCategoriesBySlug = new Map(
     databaseCategories.map((item) => [item.slug, item])
   );
-  const departmentSubcategories = catalogSubcategories.map((definition) => ({
-    ...definition,
-    ...databaseCategoriesBySlug.get(definition.slug),
-    name: definition.name,
-    slug: definition.slug,
-    _id: databaseCategoriesBySlug.get(definition.slug)?._id ?? definition.slug,
-  }));
+  const departmentSubcategories = storedSubcategories.length
+    ? storedSubcategories.map((item) => ({
+        name: item.name,
+        slug: item.slug,
+        _id: item._id,
+      }))
+    : catalogSubcategories
+        .filter((definition) => databaseCategoriesBySlug.has(definition.slug))
+        .map((definition) => ({
+          ...definition,
+          ...databaseCategoriesBySlug.get(definition.slug),
+          name: definition.name,
+          slug: definition.slug,
+          _id: databaseCategoriesBySlug.get(definition.slug)!._id,
+        }));
   const selectedCategoryDefinition = categoryDefinition ??
     catalogSubcategories[0];
-  const databaseCategory = selectedCategoryDefinition
-    ? databaseCategoriesBySlug.get(selectedCategoryDefinition.slug)
-    : undefined;
+  const databaseCategory = routeGroup
+    ? rootCategory ?? (selectedCategoryDefinition
+        ? databaseCategoriesBySlug.get(selectedCategoryDefinition.slug)
+        : undefined)
+    : selectedCategoryDefinition
+      ? databaseCategoriesBySlug.get(selectedCategoryDefinition.slug)
+      : undefined;
   const category = {
     ...(selectedCategoryDefinition ?? {}),
     ...databaseCategory,
@@ -96,7 +118,10 @@ export default async function StoreCategoryPage({
     slug: categorySlug,
   };
   const pageTitle = routeGroup?.name ?? category.name;
-  const categoryIds = databaseCategories.map((item) => item._id);
+  const categoryIds = [
+    ...(rootCategory ? [rootCategory._id] : []),
+    ...databaseCategories.map((item) => item._id),
+  ];
   const requestedSubcategories = values(query.subcategory);
   const selectedSubcategories = requestedSubcategories.filter((slug) =>
     departmentSubcategories.some((item) => item.slug === slug)
@@ -221,10 +246,10 @@ export default async function StoreCategoryPage({
 
   return (
     <main className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 py-8 sm:px-6 lg:px-10">
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[#536875]">
-        <Link href="/" className="hover:text-[#102d40]">Home</Link>
+      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[var(--text-secondary)]">
+        <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
-        <span className="font-medium text-[#102d40]">{pageTitle}</span>
+        <span className="font-medium text-[var(--brand-primary)]">{pageTitle}</span>
       </nav>
       <HeroBanner
         key={category._id.toString()}
@@ -247,7 +272,7 @@ export default async function StoreCategoryPage({
             <Link
               key={subcategory._id.toString()}
               href={`/shop/${categorySlug}/${subcategory.slug}`}
-              className="rounded-full border border-[#e7edf1] px-4 py-2 text-sm font-medium text-[#536875] transition hover:border-[#102d40] hover:text-[#102d40]"
+              className="rounded-full border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
             >
               {subcategory.name}
             </Link>
@@ -255,7 +280,7 @@ export default async function StoreCategoryPage({
         </nav>
       )}
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e7edf1] pb-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border-color)] pb-4">
         <UrlProductFilters
           options={{
             category: departmentSubcategories.map((item) => ({
@@ -299,7 +324,7 @@ export default async function StoreCategoryPage({
           showCollection={collections.length > 0}
           showGender={genders.length > 0}
         />
-        <p className="text-xs font-medium text-[#536875]">{total} products</p>
+        <p className="text-xs font-medium text-[var(--text-secondary)]">{total} products</p>
         <ProductSortSelect
           value={sort}
           options={[
@@ -312,9 +337,9 @@ export default async function StoreCategoryPage({
       </div>
 
       {products.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#e7edf1] px-5 py-20 text-center">
-          <h2 className="text-xl font-semibold text-[#102d40]">No products found</h2>
-          <p className="mt-2 text-sm text-[#536875]">Try adjusting your filters or check back later.</p>
+        <div className="rounded-xl border border-dashed border-[var(--border-color)] px-5 py-20 text-center">
+          <h2 className="text-xl font-semibold text-[var(--brand-primary)]">No products found</h2>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">Try adjusting your filters or check back later.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
@@ -326,9 +351,9 @@ export default async function StoreCategoryPage({
 
       {totalPages > 1 && (
         <nav aria-label="Product pagination" className="mt-8 flex items-center justify-center gap-3">
-          {currentPage > 1 && <Link href={pageHref(categorySlug, query, currentPage - 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Previous</Link>}
-          <span className="text-sm text-[#536875]">Page {currentPage} of {totalPages}</span>
-          {currentPage < totalPages && <Link href={pageHref(categorySlug, query, currentPage + 1)} className="rounded-md border border-[#e7edf1] px-4 py-2 text-sm text-[#536875] hover:text-[#102d40]">Next</Link>}
+          {currentPage > 1 && <Link href={pageHref(categorySlug, query, currentPage - 1)} className="rounded-md border border-[var(--border-color)] px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand-primary)]">Previous</Link>}
+          <span className="text-sm text-[var(--text-secondary)]">Page {currentPage} of {totalPages}</span>
+          {currentPage < totalPages && <Link href={pageHref(categorySlug, query, currentPage + 1)} className="rounded-md border border-[var(--border-color)] px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand-primary)]">Next</Link>}
         </nav>
       )}
     </main>

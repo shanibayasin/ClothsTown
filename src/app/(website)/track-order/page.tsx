@@ -1,11 +1,11 @@
 "use client";
 
 import { Suspense, type FormEvent, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronRight, Loader2, PackageCheck, Search, Truck } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { readJsonResponse } from "@/lib/api";
+import ProductImage from "@/app/components/product/ProductImage";
 
 interface TrackingItem {
   productId?: string;
@@ -57,6 +57,8 @@ export default function TrackOrderPage() {
 function TrackOrderForm() {
   const searchParams = useSearchParams();
   const [orderId, setOrderId] = useState(searchParams.get("orderId") ?? "");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [order, setOrder] = useState<TrackingOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -65,8 +67,8 @@ function TrackOrderForm() {
     event.preventDefault();
     const requestedId = orderId.trim();
 
-    if (!requestedId) {
-      setError("Enter your order ID to continue.");
+    if (!requestedId || !email.trim() || !phone.trim()) {
+      setError("Enter your order ID, email address, and phone number to continue.");
       setOrder(null);
       return;
     }
@@ -76,9 +78,11 @@ function TrackOrderForm() {
     setOrder(null);
 
     try {
-      const response = await fetch(
-        `/api/orders/${encodeURIComponent(requestedId)}/tracking`
-      );
+      const response = await fetch(`/api/orders/${encodeURIComponent(requestedId)}/tracking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, phone }),
+      });
       const data = await readJsonResponse<TrackingOrder | { message?: string }>(
         response,
         {}
@@ -126,12 +130,12 @@ function TrackOrderForm() {
 
         <h1 className="text-xl font-bold text-[#173246] sm:text-2xl">Track Your Order</h1>
         <p className="mt-1 text-xs text-slate-500">
-          Enter your order ID to get real-time updates.
+          Verify your order details to view delivery updates.
         </p>
 
         <form
           onSubmit={handleTrackOrder}
-          className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px]"
+          className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_150px]"
         >
           <label className="sr-only" htmlFor="tracking-order-id">Order ID</label>
           <input
@@ -140,6 +144,28 @@ function TrackOrderForm() {
             onChange={(event) => setOrderId(event.target.value)}
             placeholder="Enter the order ID from your confirmation"
             autoComplete="off"
+            className="h-10 min-w-0 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-[#2867b2]"
+          />
+          <label className="sr-only" htmlFor="tracking-email">Order email address</label>
+          <input
+            id="tracking-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="Email used at checkout"
+            autoComplete="email"
+            required
+            className="h-10 min-w-0 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-[#2867b2]"
+          />
+          <label className="sr-only" htmlFor="tracking-phone">Order phone number</label>
+          <input
+            id="tracking-phone"
+            type="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder="Phone used at checkout"
+            autoComplete="tel"
+            required
             className="h-10 min-w-0 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-[#2867b2]"
           />
           <button
@@ -241,8 +267,8 @@ function TrackOrderForm() {
                     className="flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-b-0"
                   >
                     <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-slate-50">
-                      <Image
-                        src={item.image || "/placeholder-product.svg"}
+                      <ProductImage
+                        src={item.image}
                         alt={item.name}
                         fill
                         sizes="40px"

@@ -23,13 +23,21 @@ function isSafeBannerLink(value: string) {
 
 // GET ALL CATEGORIES
 
-export async function GET() {
+export async function GET(request: Request) {
+  const includeAll = new URL(request.url).searchParams.get("admin") === "true";
+  if (includeAll) {
+    const unauthorized = requireAdmin(request);
+    if (unauthorized) return unauthorized;
+  }
+
   try {
     await connectDB();
 
-    const categories = await Category.find({
-      slug: { $in: CATEGORY_CATALOG.map((category) => category.slug) },
-    }).sort({ sortOrder: 1, name: 1 });
+    const categories = await Category.find(
+      includeAll
+        ? {}
+        : { slug: { $in: CATEGORY_CATALOG.map((category) => category.slug) } }
+    ).sort({ sortOrder: 1, name: 1 });
 
     return NextResponse.json(categories, {
       headers: { "Cache-Control": "no-store" },
@@ -57,8 +65,8 @@ export async function POST(request: Request) {
     }
     const input = body as Record<string, unknown>;
     const name = typeof input.name === "string" ? input.name.trim() : "";
-    if (!name) {
-      return NextResponse.json({ message: "Category name is required." }, { status: 400 });
+    if (name.length < 2 || name.length > 120) {
+      return NextResponse.json({ message: "Category name must be between 2 and 120 characters." }, { status: 400 });
     }
     const slug = (typeof input.slug === "string" && input.slug.trim()
       ? input.slug
@@ -72,17 +80,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Category name must produce a valid slug." }, { status: 400 });
     }
     const definition = getCategoryDefinition(slug);
-    if (!definition) {
-      return NextResponse.json(
-        { message: "Choose one of the predefined Clothestown categories." },
-        { status: 400 }
-      );
-    }
-    if (await Category.exists({ slug })) {
-      return NextResponse.json({ message: "A category with this name or slug already exists." }, { status: 409 });
-    }
-
     let parentCategory: mongoose.Types.ObjectId | null = null;
+    let parentDocument: { _id: mongoose.Types.ObjectId; parentCategory?: mongoose.Types.ObjectId | null; group?: string; routeGroup?: string; gender?: string; slug?: string; status?: boolean } | null = null;
+    let parentRouteGroup: string | undefined;
     if (input.parentCategory !== undefined && input.parentCategory !== null && input.parentCategory !== "") {
       if (
         typeof input.parentCategory !== "string" ||
@@ -90,11 +90,38 @@ export async function POST(request: Request) {
       ) {
         return NextResponse.json({ message: "Select a valid parent category." }, { status: 400 });
       }
-      const parent = await Category.findById(input.parentCategory).select("_id parentCategory");
-      if (!parent || parent.parentCategory) {
+      parentDocument = await Category.findById(input.parentCategory)
+        .select("_id parentCategory group routeGroup gender slug status")
+        .lean();
+      if (!parentDocument || parentDocument.parentCategory || parentDocument.status === false) {
         return NextResponse.json({ message: "Subcategories must be assigned directly to a top-level category." }, { status: 400 });
       }
-      parentCategory = parent._id;
+      parentRouteGroup = parentDocument.routeGroup ?? {
+        men: "men",
+        women: "women",
+        girls: "girls",
+        boys: "boys",
+        accessories: "accessories",
+      }[parentDocument.slug ?? ""];
+      if (!parentRouteGroup || !["men", "women", "girls", "boys", "accessories"].includes(parentRouteGroup)) {
+        return NextResponse.json({ message: "Choose a supported storefront department." }, { status: 400 });
+      }
+      parentCategory = parentDocument._id;
+    }
+    if (!definition && !parentCategory) {
+      return NextResponse.json(
+        { message: "New categories must be subcategories of an existing top-level department." },
+        { status: 400 }
+      );
+    }
+    if (definition && parentCategory && definition.routeGroup !== parentRouteGroup) {
+      return NextResponse.json(
+        { message: "The category does not belong to the selected department." },
+        { status: 400 }
+      );
+    }
+    if (await Category.exists({ slug })) {
+      return NextResponse.json({ message: "A category with this name or slug already exists." }, { status: 409 });
     }
     if (input.image !== undefined && typeof input.image !== "string") {
       return NextResponse.json({ message: "Category image must be a string." }, { status: 400 });
@@ -135,13 +162,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Category status must be a boolean." }, { status: 400 });
     }
 
+    const resolvedParentRouteGroup = parentRouteGroup ?? definition?.routeGroup ?? "accessories";
+    const parentGroup = parentDocument?.group ?? {
+      men: "Men",
+      women: "Women",
+      girls: "Kids",
+      boys: "Kids",
+      accessories: "Accessories & Others",
+    }[resolvedParentRouteGroup] ?? "Accessories & Others";
+    const parentGender = parentDocument?.gender ?? (
+      resolvedParentRouteGroup === "men" ||
+      resolvedParentRouteGroup === "women" ||
+      resolvedParentRouteGroup === "girls" ||
+      resolvedParentRouteGroup === "boys"
+        ? resolvedParentRouteGroup
+        : "unisex"
+    );
     const category = await Category.create({
-      name: definition.name,
-      slug: definition.slug,
-      group: definition.group,
-      routeGroup: definition.routeGroup,
-      gender: definition.gender,
-      sortOrder: definition.sortOrder,
+      name: definition?.name ?? name,
+      slug: definition?.slug ?? slug,
+      group: definition?.group ?? parentGroup,
+      routeGroup: definition?.routeGroup ?? resolvedParentRouteGroup,
+      gender: definition?.gender ?? parentGender,
+      sortOrder: definition?.sortOrder ?? (await Category.countDocuments({ parentCategory })) + 1,
       image: input.image ?? "",
       bannerImage: input.bannerImage ?? "",
       bannerTitle: input.bannerTitle ?? "",

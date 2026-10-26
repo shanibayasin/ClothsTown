@@ -67,7 +67,7 @@ export default function Hero() {
     return (
       <div
         aria-label="Loading featured collection"
-        className="aspect-[1.55/1] min-h-[220px] animate-pulse bg-[#f2e5e9] sm:aspect-[2.8/1] sm:min-h-[260px] lg:aspect-[4/1] lg:min-h-[320px]"
+        className="aspect-[1.55/1] min-h-[220px] animate-pulse bg-[var(--section-background)] sm:aspect-[2.8/1] sm:min-h-[260px] lg:aspect-[4/1] lg:min-h-[320px]"
       />
     );
   }
@@ -125,7 +125,7 @@ export default function Hero() {
                   className={`size-[9px] rounded-full transition-colors ${
                     current === index
                       ? "bg-white"
-                      : "bg-[#102d40] hover:bg-[#102d40]/70"
+                      : "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/70"
                   }`}
                 />
               ))}
@@ -133,14 +133,14 @@ export default function Hero() {
             <button
               onClick={prevSlide}
               aria-label="Previous featured collection"
-              className="ml-12 flex size-[29px] items-center justify-center rounded-full bg-white text-[#102d40] shadow-sm transition hover:bg-white/85"
+              className="ml-12 flex size-[29px] items-center justify-center rounded-full bg-white text-[var(--brand-primary)] shadow-sm transition hover:bg-white/85"
             >
               <ChevronLeft size={17} strokeWidth={2} />
             </button>
             <button
               onClick={nextSlide}
               aria-label="Next featured collection"
-              className="flex size-[29px] items-center justify-center rounded-full bg-white text-[#102d40] shadow-sm transition hover:bg-white/85"
+              className="flex size-[29px] items-center justify-center rounded-full bg-white text-[var(--brand-primary)] shadow-sm transition hover:bg-white/85"
             >
               <ChevronRight size={17} strokeWidth={2} />
             </button>
@@ -148,19 +148,19 @@ export default function Hero() {
         )}
       </div>
 
-      <div className="border-b border-[#e8edf1] bg-[#f8fafc]">
+      <div className="border-b border-[var(--border-color)] bg-[var(--page-background)]">
         <div className="mx-auto grid min-h-[88px] max-w-[1440px] grid-cols-2 items-center px-4 sm:min-h-[96px] sm:grid-cols-4 sm:px-8 lg:min-h-[110px] lg:px-16">
           {benefits.map(({ Icon, title, detail }, index) => (
             <div
               key={title}
-              className={`flex items-center justify-center gap-3 py-4 text-[#102d40] sm:justify-start sm:px-4 lg:gap-4 lg:px-6 ${
-                index > 0 ? "sm:border-l sm:border-[#dfe6eb]" : ""
+              className={`flex items-center justify-center gap-3 py-4 text-[var(--brand-primary)] sm:justify-start sm:px-4 lg:gap-4 lg:px-6 ${
+                index > 0 ? "sm:border-l sm:border-[var(--border-color)]" : ""
               }`}
             >
               <Icon size={32} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
               <span className="text-[9px] leading-tight sm:text-[11px]">
                 <span className="block font-bold">{title}</span>
-                <span className="mt-0.5 block text-[#536875]">{detail}</span>
+                <span className="mt-0.5 block text-[var(--text-secondary)]">{detail}</span>
               </span>
             </div>
           ))}

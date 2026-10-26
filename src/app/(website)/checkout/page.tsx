@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import ProductImage from "@/app/components/product/ProductImage";
 import { ArrowLeft, Check, ChevronRight, Loader2, ShieldCheck, Truck } from "lucide-react";
 import { getCartItemKey, useCart } from "@/context/CartContext";
 
@@ -344,8 +344,8 @@ export default function CheckoutPage() {
                 {cart.map((item) => (
                   <div key={getCartItemKey(item)} className="flex items-center gap-3">
                     <div className="relative size-12 shrink-0 overflow-hidden rounded-md border border-slate-100 bg-slate-50">
-                      <Image
-                        src={item.image || "/placeholder-product.svg"}
+                      <ProductImage
+                        src={item.image}
                         alt={item.name}
                         fill
                         sizes="48px"

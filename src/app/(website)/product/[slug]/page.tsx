@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -23,6 +22,7 @@ import { readJsonResponse } from "@/lib/api";
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
+import ProductImage from "@/app/components/product/ProductImage";
 import { getCategoryDefinition } from "@/lib/category-catalog";
 
 type DatabaseRef = {
@@ -31,6 +31,7 @@ type DatabaseRef = {
   name?: string;
   slug?: string;
   routeGroup?: string;
+  status?: boolean;
 };
 
 type ProductType = {
@@ -70,11 +71,11 @@ const colorSwatches: Record<string, string> = {
 };
 
 function getImage(product: ProductType) {
-  return product.images?.[0] || "/placeholder-product.svg";
+  return product.images?.find(Boolean) || "";
 }
 
 function getPrice(product: ProductType) {
-  return product.discountPrice && product.discountPrice > 0
+  return product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
     ? product.discountPrice
     : product.price;
 }
@@ -219,8 +220,20 @@ export default function ProductPage() {
     );
   }
 
-  const images = product.images?.length ? product.images : ["/placeholder-product.svg"];
+  const images = product.images?.filter(Boolean) ?? [];
   const categoryDefinition = getCategoryDefinition(product.category?.slug ?? "");
+  const activeCollections = (product.collections?.length
+    ? product.collections
+    : product.collection
+      ? [product.collection]
+      : []
+  ).filter((collection) => collection.status !== false);
+  const productCategoryName = categoryDefinition?.name ?? product.category?.name;
+  const productCategoryHref = categoryDefinition
+    ? `/shop/${categoryDefinition.routeGroup}/${categoryDefinition.slug}`
+    : product.category?.routeGroup && product.category.slug
+      ? `/shop/${product.category.routeGroup}/${product.category.slug}`
+      : null;
 
   return (
     <main className="min-h-screen bg-[#f8fafb] text-[#172b3a]">
@@ -228,23 +241,18 @@ export default function ProductPage() {
         <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
           <Link href="/" className="hover:text-[#102f43]">Home</Link>
           <ChevronRight size={12} aria-hidden="true" />
-          {categoryDefinition && (
+          {productCategoryName && productCategoryHref && (
             <>
               <Link
-                href={`/shop/${categoryDefinition.routeGroup}/${categoryDefinition.slug}`}
+                href={productCategoryHref}
                 className="hover:text-[#102f43]"
               >
-                {categoryDefinition.name}
+                {productCategoryName}
               </Link>
               <ChevronRight size={12} aria-hidden="true" />
             </>
           )}
-          {(product.collections?.length
-            ? product.collections
-            : product.collection
-              ? [product.collection]
-              : []
-          ).map((collection) => (
+          {activeCollections.map((collection) => (
             <span key={collection._id} className="inline-flex items-center gap-2">
               <Link
                 href={`/collections/${collection.slug}`}
@@ -274,7 +282,7 @@ export default function ProductPage() {
                       : "border-slate-200 hover:border-slate-400"
                   }`}
                 >
-                  <Image
+                  <ProductImage
                     src={image}
                     alt={`${product.name} view ${index + 1}`}
                     fill
@@ -286,13 +294,14 @@ export default function ProductPage() {
             </div>
 
             <div className="relative order-1 aspect-[1.05] overflow-hidden rounded-xl border border-slate-200 bg-white sm:order-2 sm:aspect-[1.08]">
-              <Image
+              <ProductImage
                 src={activeImage || getImage(product)}
                 alt={product.name}
                 fill
                 priority
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-contain p-3 sm:p-5"
+                onImageError={() => setActiveImage("")}
               />
               {product.newArrival && (
                 <span className="absolute left-3 top-3 rounded bg-emerald-600 px-2 py-1 text-[9px] font-bold uppercase text-white">
@@ -313,6 +322,8 @@ export default function ProductPage() {
                     slug: product.slug,
                     image: activeImage || getImage(product),
                     price: currentPrice,
+                    sizes: product.sizes ?? [],
+                    colors: product.colors ?? [],
                   })
                 }
                 aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
@@ -556,7 +567,7 @@ export default function ProductPage() {
                     <dt className="text-slate-500">Category</dt><dd className="text-right font-medium text-slate-700">{categoryDefinition?.name || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
-                    <dt className="text-slate-500">Collections</dt><dd className="text-right font-medium text-slate-700">{product.collections?.map((collection) => collection.title).join(", ") || product.collection?.title || "N/A"}</dd>
+                    <dt className="text-slate-500">Collections</dt><dd className="text-right font-medium text-slate-700">{activeCollections.map((collection) => collection.title).join(", ") || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
                     <dt className="text-slate-500">Available sizes</dt><dd className="text-right font-medium text-slate-700">{product.sizes?.join(", ") || "One size"}</dd>
@@ -577,7 +588,7 @@ export default function ProductPage() {
 
           {relatedProducts.length > 0 && (
             <aside className="min-w-0 lg:col-span-2">
-              <h2 className="mb-4 text-sm font-bold text-[#6f1d46]">You Might Also Like</h2>
+              <h2 className="mb-4 text-sm font-bold text-[var(--brand-primary)]">You Might Also Like</h2>
               <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-none">
                 {relatedProducts.map((item) => (
                   <div

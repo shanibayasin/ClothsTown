@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUp, Mail, Shirt } from "lucide-react";
+import { ArrowRight, ArrowUp, Mail } from "lucide-react";
 import {
   FaFacebookF,
   FaInstagram,
@@ -11,6 +11,7 @@ import {
   FaYoutube,
 } from "react-icons/fa6";
 import { CATEGORY_CATALOG, getCategoryHref } from "@/lib/category-catalog";
+import BrandLogo from "@/app/components/layout/BrandLogo";
 
 const quickLinks = [
   { label: "Home", href: "/" },
@@ -78,8 +79,8 @@ export default function Footer() {
   }
 
   return (
-    <footer className="mt-12 bg-[#071f30] text-white sm:mt-16">
-      <section className="relative overflow-hidden border-b border-white/15 bg-[radial-gradient(ellipse_at_78%_100%,rgba(38,91,126,0.55),transparent_47%),linear-gradient(110deg,#0b2d43_0%,#123d5c_56%,#0b2639_100%)]">
+    <footer className="mt-12 bg-primary text-white sm:mt-16">
+      <section className="relative overflow-hidden border-b border-white/15 bg-primary-dark">
         <div className="relative mx-auto grid max-w-[1440px] items-center gap-6 px-5 py-8 sm:px-8 sm:py-9 lg:grid-cols-[1fr_auto] lg:gap-10 lg:px-12">
           <div className="flex min-w-0 items-start gap-4 sm:gap-6">
             <Mail
@@ -108,7 +109,7 @@ export default function Footer() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex shrink-0 items-center gap-2 rounded-md bg-white px-4 py-2 text-xs font-bold text-[#102d40] transition-colors hover:bg-[#eaf1f5] sm:px-5"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-control bg-white px-4 py-2 text-xs font-bold text-primary transition-colors hover:bg-section sm:px-5"
                 >
                   Subscribe
                   <ArrowRight size={14} aria-hidden="true" />
@@ -131,11 +132,8 @@ export default function Footer() {
       <div className="mx-auto max-w-[1440px] px-5 py-9 sm:px-8 sm:py-10 lg:px-12">
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-3 lg:grid-cols-[1.3fr_0.8fr_1.4fr_1fr_0.9fr_1fr] lg:gap-8">
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-            <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold tracking-tight">
-              <Shirt aria-hidden="true" className="size-7" strokeWidth={1.7} />
-              <span>
-                ClothesTown
-              </span>
+            <Link href="/" aria-label="ClothesTown home" className="inline-flex items-center gap-2">
+              <BrandLogo inverse />
             </Link>
             <p className="mt-4 max-w-[290px] text-xs leading-6 text-[#b7c5ce]">
               Your one-stop shop for premium clothing for men and women. Quality,

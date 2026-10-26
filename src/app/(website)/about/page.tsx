@@ -6,7 +6,7 @@ export default function AboutPage() {
     <main className="min-h-[70vh] bg-white text-[#171717]">
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[#6f1d46] sm:px-6"
+        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[var(--brand-primary)] sm:px-6"
       >
         <Link href="/" className="hover:underline">
           Home

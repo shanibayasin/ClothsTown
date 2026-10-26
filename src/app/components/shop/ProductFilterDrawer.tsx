@@ -191,12 +191,12 @@ export default function ProductFilterDrawer({
         }}
         aria-expanded={open}
         aria-controls="product-filter-drawer"
-        className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#102d40] hover:text-[#536875]"
+        className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--brand-primary)] hover:text-[var(--text-secondary)]"
       >
         <SlidersHorizontal size={15} aria-hidden="true" />
         Filter
         {countSelected(normalizedValue, maximum) > 0 && (
-          <span className="flex size-5 items-center justify-center rounded-full bg-[#102d40] text-[10px] text-white">
+          <span className="flex size-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] text-white">
             {countSelected(normalizedValue, maximum)}
           </span>
         )}
@@ -225,15 +225,15 @@ export default function ProductFilterDrawer({
               open ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <header className="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e7edf1]">
-              <h2 id="product-filter-title" className="text-sm font-semibold text-[#102d40]">
+            <header className="relative flex h-14 shrink-0 items-center justify-center border-b border-[var(--border-color)]">
+              <h2 id="product-filter-title" className="text-sm font-semibold text-[var(--brand-primary)]">
                 Filter
               </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close filters"
-                className="absolute right-4 flex size-9 items-center justify-center rounded-full text-[#536875] transition hover:bg-[#f3f4f5]"
+                className="absolute right-4 flex size-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--section-background)]"
               >
                 <X size={20} strokeWidth={1.6} />
               </button>
@@ -249,15 +249,15 @@ export default function ProductFilterDrawer({
                   ? showGender && (options.gender?.length ?? 0) > 0
                     : (options[key]?.length ?? 0) > 0
               ).map(({ key, title }) => (
-                <details key={key} className="group border-b border-[#e7edf1]" open>
-                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
+                <details key={key} className="group border-b border-[var(--border-color)]" open>
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
                     <span className="flex items-center gap-2">
                       {title}
                       {draft[key].length > 0 && (
-                        <span className="text-xs text-[#536875]">({draft[key].length})</span>
+                        <span className="text-xs text-[var(--text-secondary)]">({draft[key].length})</span>
                       )}
                     </span>
-                    <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
+                    <span className="text-lg font-light text-[var(--text-secondary)] transition-transform group-open:rotate-45">+</span>
                   </summary>
                   <div className="grid gap-3 pb-5 sm:grid-cols-2">
                     {(key === "productType"
@@ -276,13 +276,13 @@ export default function ProductFilterDrawer({
                           type="button"
                           onClick={() => toggleOption(key, option.value)}
                           aria-pressed={draft.color.includes(option.value)}
-                          className="flex min-h-9 items-center gap-2 text-left text-xs text-[#536875]"
+                          className="flex min-h-9 items-center gap-2 text-left text-xs text-[var(--text-secondary)]"
                         >
                           <span
                             className={`flex size-6 items-center justify-center rounded-full border ${
                               draft.color.includes(option.value)
-                                ? "border-[#102d40] ring-1 ring-[#102d40] ring-offset-2"
-                                : "border-[#e7edf1]"
+                                ? "border-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)] ring-offset-2"
+                                : "border-[var(--border-color)]"
                             }`}
                           >
                             <span
@@ -295,13 +295,13 @@ export default function ProductFilterDrawer({
                       ) : (
                         <label
                           key={option.value}
-                          className="flex cursor-pointer items-center gap-2.5 text-xs text-[#536875]"
+                          className="flex cursor-pointer items-center gap-2.5 text-xs text-[var(--text-secondary)]"
                         >
                           <input
                             type="checkbox"
                             checked={draft[key].includes(option.value)}
                             onChange={() => toggleOption(key, option.value)}
-                            className="size-4 accent-[#102d40]"
+                            className="size-4 accent-[var(--brand-primary)]"
                           />
                           {option.label}
                         </label>
@@ -311,13 +311,13 @@ export default function ProductFilterDrawer({
                 </details>
               ))}
 
-              <details className="group border-b border-[#e7edf1]" open>
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
+              <details className="group border-b border-[var(--border-color)]" open>
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
                   Price Range
-                  <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
+                  <span className="text-lg font-light text-[var(--text-secondary)] transition-transform group-open:rotate-45">+</span>
                 </summary>
                 <div className="space-y-4 pb-5">
-                  <div className="flex items-center justify-between text-xs text-[#536875]">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
                     <span>Rs. {draft.minPrice.toLocaleString()}</span>
                     <span>Rs. {(draft.maxPrice || maximum).toLocaleString()}</span>
                   </div>
@@ -338,7 +338,7 @@ export default function ProductFilterDrawer({
                           ),
                         }))
                       }
-                      className="w-full accent-[#102d40]"
+                      className="w-full accent-[var(--brand-primary)]"
                     />
                   </label>
                   <label className="block">
@@ -358,18 +358,18 @@ export default function ProductFilterDrawer({
                           ),
                         }))
                       }
-                      className="w-full accent-[#102d40]"
+                      className="w-full accent-[var(--brand-primary)]"
                     />
                   </label>
                 </div>
               </details>
 
-              <details className="group border-b border-[#e7edf1]" open>
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
+              <details className="group border-b border-[var(--border-color)]" open>
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
                   Availability
-                  <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
+                  <span className="text-lg font-light text-[var(--text-secondary)] transition-transform group-open:rotate-45">+</span>
                 </summary>
-                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[#536875]">
+                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[var(--text-secondary)]">
                   <input
                     type="checkbox"
                     checked={draft.availability}
@@ -379,18 +379,18 @@ export default function ProductFilterDrawer({
                         availability: event.target.checked,
                       }))
                     }
-                    className="size-4 accent-[#102d40]"
+                    className="size-4 accent-[var(--brand-primary)]"
                   />
                   In stock only
                 </label>
               </details>
 
-              <details className="group border-b border-[#e7edf1]" open>
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[#102d40] [&::-webkit-details-marker]:hidden">
+              <details className="group border-b border-[var(--border-color)]" open>
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-sm font-medium text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
                   On Sale
-                  <span className="text-lg font-light text-[#536875] transition-transform group-open:rotate-45">+</span>
+                  <span className="text-lg font-light text-[var(--text-secondary)] transition-transform group-open:rotate-45">+</span>
                 </summary>
-                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[#536875]">
+                <label className="flex cursor-pointer items-center gap-2.5 pb-5 text-xs text-[var(--text-secondary)]">
                   <input
                     type="checkbox"
                     checked={draft.onSale}
@@ -400,18 +400,18 @@ export default function ProductFilterDrawer({
                         onSale: event.target.checked,
                       }))
                     }
-                    className="size-4 accent-[#102d40]"
+                    className="size-4 accent-[var(--brand-primary)]"
                   />
                   Sale items only
                 </label>
               </details>
             </div>
 
-            <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-[#e7edf1] bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-7">
+            <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-[var(--border-color)] bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-7">
               <button
                 type="button"
                 onClick={() => setDraft(EMPTY_PRODUCT_FILTERS)}
-                className="min-h-11 border border-[#102d40] text-[11px] font-semibold uppercase tracking-wide text-[#102d40] transition hover:bg-[#f3f4f5]"
+                className="min-h-11 border border-[var(--brand-primary)] text-[11px] font-semibold uppercase tracking-wide text-[var(--brand-primary)] transition hover:bg-[var(--section-background)]"
               >
                 Remove All
               </button>
@@ -421,7 +421,7 @@ export default function ProductFilterDrawer({
                   onApply(draft);
                   setOpen(false);
                 }}
-                className="min-h-11 bg-[#102d40] text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#173f55]"
+                className="min-h-11 bg-[var(--brand-primary)] text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[var(--brand-primary-hover)]"
               >
                 Apply
               </button>

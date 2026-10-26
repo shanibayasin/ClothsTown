@@ -112,11 +112,11 @@ function getCanonicalSectionTile(tile: CategorySectionTile) {
 }
 
 function getProductImage(product: Product) {
-  return product.images?.[0] || product.image || "/placeholder-product.svg";
+  return product.images?.find(Boolean) || product.image || "";
 }
 
 function getProductPrice(product: Product) {
-  return product.discountPrice && product.discountPrice > 0
+  return product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
     ? product.discountPrice
     : product.price;
 }
@@ -268,7 +268,7 @@ function ShopContent({
         console.error("Failed to load shop categories:", error);
       });
 
-    fetch("/api/collections")
+    fetch("/api/collections/public")
       .then((res) => readJsonResponse<Collection[]>(res, []))
       .then((data) => {
         if (active) setCollections(data);
@@ -310,11 +310,9 @@ function ShopContent({
     if (saleOnly) {
       data = data.filter(
         (item) =>
-          item.onSale === true ||
-          (item.onSale === undefined &&
-            typeof item.discountPrice === "number" &&
-            item.discountPrice > 0 &&
-            item.discountPrice < item.price)
+          typeof item.discountPrice === "number" &&
+          item.discountPrice > 0 &&
+          item.discountPrice < item.price
       );
     }
 
@@ -856,21 +854,21 @@ function ShopContent({
   }
 
   return (
-    <main className="min-h-screen bg-white pb-12 text-[#102d40]">
+    <main className="min-h-screen bg-white pb-12 text-[var(--brand-primary)]">
       <section aria-label={`${heroTitle} introduction`}>
         <nav
           aria-label="Breadcrumb"
-          className="mx-auto flex max-w-[1440px] items-center gap-1.5 px-4 py-3 text-xs text-[#536875] sm:px-6"
+          className="mx-auto flex max-w-[1440px] items-center gap-1.5 px-4 py-3 text-xs text-[var(--text-secondary)] sm:px-6"
         >
-          <Link href="/" className="hover:text-[#6f1d46]">Home</Link>
+          <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
           <ChevronRight size={13} aria-hidden="true" />
           {isSaleListing ? (
-            <span className="font-medium text-[#6f1d46]">Sale</span>
+            <span className="font-medium text-[var(--brand-primary)]">Sale</span>
           ) : (
             <>
-              <Link href="/shop" className="hover:text-[#6f1d46]">Shop</Link>
+              <Link href="/shop" className="hover:text-[var(--brand-primary)]">Shop</Link>
               <ChevronRight size={13} aria-hidden="true" />
-              <span className="font-medium text-[#6f1d46]">{heroTitle}</span>
+              <span className="font-medium text-[var(--brand-primary)]">{heroTitle}</span>
             </>
           )}
         </nav>
@@ -904,7 +902,7 @@ function ShopContent({
           <div className="mx-auto max-w-5xl">
             <h2
               id="department-category-tiles-title"
-              className="mb-6 text-center text-2xl font-medium tracking-wide text-[#102d40] sm:mb-8 sm:text-3xl"
+              className="mb-6 text-center text-2xl font-medium tracking-wide text-[var(--brand-primary)] sm:mb-8 sm:text-3xl"
             >
               {departmentName.toUpperCase()}
             </h2>
@@ -915,7 +913,7 @@ function ShopContent({
                   href={categoryHrefForTile(tile.category)}
                   className="group flex w-full max-w-48 flex-col items-center text-center"
                 >
-                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f3f4f5] sm:w-36 lg:w-40">
+                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[var(--section-background)] sm:w-36 lg:w-40">
                     <Image
                       src={tile.image}
                       alt={tile.title}
@@ -925,7 +923,7 @@ function ShopContent({
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </span>
-                  <span className="mt-3 text-xs font-medium uppercase tracking-wide text-[#102d40] sm:text-sm">
+                  <span className="mt-3 text-xs font-medium uppercase tracking-wide text-[var(--brand-primary)] sm:text-sm">
                     {tile.title}
                   </span>
                 </Link>
@@ -944,13 +942,13 @@ function ShopContent({
             <div className="mb-3 flex items-center justify-between">
               <h2
                 id="department-products-title"
-                className="text-sm font-bold tracking-tight text-[#172a33] sm:text-base"
+                className="text-sm font-bold tracking-tight text-[var(--brand-primary)] sm:text-base"
               >
                 {departmentName} Wear
               </h2>
               <Link
                 href={`/shop?category=${departmentName}&view=all`}
-                className="text-[10px] font-semibold text-[#172a33] transition hover:text-primary sm:text-xs"
+                className="text-[10px] font-semibold text-[var(--brand-primary)] transition hover:text-primary sm:text-xs"
               >
                 View All →
               </Link>
@@ -1069,7 +1067,7 @@ function ShopContent({
                         setSelectedCollection("");
                         setCurrentPage(1);
                       }}
-                      className="text-xs font-medium text-[#102d40] hover:underline"
+                      className="text-xs font-medium text-[var(--brand-primary)] hover:underline"
                     >
                       Clear collection
                     </button>
@@ -1091,7 +1089,7 @@ function ShopContent({
                   setCurrentPage(1);
                 }}
                 placeholder="Search products"
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#102d40]"
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
 
@@ -1134,7 +1132,7 @@ function ShopContent({
                   setPriceRange(Number(event.target.value));
                   setCurrentPage(1);
                 }}
-                className="w-full accent-[#102d40]"
+                className="w-full accent-[var(--brand-primary)]"
               />
               <p className="mt-1 text-[11px] text-slate-500">
                 Rs. 0 — Rs. {priceRange.toLocaleString()}
@@ -1159,7 +1157,7 @@ function ShopContent({
                   >
                     <span
                       className={`size-3 rounded-full border border-slate-300 ${
-                        selectedColor === color.name ? "ring-2 ring-[#102d40] ring-offset-1" : ""
+                        selectedColor === color.name ? "ring-2 ring-[var(--brand-primary)] ring-offset-1" : ""
                       }`}
                       style={{ backgroundColor: color.value }}
                     />
@@ -1178,7 +1176,7 @@ function ShopContent({
                     setInStockOnly(event.target.checked);
                     setCurrentPage(1);
                   }}
-                  className="accent-[#102d40]"
+                  className="accent-[var(--brand-primary)]"
                 />
                 In stock only
               </label>
@@ -1190,14 +1188,14 @@ function ShopContent({
                     setSaleOnly(event.target.checked);
                     setCurrentPage(1);
                   }}
-                  className="accent-[#102d40]"
+                  className="accent-[var(--brand-primary)]"
                 />
                 On sale
               </label>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="text-xs font-semibold text-[#102d40] hover:underline"
+                className="text-xs font-semibold text-[var(--brand-primary)] hover:underline"
               >
                 Reset all filters
               </button>
@@ -1240,7 +1238,7 @@ function ShopContent({
                       setSort(event.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none rounded-md border border-[#e7edf1] bg-white py-2 pl-3 pr-8 text-[10px] font-medium uppercase text-[#536875] outline-none focus:border-[#102d40] sm:text-xs"
+                    className="appearance-none rounded-md border border-[var(--border-color)] bg-white py-2 pl-3 pr-8 text-[10px] font-medium uppercase text-[var(--text-secondary)] outline-none focus:border-[var(--brand-primary)] sm:text-xs"
                   >
                     <option value="latest">Newest First</option>
                     <option value="low">Price: Low to High</option>
@@ -1272,7 +1270,7 @@ function ShopContent({
                     <button
                       type="button"
                       onClick={resetFilters}
-                      className="mt-4 text-sm font-semibold text-[#102d40] hover:underline"
+                      className="mt-4 text-sm font-semibold text-[var(--brand-primary)] hover:underline"
                     >
                       Reset filters
                     </button>
@@ -1347,7 +1345,7 @@ function ShopContent({
             <header className="flex h-14 shrink-0 items-center justify-center border-b border-[#e7e7e7]">
               <h2
                 id="sale-filter-title"
-                className="text-base font-semibold text-[#102d40]"
+                className="text-base font-semibold text-[var(--brand-primary)]"
               >
                 Filter
               </h2>
@@ -1375,7 +1373,7 @@ function ShopContent({
                     setCurrentPage(1);
                   }}
                   placeholder="Search sale products"
-                  className="h-10 w-full border border-[#ddd8d2] px-3 text-sm outline-none focus:border-[#102d40]"
+                  className="h-10 w-full border border-[#ddd8d2] px-3 text-sm outline-none focus:border-[var(--brand-primary)]"
                 />
               </div>
 
@@ -1391,7 +1389,7 @@ function ShopContent({
                         setSelectedCategory("");
                         setCurrentPage(1);
                       }}
-                      className="accent-[#102d40]"
+                      className="accent-[var(--brand-primary)]"
                     />
                     All categories
                   </label>
@@ -1411,7 +1409,7 @@ function ShopContent({
                           setSelectedCategory(category._id);
                           setCurrentPage(1);
                         }}
-                        className="accent-[#102d40]"
+                        className="accent-[var(--brand-primary)]"
                       />
                       {category.name}
                     </label>
@@ -1432,7 +1430,7 @@ function ShopContent({
                           setSelectedCollection("");
                           setCurrentPage(1);
                         }}
-                        className="accent-[#102d40]"
+                        className="accent-[var(--brand-primary)]"
                       />
                       All collections
                     </label>
@@ -1449,7 +1447,7 @@ function ShopContent({
                             setSelectedCollection(collection._id);
                             setCurrentPage(1);
                           }}
-                          className="accent-[#102d40]"
+                          className="accent-[var(--brand-primary)]"
                         />
                         {collection.title}
                       </label>
@@ -1477,7 +1475,7 @@ function ShopContent({
                       }}
                       className={`min-h-9 min-w-9 border px-2 text-xs font-medium ${
                         selectedSize === size || selectedSizes.includes(size)
-                          ? "border-[#102d40] bg-[#102d40] text-white"
+                          ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
                           : "border-[#ddd8d2] bg-white text-[#555]"
                       }`}
                     >
@@ -1505,7 +1503,7 @@ function ShopContent({
                       }}
                       className={`flex size-8 items-center justify-center rounded-full border ${
                         selectedColor === color.name
-                          ? "border-[#102d40] ring-1 ring-[#102d40] ring-offset-2"
+                          ? "border-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)] ring-offset-2"
                           : "border-[#ddd8d2]"
                       }`}
                     >
@@ -1532,7 +1530,7 @@ function ShopContent({
                     setPriceRange(Number(event.target.value));
                     setCurrentPage(1);
                   }}
-                  className="w-full accent-[#102d40]"
+                  className="w-full accent-[var(--brand-primary)]"
                 />
                 <p className="mt-1 text-xs text-[#68767d]">
                   Rs. {minimumPrice.toLocaleString()} — Rs. {priceRange.toLocaleString()}
@@ -1548,7 +1546,7 @@ function ShopContent({
                       setInStockOnly(event.target.checked);
                       setCurrentPage(1);
                     }}
-                    className="size-4 accent-[#102d40]"
+                    className="size-4 accent-[var(--brand-primary)]"
                   />
                   In stock only
                 </label>
@@ -1560,7 +1558,7 @@ function ShopContent({
                       setSaleOnly(event.target.checked);
                       setCurrentPage(1);
                     }}
-                    className="size-4 accent-[#102d40]"
+                    className="size-4 accent-[var(--brand-primary)]"
                   />
                   On sale
                 </label>
@@ -1604,7 +1602,7 @@ function ShopContent({
             <header className="flex h-14 shrink-0 items-center justify-center border-b border-[#e7e7e7]">
               <h2
                 id="department-filter-title"
-                className="text-base font-semibold text-[#102d40]"
+                className="text-base font-semibold text-[var(--brand-primary)]"
               >
                 Filter
               </h2>
@@ -1810,7 +1808,7 @@ function ShopContent({
                       key={section.id}
                       type="button"
                       onClick={() => setFilterSection(section.id)}
-                      className="flex min-h-[74px] w-full items-center justify-between text-left text-sm uppercase tracking-wide text-[#102d40]"
+                      className="flex min-h-[74px] w-full items-center justify-between text-left text-sm uppercase tracking-wide text-[var(--brand-primary)]"
                     >
                       {section.title}
                       <ChevronRight size={21} strokeWidth={1.5} />

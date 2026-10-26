@@ -1,7 +1,7 @@
 import { InputHTMLAttributes } from "react";
 import clsx from "clsx";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {}
+type InputProps = InputHTMLAttributes<HTMLInputElement>;
 
 export default function Input({
   className,
@@ -10,8 +10,8 @@ export default function Input({
   return (
     <input
       className={clsx(
-        "w-full rounded-xl border border-border bg-white px-4 py-3 outline-none transition-all",
-        "focus:border-primary focus:ring-2 focus:ring-primary/20",
+        "w-full rounded-control border border-border bg-card px-4 py-3 text-text outline-none transition-[var(--transition-ui)] placeholder:text-muted",
+        "focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-section disabled:text-muted",
         className
       )}
       {...props}

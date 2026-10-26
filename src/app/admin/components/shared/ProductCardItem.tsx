@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ProductImage from "@/app/components/product/ProductImage";
 
 interface Product {
   _id: string;
@@ -15,15 +15,12 @@ interface ProductCardItemProps {
 }
 
 export default function ProductCardItem({ product }: ProductCardItemProps) {
-  const imageUrl =
-    product.images?.[0] && product.images[0].includes("res.cloudinary.com")
-      ? product.images[0]
-      : "/placeholder-product.svg";
+  const imageUrl = product.images?.[0] || "";
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
       <div className="relative h-56">
-        <Image
+        <ProductImage
           src={imageUrl}
           alt={product.name}
           fill

@@ -44,7 +44,7 @@ export default async function CategoriesPage() {
       <section id="category-list" className="mx-auto max-w-7xl px-6 pb-20">
         {categoryGroups.map((group) => (
           <div key={group} className="mb-12 last:mb-0">
-            <h2 className="mb-5 font-heading text-2xl text-[#321b27]">
+            <h2 className="mb-5 font-heading text-2xl text-[var(--brand-primary)]">
               {group}
             </h2>
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -62,7 +62,7 @@ export default async function CategoriesPage() {
                         alt={category.name}
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                         className="object-cover transition duration-700 group-hover:scale-105"
-                        fallbackClassName="text-sm text-[#536875]"
+                        fallbackClassName="text-sm text-[var(--text-secondary)]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                       <div className="absolute bottom-6 left-6">
@@ -72,10 +72,10 @@ export default async function CategoriesPage() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between p-6">
-                      <span className="text-sm uppercase tracking-[0.25em] text-[#536875]">
+                      <span className="text-sm uppercase tracking-[0.25em] text-[var(--text-secondary)]">
                         View Collection
                       </span>
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#102d40] text-white transition group-hover:translate-x-1">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white transition group-hover:translate-x-1">
                         <ArrowRight size={18} />
                       </div>
                     </div>

@@ -60,12 +60,12 @@ export default function CategoriesSection() {
     <section className="bg-white py-6 sm:py-8">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12">
         <div className="mb-5 flex items-center justify-between sm:mb-6">
-          <h2 className="text-[17px] font-bold tracking-tight text-[#102d40] sm:text-xl">
+          <h2 className="text-[17px] font-bold tracking-tight text-[var(--brand-primary)] sm:text-xl">
             Shop by Category
           </h2>
           <Link
             href="/categories"
-            className="inline-flex items-center gap-1 text-[10px] font-medium text-[#536875] transition-colors hover:text-[#102d40] sm:text-xs"
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--brand-primary)] sm:text-xs"
           >
             View All
             <ArrowRight size={13} aria-hidden="true" />
@@ -97,7 +97,7 @@ export default function CategoriesSection() {
                 >
                   <Link
                     href={category.href ?? `/shop/${category.slug}`}
-                    className="group flex w-full flex-col items-center text-center text-[#102d40]"
+                    className="group flex w-full flex-col items-center text-center text-[var(--brand-primary)]"
                   >
                     <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-xl bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">
                       <CategoryImage
@@ -112,7 +112,7 @@ export default function CategoriesSection() {
                     <span className="mt-2 whitespace-nowrap text-[10px] font-semibold leading-4 sm:text-xs">
                       {category.name}
                     </span>
-                    <span className="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-[9px] text-[#536875] transition-colors group-hover:text-[#102d40] sm:text-[10px]">
+                    <span className="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-[9px] text-[var(--text-secondary)] transition-colors group-hover:text-[var(--brand-primary)] sm:text-[10px]">
                       Shop Now
                       <ArrowRight
                         size={11}

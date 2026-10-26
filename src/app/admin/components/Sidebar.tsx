@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import BrandLogo from "@/app/components/layout/BrandLogo";
 import {
   LayoutDashboard,
   Package,
@@ -59,29 +60,13 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
   };
 
   return (
-    <aside className="flex h-full w-full flex-col bg-[#142536] px-2.5 py-4 font-body text-white">
+    <aside className="flex h-full w-full flex-col bg-primary px-2.5 py-4 font-body text-white">
       <Link
         href="/admin"
         onClick={closeSidebar}
         className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 px-1 pb-4"
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 72 56"
-          className="h-7 w-9 shrink-0 text-[#7de2d2]"
-          fill="none"
-        >
-          <path
-            d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31"
-            stroke="currentColor"
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <span className="whitespace-nowrap text-[15px] font-bold tracking-tight text-white">
-          ClothesTown
-        </span>
+        <BrandLogo inverse />
       </Link>
 
       <nav
@@ -103,7 +88,7 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
               aria-current={active ? "page" : undefined}
               className={`flex min-h-10 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium transition-colors ${
                 active
-                  ? "bg-[#2867b2] text-white shadow-sm"
+                  ? "bg-secondary text-primary shadow-sm"
                   : "text-slate-300 hover:bg-white/10 hover:text-white"
               }`}
             >

@@ -24,8 +24,8 @@ export default function ProductsPage() {
     async function fetchOptions() {
       try {
         const [categoriesRes, collectionsRes] = await Promise.all([
-          fetch("/api/categories", { cache: "no-store" }),
-          fetch("/api/collections", { cache: "no-store" }),
+          fetch("/api/categories?admin=true", { cache: "no-store" }),
+          fetch("/api/collections?admin=true", { cache: "no-store" }),
         ]);
 
         const [categoriesData, collectionsData] = await Promise.all([
@@ -47,7 +47,7 @@ export default function ProductsPage() {
     <div className="space-y-3">
 
       <ProductForm
-        key={editing?._id ?? "new"}
+        key={`${editing?._id ?? "new"}:${categories.length}`}
         editing={editing}
         categories={categories}
         collections={collections}

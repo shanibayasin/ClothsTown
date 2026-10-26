@@ -13,7 +13,8 @@ interface ProductDetailsProps {
     images?: string[];
     price: number;
     discountPrice?: number;
-    [key: string]: any;
+    sizes?: string[];
+    colors?: string[];
   };
 }
 
@@ -30,10 +31,12 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
         _id: product._id,
         name: product.name,
         slug: product.slug,
-        image: product.images?.[0] || "/placeholder-product.svg",
-        price: product.discountPrice && product.discountPrice > 0 
+        image: product.images?.[0] || "",
+        price: product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
           ? product.discountPrice 
           : product.price,
+        sizes: product.sizes ?? [],
+        colors: product.colors ?? [],
       });
     }
   };

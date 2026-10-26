@@ -192,7 +192,8 @@ export default function CategorySectionManager({
       ? allCategories.filter(
           (category) =>
             category._id !== sectionCategory._id &&
-            category.routeGroup === SECTION_ROUTE_GROUPS[sectionName]
+            (category.parentCategory === sectionCategory._id ||
+              category.routeGroup === SECTION_ROUTE_GROUPS[sectionName])
         )
       : [];
 
@@ -200,8 +201,8 @@ export default function CategorySectionManager({
     let active = true;
 
     Promise.all([
-      fetch("/api/categories", { cache: "no-store" }),
-      fetch("/api/collections", { cache: "no-store" }),
+      fetch("/api/categories?admin=true", { cache: "no-store" }),
+      fetch("/api/collections?admin=true", { cache: "no-store" }),
     ])
       .then(async ([categoriesResponse, collectionsResponse]) => {
         if (!categoriesResponse.ok || !collectionsResponse.ok) {
@@ -775,7 +776,7 @@ export default function CategorySectionManager({
                     key={`${index}-${tile.title}`}
                     className="grid gap-3 rounded-lg border border-[#eeeae4] p-3 sm:grid-cols-[88px_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center"
                   >
-                    <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-[#f5f2ed] sm:mx-0">
+                    <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-[var(--section-background)] sm:mx-0">
                       {tile.image ? (
                         <Image
                           src={tile.image}
@@ -881,7 +882,7 @@ export default function CategorySectionManager({
                         key={`${index}-${tile.title}`}
                         className="flex w-full max-w-40 flex-col items-center text-center"
                       >
-                        <div className="relative aspect-square w-28 overflow-hidden rounded-full bg-[#f5f2ed] sm:w-32">
+                        <div className="relative aspect-square w-28 overflow-hidden rounded-full bg-[var(--section-background)] sm:w-32">
                           <Image
                             src={tile.image}
                             alt={tile.title}
@@ -1141,6 +1142,8 @@ export default function CategorySectionManager({
                   : SECTION_ROUTE_GROUPS[sectionName]
                     ? allCategories.filter(
                         (category) =>
+                          category._id === sectionCategory?._id ||
+                          category.parentCategory === sectionCategory?._id ||
                           category.routeGroup === SECTION_ROUTE_GROUPS[sectionName]
                       )
                     : sectionCategory
@@ -1172,6 +1175,8 @@ export default function CategorySectionManager({
                 ? allCategories
                     .filter(
                       (category) =>
+                        category._id === sectionCategory?._id ||
+                        category.parentCategory === sectionCategory?._id ||
                         category.routeGroup === SECTION_ROUTE_GROUPS[sectionName]
                     )
                     .map((category) => category._id)

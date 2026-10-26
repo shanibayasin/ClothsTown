@@ -9,7 +9,7 @@ const faqSections = [
         question: "How do I create an account?",
         answer: (
           <>
-            Visit the <Link className="text-[#6f1d46] underline" href="/register">Register</Link> page
+            Visit the <Link className="text-[var(--brand-primary)] underline" href="/register">Register</Link> page
             and enter your details to create an account.
           </>
         ),
@@ -18,7 +18,7 @@ const faqSections = [
         question: "I need help with my account.",
         answer: (
           <>
-            Contact us through the <Link className="text-[#6f1d46] underline" href="/contact">Contact Us</Link> page
+            Contact us through the <Link className="text-[var(--brand-primary)] underline" href="/contact">Contact Us</Link> page
             and include the email address associated with your account.
           </>
         ),
@@ -32,7 +32,7 @@ const faqSections = [
         question: "How can I check my order status?",
         answer: (
           <>
-            Use the <Link className="text-[#6f1d46] underline" href="/track-order">Track Order</Link> page
+            Use the <Link className="text-[var(--brand-primary)] underline" href="/track-order">Track Order</Link> page
             and enter your order ID.
           </>
         ),
@@ -41,7 +41,7 @@ const faqSections = [
         question: "I have a question about an order.",
         answer: (
           <>
-            Send us a message from the <Link className="text-[#6f1d46] underline" href="/contact">Contact Us</Link> page
+            Send us a message from the <Link className="text-[var(--brand-primary)] underline" href="/contact">Contact Us</Link> page
             and include your order ID.
           </>
         ),
@@ -64,8 +64,8 @@ const faqSections = [
         question: "Where can I find delivery information for my order?",
         answer: (
           <>
-            Check your order status on the <Link className="text-[#6f1d46] underline" href="/track-order">Track Order</Link> page.
-            For further help, please <Link className="text-[#6f1d46] underline" href="/contact">contact us</Link>.
+            Check your order status on the <Link className="text-[var(--brand-primary)] underline" href="/track-order">Track Order</Link> page.
+            For further help, please <Link className="text-[var(--brand-primary)] underline" href="/contact">contact us</Link>.
           </>
         ),
       },
@@ -78,7 +78,7 @@ const faqSections = [
         question: "How can I get help with account or checkout security?",
         answer: (
           <>
-            Please <Link className="text-[#6f1d46] underline" href="/contact">contact our team</Link> if
+            Please <Link className="text-[var(--brand-primary)] underline" href="/contact">contact our team</Link> if
             you notice an issue with your account or checkout.
           </>
         ),
@@ -92,7 +92,7 @@ export default function FaqPage() {
     <main className="min-h-[70vh] bg-white text-[#111]">
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[#6f1d46] sm:px-6"
+        className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 py-3 text-[11px] text-[var(--brand-primary)] sm:px-6"
       >
         <Link href="/" className="hover:underline">Home</Link>
         <ChevronRight size={12} aria-hidden="true" />
@@ -126,7 +126,7 @@ export default function FaqPage() {
                       {item.question}
                       <span
                         aria-hidden="true"
-                        className="text-base font-normal text-[#6f1d46] transition-transform group-open/question:rotate-45"
+                        className="text-base font-normal text-[var(--brand-primary)] transition-transform group-open/question:rotate-45"
                       >
                         +
                       </span>

@@ -25,7 +25,7 @@ export default function AddToCartButton({
           quantity: 1,
         })
       }
-      className="flex-1 rounded-full bg-primary py-4 font-semibold text-white transition hover:bg-[#561537]"
+      className="flex-1 rounded-full bg-primary py-4 font-semibold text-white transition hover:bg-primary-dark"
     >
       Add to Cart
     </button>

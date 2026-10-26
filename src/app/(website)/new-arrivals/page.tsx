@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -103,7 +104,7 @@ function productImage(product: ArrivalProduct) {
 }
 
 function productPrice(product: ArrivalProduct) {
-  return product.discountPrice && product.discountPrice > 0
+  return product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
     ? product.discountPrice
     : product.price;
 }
@@ -135,15 +136,14 @@ function isCategory(
 
 function productIsOnSale(product: ArrivalProduct) {
   return (
-    product.onSale === true ||
-    (product.onSale === undefined &&
-      typeof product.discountPrice === "number" &&
-      product.discountPrice > 0 &&
-      product.discountPrice < product.price)
+    typeof product.discountPrice === "number" &&
+    product.discountPrice > 0 &&
+    product.discountPrice < product.price
   );
 }
 
 export default function NewArrivalsPage() {
+  const router = useRouter();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<ArrivalProduct[]>([]);
@@ -437,6 +437,11 @@ export default function NewArrivalsPage() {
   };
 
   function addProductToCart(product: ArrivalProduct) {
+    if (product.sizes?.length) {
+      router.push(`/product/${product.slug}`);
+      return;
+    }
+
     const color = selectedProductColors[product._id] ?? product.colors?.[0];
     const price = productPrice(product);
     addToCart({
@@ -458,7 +463,7 @@ export default function NewArrivalsPage() {
           aria-label="Breadcrumb"
           className="mx-auto flex max-w-[1894px] items-center gap-1.5 px-4 py-3 text-xs text-[#303030] sm:px-6"
         >
-          <Link href="/" className="hover:text-[#6f1d46]">
+          <Link href="/" className="hover:text-[var(--brand-primary)]">
             Home
           </Link>
           <ChevronRight size={13} aria-hidden="true" />
@@ -500,7 +505,7 @@ export default function NewArrivalsPage() {
                   href={categoryHrefForTile(tile.category)}
                   className="group flex w-full max-w-48 flex-col items-center text-center"
                 >
-                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[#f5f2ed] sm:w-36 lg:w-40">
+                  <span className="relative block aspect-square w-32 overflow-hidden rounded-full bg-[var(--section-background)] sm:w-36 lg:w-40">
                     <Image
                       src={tile.image}
                       alt={tile.title}
@@ -536,7 +541,7 @@ export default function NewArrivalsPage() {
                 size={23}
                 strokeWidth={1.5}
                 aria-hidden="true"
-                className="shrink-0 text-[#102d40] sm:size-7"
+                className="shrink-0 text-[var(--brand-primary)] sm:size-7"
               />
               <p className="text-[10px] leading-4 text-[#6d777c] sm:text-xs">
                 <span className="block font-semibold text-[#18374b]">{title}</span>
@@ -551,12 +556,12 @@ export default function NewArrivalsPage() {
         id="new-arrival-products"
         className="mx-auto max-w-[1440px] px-4 pb-16 pt-9 sm:px-7 sm:pt-12 lg:px-14"
       >
-        <div className="mb-6 flex flex-col justify-between gap-4 border-b border-[#e8e2dc] pb-5 sm:flex-row sm:items-end">
+        <div className="mb-6 flex flex-col justify-between gap-4 border-b border-[var(--border-color)] pb-5 sm:flex-row sm:items-end">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a8267]">
               Just arrived
             </p>
-            <h2 className="mt-1 font-serif text-3xl text-[#102d40] sm:text-4xl">
+            <h2 className="mt-1 font-serif text-3xl text-[var(--brand-primary)] sm:text-4xl">
               New Arrivals
             </h2>
           </div>
@@ -575,7 +580,7 @@ export default function NewArrivalsPage() {
                 setPage(1);
               }}
               placeholder="Search new arrivals"
-              className="h-full w-full rounded-sm border border-[#e4ded7] bg-white pl-9 pr-3 text-xs outline-none focus:border-[#102d40]"
+              className="h-full w-full rounded-sm border border-[#e4ded7] bg-white pl-9 pr-3 text-xs outline-none focus:border-[var(--brand-primary)]"
             />
           </label>
         </div>
@@ -626,7 +631,7 @@ export default function NewArrivalsPage() {
                     aria-label="Grid view"
                     aria-pressed={view === "grid"}
                     className={`flex size-9 items-center justify-center ${
-                      view === "grid" ? "bg-[#102d40] text-white" : "text-[#53636c]"
+                      view === "grid" ? "bg-[var(--brand-primary)] text-white" : "text-[#53636c]"
                     }`}
                   >
                     <Grid2X2 size={16} aria-hidden="true" />
@@ -637,7 +642,7 @@ export default function NewArrivalsPage() {
                     aria-label="List view"
                     aria-pressed={view === "list"}
                     className={`flex size-9 items-center justify-center ${
-                      view === "list" ? "bg-[#102d40] text-white" : "text-[#53636c]"
+                      view === "list" ? "bg-[var(--brand-primary)] text-white" : "text-[#53636c]"
                     }`}
                   >
                     <List size={17} aria-hidden="true" />
@@ -651,14 +656,14 @@ export default function NewArrivalsPage() {
                 role="alert"
                 className="rounded-sm border border-red-200 bg-white px-5 py-12 text-center"
               >
-                <h3 className="font-serif text-2xl text-[#102d40]">
+                <h3 className="font-serif text-2xl text-[var(--brand-primary)]">
                   We couldn’t load the new arrivals
                 </h3>
                 <p className="mt-2 text-sm text-[#68767d]">{loadError}</p>
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
-                  className="mt-5 text-xs font-semibold text-[#102d40] underline underline-offset-4"
+                  className="mt-5 text-xs font-semibold text-[var(--brand-primary)] underline underline-offset-4"
                 >
                   Try again
                 </button>
@@ -674,7 +679,7 @@ export default function NewArrivalsPage() {
               </div>
             ) : visibleProducts.length === 0 ? (
               <div className="col-span-full rounded-xl border border-slate-200 bg-white px-5 py-16 text-center">
-                <h3 className="font-serif text-2xl text-[#102d40]">
+                <h3 className="font-serif text-2xl text-[var(--brand-primary)]">
                   {products.length === 0
                     ? "New pieces are on their way"
                     : "No products match these filters"}
@@ -720,8 +725,10 @@ export default function NewArrivalsPage() {
                         _id: product._id,
                         name: product.name,
                         slug: product.slug,
-                        image: productImage(product) || "/placeholder-product.svg",
+                        image: productImage(product),
                         price: productPrice(product),
+                        sizes: product.sizes ?? [],
+                        colors: product.colors ?? [],
                       })
                     }
                     onAddToCart={() => addProductToCart(product)}
@@ -764,7 +771,7 @@ export default function NewArrivalsPage() {
                       }}
                       className={`size-9 rounded-sm border text-xs ${
                         page === pageNumber
-                          ? "border-[#102d40] bg-[#102d40] text-white"
+                          ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
                           : "border-[#ddd8d2] bg-white text-[#394e5a]"
                       }`}
                     >
@@ -804,9 +811,9 @@ export default function NewArrivalsPage() {
           description="Fresh looks for the moments that matter."
           href="/shop/women"
           image={products.find((product) => getGender(categoryName(product), product.gender) === "women")}
-          tone="from-[#e7d9ce] to-[#c4aa96]"
+          tone="from-[var(--section-background)] to-[var(--brand-secondary)]"
         />
-        <div className="flex min-h-[230px] flex-col justify-center rounded-sm bg-[#102d40] p-7 text-white sm:col-span-2 lg:col-span-1">
+        <div className="flex min-h-[230px] flex-col justify-center rounded-sm bg-[var(--brand-primary)] p-7 text-white sm:col-span-2 lg:col-span-1">
           <ShieldCheck size={29} strokeWidth={1.5} aria-hidden="true" />
           <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.19em] text-[#d1bfa9]">
             Made for the everyday
@@ -832,7 +839,7 @@ export default function NewArrivalsPage() {
         onClick={() => setChatOpen((open) => !open)}
         aria-expanded={chatOpen}
         aria-label={chatOpen ? "Close help panel" : "Open help panel"}
-        className="fixed bottom-5 right-5 z-40 flex size-12 items-center justify-center rounded-full bg-[#102d40] text-white shadow-lg transition hover:bg-[#1b465f] sm:bottom-7 sm:right-7 sm:size-14"
+        className="fixed bottom-5 right-5 z-40 flex size-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-lg transition hover:bg-[#1b465f] sm:bottom-7 sm:right-7 sm:size-14"
       >
         {chatOpen ? (
           <X size={21} aria-hidden="true" />
@@ -846,14 +853,14 @@ export default function NewArrivalsPage() {
           aria-label="Customer support"
           className="fixed bottom-[76px] right-5 z-40 w-[min(320px,calc(100vw-40px))] rounded-sm border border-[#e2ddd6] bg-white p-5 shadow-xl sm:bottom-[92px] sm:right-7"
         >
-          <h2 className="font-serif text-xl text-[#102d40]">Need a hand?</h2>
+          <h2 className="font-serif text-xl text-[var(--brand-primary)]">Need a hand?</h2>
           <p className="mt-2 text-xs leading-5 text-[#65727a]">
             Live chat isn’t available right now. Our contact page has the
             available ways to reach ClothesTown.
           </p>
           <Link
             href="/contact"
-            className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-[#102d40] underline underline-offset-4"
+            className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-[var(--brand-primary)] underline underline-offset-4"
           >
             Contact us <ArrowRight size={14} aria-hidden="true" />
           </Link>

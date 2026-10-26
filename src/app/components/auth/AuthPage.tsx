@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Eye,
@@ -169,56 +168,27 @@ function MountainBackdrop() {
 }
 
 export default function AuthPage({ mode }: { mode: AuthMode }) {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const isLogin = mode === "login";
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
-    if (!isLogin && formData.get("password") !== formData.get("confirmPassword")) {
-      setMessage("The passwords do not match.");
-      return;
-    }
-
-    if (!isLogin) {
+    if (isLogin) {
       setMessage(
-        "Account registration is not available yet. Authentication has not been configured."
+        "Customer sign-in is not available yet. You can checkout as a guest and track orders with your order details."
       );
       return;
     }
 
-    setMessage("");
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch("/api/admin/auth/login", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.get("email"),
-          password: formData.get("password"),
-        }),
-      });
-      const result = (await response.json()) as { message?: string };
-
-      if (!response.ok) {
-        setMessage(result.message ?? "Sign in failed. Please try again.");
-        return;
-      }
-
-      router.replace("/admin");
-      router.refresh();
-    } catch (error) {
-      console.error("Admin sign-in request failed:", error);
-      setMessage("Could not reach the server. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    if (formData.get("password") !== formData.get("confirmPassword")) {
+      setMessage("The passwords do not match.");
+      return;
     }
+
+    setMessage("Customer accounts are not available yet. Guest checkout and order tracking are available.");
   }
 
   function handleForgotPassword() {
@@ -242,7 +212,9 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
               Better Style. Brighter Days.
             </h1>
             <p className="mt-2 max-w-[380px] text-[15px] leading-[1.7] text-[#d4e1e9] sm:text-base">
-              Create an account or login to continue your fashion journey.
+              {isLogin
+                ? "Shop and place orders as a guest. Customer accounts are not available yet."
+                : "Customer registration is not available yet. You can still shop and checkout as a guest."}
             </p>
             <ul className="mt-6 grid grid-cols-2 gap-x-5 gap-y-3 sm:mt-8 sm:gap-y-4 lg:grid-cols-1 lg:gap-y-4">
               {benefits.map(({ Icon, text }) => (
@@ -290,11 +262,11 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
             </div>
 
             <h2 className="text-[21px] font-bold leading-tight text-[#173246] sm:text-[22px]">
-              {isLogin ? "Admin Sign In" : "Create Your Account"}
+              {isLogin ? "Customer Sign In" : "Create Your Account"}
             </h2>
             <p className="mt-1 text-[13px] text-[#7892a8] sm:text-sm">
               {isLogin
-                ? "Sign in to manage your ClothesTown store"
+                ? "Customer account access is not available yet"
                 : "Join ClothesTown and find your style"}
             </p>
 
@@ -401,14 +373,9 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
                 className="flex h-[44px] w-full items-center justify-center gap-2 rounded-md bg-[#092b40] text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#124561] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0874f9]"
               >
-                {isSubmitting
-                  ? "Signing In…"
-                  : isLogin
-                    ? "Sign In"
-                    : "Create Account"}
+                {isLogin ? "Sign In" : "Create Account"}
                 <ArrowRight size={17} aria-hidden="true" />
               </button>
             </form>
