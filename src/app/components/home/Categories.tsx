@@ -29,6 +29,13 @@ export default function CategoriesSection() {
   );
   const [loading, setLoading] = useState(true);
 
+  function categoryVisibilityClass(index: number) {
+    if (index < 4) return "";
+    if (index < 6) return "hidden sm:block";
+    if (index < 10) return "hidden lg:block";
+    return "hidden";
+  }
+
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -65,18 +72,21 @@ export default function CategoriesSection() {
           </h2>
           <Link
             href="/categories"
-            className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--brand-primary)] sm:text-xs"
+            className="inline-flex min-h-9 items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--brand-primary)] sm:text-xs"
           >
-            View All
+            All categories
             <ArrowRight size={13} aria-hidden="true" />
           </Link>
         </div>
         {loading ? (
-          <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:-mx-8 sm:px-8 lg:mx-auto lg:max-w-[1150px] lg:overflow-visible lg:px-0">
-              <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-5 lg:gap-3">
-              {Array.from({ length: 6 }, (_, index) => (
-                <div key={index} className="flex w-[104px] shrink-0 animate-pulse flex-col items-center sm:w-[120px] lg:w-auto">
-                  <div className="size-[76px] rounded-full bg-gray-100 min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]" />
+          <div className="mx-auto max-w-[1150px]">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5 lg:gap-x-3">
+              {Array.from({ length: 10 }, (_, index) => (
+                <div
+                  key={index}
+                  className={`flex animate-pulse flex-col items-center ${categoryVisibilityClass(index)}`}
+                >
+                  <div className="size-[76px] rounded-xl bg-gray-100 min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]" />
                   <div className="mt-3 h-3 w-4/5 rounded bg-gray-100" />
                   <div className="mt-2 h-2.5 w-14 rounded bg-gray-100" />
                 </div>
@@ -84,8 +94,8 @@ export default function CategoriesSection() {
             </div>
           </div>
         ) : (
-          <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:-mx-8 sm:px-8 lg:mx-auto lg:max-w-[1150px] lg:overflow-visible lg:px-0">
-            <div className="flex w-max gap-4 sm:gap-6 lg:grid lg:w-full lg:grid-cols-5 lg:gap-3">
+          <div className="mx-auto max-w-[1150px]">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5 lg:gap-x-3">
               {categories.map((category, index) => (
                 <motion.div
                   key={category.slug}
@@ -93,7 +103,7 @@ export default function CategoriesSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.2, delay: index * 0.04 }}
-                  className="w-max min-w-[104px] shrink-0 sm:min-w-[120px] lg:w-auto lg:min-w-0"
+                  className={`min-w-0 ${categoryVisibilityClass(index)}`}
                 >
                   <Link
                     href={category.href ?? `/shop/${category.slug}`}
@@ -109,7 +119,7 @@ export default function CategoriesSection() {
                         fallbackClassName="text-[10px] text-gray-500"
                       />
                     </span>
-                    <span className="mt-2 whitespace-nowrap text-[10px] font-semibold leading-4 sm:text-xs">
+                    <span className="mt-2 max-w-full text-center text-[10px] font-semibold leading-4 sm:text-xs">
                       {category.name}
                     </span>
                     <span className="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-[9px] text-[var(--text-secondary)] transition-colors group-hover:text-[var(--brand-primary)] sm:text-[10px]">

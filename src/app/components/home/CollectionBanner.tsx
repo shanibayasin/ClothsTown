@@ -36,6 +36,7 @@ interface PromoCard {
   image: string;
   href: string;
   isMen: boolean;
+  buttonText: string;
 }
 
 export default function CollectionBanner() {
@@ -58,52 +59,41 @@ export default function CollectionBanner() {
         );
         const menCollection = activeCollections.find((item) =>
           /\b(?:men'?s?|male)\b/i.test(`${item.title} ${item.slug}`)
-        ) || activeCollections.find((item) => item !== womenCollection) ||
-          (!womenCollection ? activeCollections[0] : undefined);
+        );
+        const menCategory = categories.find(
+          (item) => item.status && item.routeGroup === "men"
+        );
         const womenCategory = categories.find(
           (item) => item.status && item.routeGroup === "women"
         );
-        const nextCards: PromoCard[] = [];
-
-        if (menCollection) {
-          nextCards.push({
-            id: menCollection._id,
-            title: "Men's Seasonal Edit",
-            subtitle: "Up to 40% Off",
-            image: menCollection.image,
-            href: `/collections/${menCollection.slug}`,
+        const nextCards: PromoCard[] = [
+          {
+            id: menCollection?._id ?? menCategory?._id ?? "men-shop",
+            title: menCollection?.title ?? "Men's Fashion",
+            subtitle: menCollection?.subtitle ?? "Explore styles for every day",
+            image: menCollection?.image || menCategory?.image || "",
+            href: menCollection
+              ? `/collections/${menCollection.slug}`
+              : menCategory
+                ? `/shop/${menCategory.routeGroup}/${menCategory.slug}`
+                : "/shop/men",
             isMen: true,
-          });
-        }
-
-        if (womenCollection) {
-          nextCards.push({
-            id: womenCollection._id,
-            title: "Women's Fashion",
-            subtitle: "Trendy Styles for You",
-            image: womenCollection.image,
-            href: `/collections/${womenCollection.slug}`,
+            buttonText: menCollection?.buttonText || "Shop Now",
+          },
+          {
+            id: womenCollection?._id ?? womenCategory?._id ?? "women-shop",
+            title: womenCollection?.title ?? "Women's Fashion",
+            subtitle: womenCollection?.subtitle ?? "Trendy Styles for You",
+            image: womenCollection?.image || womenCategory?.image || "",
+            href: womenCollection
+              ? `/collections/${womenCollection.slug}`
+              : womenCategory
+                ? `/shop/${womenCategory.routeGroup}/${womenCategory.slug}`
+                : "/shop/women",
             isMen: false,
-          });
-        } else if (womenCategory) {
-          nextCards.push({
-            id: womenCategory._id,
-            title: "Women's Fashion",
-            subtitle: "Trendy Styles for You",
-            image: womenCategory.image,
-            href: `/shop/${womenCategory.routeGroup}/${womenCategory.slug}`,
-            isMen: false,
-          });
-        } else {
-          nextCards.push({
-            id: "women-shop",
-            title: "Women's Fashion",
-            subtitle: "Trendy Styles for You",
-            image: "",
-            href: "/shop",
-            isMen: false,
-          });
-        }
+            buttonText: womenCollection?.buttonText || "Shop Now",
+          },
+        ];
 
         setCards(nextCards);
       } catch (error) {
@@ -170,7 +160,7 @@ export default function CollectionBanner() {
                         : "bg-[var(--brand-primary)] text-white group-hover:bg-primary"
                     }`}
                   >
-                    Shop Now
+                    {card.buttonText}
                     <ArrowRight size={14} />
                   </span>
                 </div>

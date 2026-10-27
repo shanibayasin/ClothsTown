@@ -398,8 +398,12 @@ export default function Navbar() {
                 pathname === "/" ? "text-[var(--brand-primary)]" : "text-[var(--text-primary)] hover:text-[var(--brand-secondary-foreground)]"
               }`}
             >
-              Home
-              {pathname === "/" && <span className="absolute bottom-2 left-0 right-0 h-px bg-[var(--brand-secondary)]" />}
+              <span className="relative">
+                Home
+                {pathname === "/" && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-px bg-[var(--brand-secondary)]" />
+                )}
+              </span>
             </Link>
             {navigationItems
               .filter((item) => !["GIRLS", "BOYS"].includes(item.key))

@@ -179,7 +179,7 @@ export default function BannerForm({
             )}
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Manage homepage hero section.
+            Each active banner is one hero slide. Add three banners for a three-image carousel.
           </p>
         </div>
 

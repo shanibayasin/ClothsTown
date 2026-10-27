@@ -27,7 +27,7 @@ export default function Hero() {
     async function loadBanners() {
       try {
         const response = await fetch("/api/banners/public");
-        setSlides(await readJsonResponse<Banner[]>(response, []));
+        setSlides((await readJsonResponse<Banner[]>(response, [])).slice(0, 3));
       } catch (error) {
         console.error("Hero content fetch error log:", error);
       } finally {
@@ -57,7 +57,7 @@ export default function Hero() {
     return (
       <div
         aria-label="Loading featured collection"
-        className="aspect-[1/1.08] min-h-[390px] animate-pulse bg-[#F8F5EF] sm:aspect-[2.1/1] sm:min-h-[310px] lg:aspect-[3.15/1] lg:min-h-[420px]"
+        className="aspect-[1.45/1] min-h-[270px] max-h-[340px] animate-pulse bg-[#F8F5EF] sm:aspect-[2.4/1] sm:min-h-[300px] sm:max-h-[420px] lg:aspect-[3.3/1] lg:min-h-[380px] lg:max-h-[570px]"
       />
     );
   }
@@ -71,7 +71,7 @@ export default function Hero() {
     <section
       aria-label="Featured collection"
       aria-roledescription="carousel"
-      className="relative isolate aspect-[1/1.08] min-h-[390px] overflow-hidden bg-[#F8F5EF] text-[#0F2D39] sm:aspect-[2.1/1] sm:min-h-[310px] lg:aspect-[3.15/1] lg:min-h-[420px]"
+      className="relative isolate aspect-[1.45/1] min-h-[270px] max-h-[340px] overflow-hidden bg-[#F8F5EF] text-[#0F2D39] sm:aspect-[2.4/1] sm:min-h-[300px] sm:max-h-[420px] lg:aspect-[3.3/1] lg:min-h-[380px] lg:max-h-[570px]"
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -79,7 +79,7 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.55 }}
           className="absolute inset-0 bg-[#F8F5EF]"
         >
           {failedImageId === slide._id ? (
@@ -104,7 +104,7 @@ export default function Hero() {
           )}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[linear-gradient(90deg,rgba(248,245,239,0)_18%,rgba(248,245,239,.08)_38%,rgba(248,245,239,.68)_62%,rgba(248,245,239,.92)_100%)] max-sm:bg-[linear-gradient(0deg,rgba(248,245,239,.97)_0%,rgba(248,245,239,.84)_35%,rgba(248,245,239,0)_76%)]"
+            className="absolute inset-0 bg-[linear-gradient(90deg,rgba(248,245,239,0)_18%,rgba(248,245,239,.08)_38%,rgba(248,245,239,.68)_62%,rgba(248,245,239,.92)_100%)] max-sm:bg-[linear-gradient(0deg,rgba(248,245,239,.99)_0%,rgba(248,245,239,.96)_52%,rgba(248,245,239,.35)_82%,rgba(248,245,239,0)_100%)]"
           />
         </motion.div>
       </AnimatePresence>
