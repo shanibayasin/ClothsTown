@@ -13,8 +13,8 @@ export default function AnnouncementBar() {
         aria-label="Store announcement"
         className={`announcement-marquee-viewport mx-auto flex max-w-[1440px] items-center overflow-hidden px-4 font-medium sm:px-6 lg:px-8 ${
           isAccountPage
-            ? "h-[30px] text-[8px] sm:h-[30px] sm:text-[9px] lg:h-[30px] lg:px-14 lg:text-[10px]"
-            : "h-7 text-[9px] sm:h-10 sm:text-[11px] lg:h-14 lg:text-[14px]"
+            ? "h-4 text-[7px] sm:h-5 sm:text-[8px] lg:h-6 lg:px-14 lg:text-[9px]"
+            : "h-4 text-[7px] sm:h-5 sm:text-[8px] lg:h-6 lg:text-[9px]"
         }`}
       >
         <div className="announcement-marquee-track flex w-max items-center">

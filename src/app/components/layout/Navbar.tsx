@@ -372,11 +372,11 @@ export default function Navbar() {
             : "bg-[var(--page-background)]"
         }`}
       >
-        <div className="relative mx-auto grid h-[58px] w-full max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:h-16 sm:px-6 md:h-[68px] md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-4 lg:px-10">
+        <div className="relative mx-auto grid h-10 w-full max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2 sm:h-11 sm:px-4 md:h-12 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-3 lg:px-8">
           <div className="flex min-w-0 items-center">
             <ClothestownLogo
               href="/"
-              width={170}
+              width={135}
               variant="horizontal"
               onClick={() => {
                 setOpenMegaMenu("");
@@ -394,12 +394,12 @@ export default function Navbar() {
                 setOpenMegaMenu("");
                 setSearchOpen(false);
               }}
-              className={`relative flex h-[68px] shrink-0 items-center text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-xs ${
+              className={`relative flex h-full shrink-0 items-center text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-[11px] ${
                 pathname === "/" ? "text-[var(--brand-primary)]" : "text-[var(--text-primary)] hover:text-[var(--brand-secondary-foreground)]"
               }`}
             >
               Home
-              {pathname === "/" && <span className="absolute bottom-3 left-0 right-0 h-px bg-[var(--brand-secondary)]" />}
+              {pathname === "/" && <span className="absolute bottom-2 left-0 right-0 h-px bg-[var(--brand-secondary)]" />}
             </Link>
             {navigationItems
               .filter((item) => !["GIRLS", "BOYS"].includes(item.key))
@@ -420,7 +420,7 @@ export default function Navbar() {
                         setOpenMegaMenu("");
                         setSearchOpen(false);
                       }}
-                      className={`shrink-0 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-xs ${
+                      className={`shrink-0 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-[11px] ${
                         active ? "text-[var(--brand-primary)]" : "text-[var(--text-primary)] hover:text-[var(--brand-secondary-foreground)]"
                       }`}
                     >
@@ -440,12 +440,12 @@ export default function Navbar() {
                       setSearchOpen(false);
                       setOpenMegaMenu((current) => current === item.key ? "" : item.key);
                     }}
-                    className={`flex shrink-0 items-center gap-0.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-xs ${
+                    className={`flex shrink-0 items-center gap-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] lg:text-[11px] ${
                       active || isMenuOpen ? "text-[var(--brand-primary)]" : "text-[var(--text-primary)] hover:text-[var(--brand-secondary-foreground)]"
                     }`}
                   >
                     {item.name}
-                    <ChevronDown size={11} aria-hidden="true" />
+                    <ChevronDown size={10} aria-hidden="true" />
                   </button>
                 );
               })}
@@ -460,26 +460,26 @@ export default function Navbar() {
                 setOpenMegaMenu("");
                 setSearchOpen((current) => !current);
               }}
-              className="hidden size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9 md:flex"
+              className="flex size-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-8"
             >
               {searchOpen ? <X size={16} /> : <Search size={16} strokeWidth={1.7} />}
             </button>
             <Link
               href="/login"
               aria-label="Account login and registration"
-              className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9"
+              className="flex size-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-8"
             >
               <User size={16} strokeWidth={1.7} />
             </Link>
 
-            <Link href="/wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`} className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9">
+            <Link href="/wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`} className="flex size-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-8">
               <span className="relative">
                 <Heart size={16} strokeWidth={1.7} />
                 {wishlistCount > 0 && <span className="absolute -right-2 -top-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--brand-secondary)] px-1 text-[8px] font-bold text-white">{wishlistCount}</span>}
               </span>
             </Link>
 
-            <Link href="/cart" aria-label={`Cart${totalCartItems ? `, ${totalCartItems} items` : ""}`} className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-9">
+            <Link href="/cart" aria-label={`Cart${totalCartItems ? `, ${totalCartItems} items` : ""}`} className="flex size-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-8">
               <span className="relative">
                 <ShoppingCart size={16} strokeWidth={1.7} />
                 {totalCartItems > 0 && <span className="absolute -right-2 -top-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--brand-secondary)] px-1 text-[8px] font-bold text-white">{totalCartItems}</span>}
@@ -490,9 +490,9 @@ export default function Navbar() {
               onClick={() => setIsOpen(true)}
               aria-label="Open navigation menu"
               aria-expanded={isOpen}
-              className="ml-0.5 flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] md:hidden"
+              className="ml-0.5 flex size-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-8 md:hidden"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
           </div>
 
@@ -503,7 +503,7 @@ export default function Navbar() {
           )}
         </div>
 
-        <ProductSearch id="mobile-product-search" compact />
+        {searchOpen && <ProductSearch id="mobile-product-search" compact />}
 
         <nav aria-label="Legacy navigation" className="hidden">
           <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-start gap-5 overflow-visible px-6 lg:h-[67px] lg:gap-9 lg:px-10">
