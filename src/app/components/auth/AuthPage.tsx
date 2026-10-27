@@ -14,6 +14,7 @@ import {
   Truck,
 } from "lucide-react";
 import { FaFacebookF, FaGoogle } from "react-icons/fa6";
+import ClothestownLogo from "@/app/components/layout/ClothestownLogo";
 
 type AuthMode = "login" | "register";
 
@@ -23,38 +24,6 @@ const benefits = [
   { Icon: Heart, text: "Manage your wishlist" },
   { Icon: ShieldCheck, text: "Secure & safe checkout" },
 ];
-
-function BrandMark({ compact = false }: { compact?: boolean }) {
-  return (
-    <span
-      className={`inline-flex items-center text-white ${
-        compact ? "gap-2" : "gap-3"
-      }`}
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 72 56"
-        className={compact ? "h-8 w-10" : "h-10 w-14"}
-        fill="none"
-      >
-        <path
-          d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span
-        className={`whitespace-nowrap font-bold tracking-tight ${
-          compact ? "text-[21px] sm:text-2xl" : "text-2xl sm:text-[26px]"
-        }`}
-      >
-        ClothesTown
-      </span>
-    </span>
-  );
-}
 
 function MountainBackdrop() {
   return (
@@ -206,7 +175,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
           <MountainBackdrop />
           <div className="relative z-10 w-full max-w-[430px]">
             <Link href="/" aria-label="ClothesTown home" className="inline-flex">
-              <BrandMark />
+              <ClothestownLogo width={190} inverse />
             </Link>
             <h1 className="mt-6 text-[25px] font-bold leading-tight text-white sm:text-[29px]">
               Better Style. Brighter Days.

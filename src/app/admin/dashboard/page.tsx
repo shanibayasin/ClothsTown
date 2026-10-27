@@ -27,6 +27,7 @@ import {
 import StatsCard from "../components/StatCard";
 import SalesChart from "./SalesChart";
 import OrderStatusChart from "./OrderStatusChart";
+import ClothestownLogo from "@/app/components/layout/ClothestownLogo";
 
 interface OrderProduct {
   name: string;
@@ -572,7 +573,7 @@ export default function DashboardPage() {
           <section className="relative isolate overflow-hidden rounded-2xl bg-[var(--brand-primary)] p-5 text-white shadow-sm">
             <div aria-hidden="true" className="absolute -right-8 -top-10 size-32 rounded-full [background-color:var(--brand-primary)] opacity-60 blur-2xl" />
             <div className="relative">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300">ClothesTown</p>
+              <ClothestownLogo width={148} inverse tagline={false} />
               <h2 className="mt-2 text-lg font-bold tracking-tight text-white">Style Meets Comfort</h2>
               <p className="mt-1 text-xs text-slate-300">More styles, more you.</p>
               <Link

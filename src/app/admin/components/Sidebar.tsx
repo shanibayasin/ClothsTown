@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import BrandLogo from "@/app/components/layout/BrandLogo";
+import ClothestownLogo from "@/app/components/layout/ClothestownLogo";
 import {
   LayoutDashboard,
   Package,
@@ -66,7 +66,7 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
         onClick={closeSidebar}
         className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 px-1 pb-4"
       >
-        <BrandLogo inverse />
+        <ClothestownLogo inverse />
       </Link>
 
       <nav

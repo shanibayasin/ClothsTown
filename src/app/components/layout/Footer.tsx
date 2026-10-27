@@ -2,7 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUp, Mail } from "lucide-react";
+import {
+  ArrowRight,
+  Banknote,
+  Headset,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 import {
   FaFacebookF,
   FaInstagram,
@@ -10,11 +16,33 @@ import {
   FaXTwitter,
   FaYoutube,
 } from "react-icons/fa6";
-import { CATEGORY_CATALOG, getCategoryHref } from "@/lib/category-catalog";
-import BrandLogo from "@/app/components/layout/BrandLogo";
+import { ClothestownLogo } from "@/app/components/layout/ClothestownLogo";
 
-const quickLinks = [
-  { label: "Home", href: "/" },
+const trustItems = [
+  {
+    Icon: Truck,
+    title: "Nationwide Shopping",
+    detail: "Explore the collection from anywhere",
+  },
+  {
+    Icon: Banknote,
+    title: "Cash on Delivery",
+    detail: "Available at checkout",
+  },
+  {
+    Icon: ShieldCheck,
+    title: "Secure Checkout",
+    detail: "Shop with confidence",
+  },
+  {
+    Icon: Headset,
+    title: "Here to Help",
+    detail: "Get in touch with our team",
+  },
+];
+
+const collectionLinks = [
+  { label: "Shop All", href: "/shop" },
   { label: "Men", href: "/shop/men" },
   { label: "Women", href: "/shop/women" },
   { label: "Accessories", href: "/shop/accessories" },
@@ -22,21 +50,13 @@ const quickLinks = [
   { label: "Sale", href: "/shop?sale=true" },
 ];
 
-const serviceLinks = [
-  { label: "Contact Us", href: "/contact" },
+const careLinks = [
   { label: "Track Order", href: "/track-order" },
   { label: "Returns & Exchanges", href: "/contact" },
   { label: "FAQs", href: "/faq" },
-  { label: "Size Guide", href: "/contact" },
-  { label: "Help", href: "/contact" },
-];
-
-const policyLinks = [
+  { label: "Contact Us", href: "/contact" },
   { label: "Privacy Policy", href: "/policies#privacy" },
-  { label: "Terms & Conditions", href: "/policies#terms" },
-  { label: "Shipping Policy", href: "/policies#shipping" },
-  { label: "Return Policy", href: "/policies#exchange" },
-  { label: "Payment Methods", href: "/contact" },
+  { label: "Terms of Use", href: "/policies#terms" },
 ];
 
 const socialLinks = [
@@ -47,7 +67,7 @@ const socialLinks = [
   { label: "TikTok", Icon: FaTiktok, href: "https://www.tiktok.com/" },
 ];
 
-function FooterLinks({
+function FooterLinkGroup({
   title,
   links,
 }: {
@@ -55,18 +75,23 @@ function FooterLinks({
   links: { label: string; href: string }[];
 }) {
   return (
-    <div>
-      <h3 className="mb-4 text-sm font-bold text-white sm:mb-5">{title}</h3>
-      <ul className="space-y-2.5 text-xs text-[#b7c5ce] sm:space-y-3">
+    <nav aria-label={title}>
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c18b65]">
+        {title}
+      </h2>
+      <ul className="mt-4 space-y-2.5 text-xs text-[#0f2d39]/80">
         {links.map(({ label, href }) => (
           <li key={label}>
-            <Link className="transition-colors hover:text-white" href={href}>
+            <Link
+              href={href}
+              className="transition-colors hover:text-[#c18b65]"
+            >
               {label}
             </Link>
           </li>
         ))}
       </ul>
-    </div>
+    </nav>
   );
 }
 
@@ -79,67 +104,46 @@ export default function Footer() {
   }
 
   return (
-    <footer className="mt-12 bg-primary text-white sm:mt-16">
-      <section className="relative overflow-hidden border-b border-white/15 bg-primary-dark">
-        <div className="relative mx-auto grid max-w-[1440px] items-center gap-6 px-5 py-8 sm:px-8 sm:py-9 lg:grid-cols-[1fr_auto] lg:gap-10 lg:px-12">
-          <div className="flex min-w-0 items-start gap-4 sm:gap-6">
-            <Mail
-              aria-hidden="true"
-              className="mt-1 size-9 shrink-0 text-white sm:size-12"
-              strokeWidth={1.5}
-            />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold sm:text-lg">Join Our Newsletter</h2>
-              <p className="mt-1 text-xs leading-5 text-[#d0dce4]">
-                Get exclusive offers, new arrivals and the latest trend updates.
-              </p>
-              <form
-                className="mt-4 flex max-w-[560px] rounded-lg bg-white/10 p-1"
-                onSubmit={handleNewsletterSubmit}
-              >
-                <label className="sr-only" htmlFor="footer-newsletter-email">
-                  Email address
-                </label>
-                <input
-                  id="footer-newsletter-email"
-                  type="email"
-                  required
-                  placeholder="Enter your email address"
-                  className="min-w-0 flex-1 bg-transparent px-3 py-2 text-xs text-white outline-none placeholder:text-[#c2d0d9]"
-                />
-                <button
-                  type="submit"
-                  className="inline-flex shrink-0 items-center gap-2 rounded-control bg-white px-4 py-2 text-xs font-bold text-primary transition-colors hover:bg-section sm:px-5"
-                >
-                  Subscribe
-                  <ArrowRight size={14} aria-hidden="true" />
-                </button>
-              </form>
-              <p aria-live="polite" className="mt-2 min-h-4 text-[11px] text-[#d0dce4]">
-                {newsletterMessage}
-              </p>
+    <footer className="mt-12 border-t border-[#eae4d9] bg-[#faf7f2] text-xs text-[#0f2d39] sm:mt-16">
+      <section
+        aria-label="Shopping benefits"
+        className="border-b border-[#eae4d9] py-6 sm:py-8"
+      >
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+          {trustItems.map(({ Icon, title, detail }) => (
+            <div key={title} className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#0f2d39]/5 text-[#c18b65]">
+                <Icon className="size-5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block font-semibold text-[#0f2d39]">
+                  {title}
+                </span>
+                <span className="mt-0.5 block text-[11px] text-[#0f2d39]/60">
+                  {detail}
+                </span>
+              </span>
             </div>
-          </div>
-          <p className="hidden pr-3 text-right font-serif text-xl italic leading-7 text-white/90 sm:block lg:text-2xl">
-            Stay Stylish
-            <br />
-            Stay Updated
-            <span className="mx-auto mt-2 block h-0.5 w-14 rotate-[-10deg] rounded bg-white/80" />
-          </p>
+          ))}
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1440px] px-5 py-9 sm:px-8 sm:py-10 lg:px-12">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-3 lg:grid-cols-[1.3fr_0.8fr_1.4fr_1fr_0.9fr_1fr] lg:gap-8">
-          <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-            <Link href="/" aria-label="ClothesTown home" className="inline-flex items-center gap-2">
-              <BrandLogo inverse />
+      <div className="mx-auto max-w-7xl px-4 py-9 sm:px-6 sm:py-12 lg:px-8">
+        <div className="grid grid-cols-1 gap-9 sm:grid-cols-2 lg:grid-cols-5 lg:gap-8">
+          <div className="space-y-4 sm:col-span-2 lg:col-span-2">
+            <Link href="/" aria-label="ClothesTown home" className="inline-flex">
+              <ClothestownLogo
+                width={220}
+                showTagline={false}
+                showDivider={false}
+                variant="horizontal"
+              />
             </Link>
-            <p className="mt-4 max-w-[290px] text-xs leading-6 text-[#b7c5ce]">
-              Your one-stop shop for premium clothing for men and women. Quality,
-              style and comfort — always.
+            <p className="max-w-sm text-xs leading-relaxed text-[#0f2d39]/70">
+              CLOTHESTOWN brings together everyday style, quality, and comfort.
+              Find your next favorite look and make it your own.
             </p>
-            <div className="mt-5 flex items-center gap-4">
+            <div className="flex items-center gap-3 text-[11px] text-[#0f2d39]/60">
               {socialLinks.map(({ label, Icon, href }) => (
                 <a
                   key={label}
@@ -147,55 +151,74 @@ export default function Footer() {
                   aria-label={label}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-white/90 transition-colors hover:text-[#9ec9e2]"
+                  className="transition-colors hover:text-[#c18b65]"
                 >
-                  <Icon size={17} aria-hidden="true" />
+                  <Icon size={15} aria-hidden="true" />
                 </a>
               ))}
             </div>
           </div>
 
-          <FooterLinks title="Quick Links" links={quickLinks} />
-          <FooterLinks
-            title="Shop Categories"
-            links={CATEGORY_CATALOG.map((category) => ({
-              label: category.name,
-              href: getCategoryHref(category),
-            }))}
-          />
-          <FooterLinks title="Customer Service" links={serviceLinks} />
-          <FooterLinks title="Policies" links={policyLinks} />
+          <FooterLinkGroup title="Collections" links={collectionLinks} />
+          <FooterLinkGroup title="Client Care" links={careLinks} />
 
-          <div>
-            <h3 className="mb-4 text-sm font-bold text-white sm:mb-5">Secure Payments</h3>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded bg-white px-2 py-1 text-[11px] font-black italic text-[#17479e]">
-                VISA
-              </span>
-              <span className="inline-flex items-center rounded bg-white px-2 py-1 text-[11px] font-black text-[#182a50]">
-                <span className="mr-[-3px] text-[#e33a42]">●</span>
-                <span className="text-[#f2a22b]">●</span>
-              </span>
-              <span className="rounded bg-white px-2 py-1 text-[9px] font-bold text-[#168f53]">
-                easypaisa
-              </span>
-              <span className="rounded bg-white px-2 py-1 text-[9px] font-bold text-[#098b76]">
-                JazzCash
-              </span>
-            </div>
+          <div className="space-y-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c18b65]">
+              Private Salon
+            </h2>
+            <p className="text-[11px] leading-relaxed text-[#0f2d39]/70">
+              Get the latest news and updates from CLOTHESTOWN.
+            </p>
+            <form onSubmit={handleNewsletterSubmit} className="space-y-2">
+              <label className="sr-only" htmlFor="footer-newsletter-email">
+                Email address
+              </label>
+              <input
+                id="footer-newsletter-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="Enter your email address"
+                className="w-full rounded border border-[#eae4d9] bg-white px-3 py-2 text-xs text-[#0f2d39] placeholder:text-[#0f2d39]/40 focus:border-[#0f2d39] focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded bg-[#0f2d39] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#1a4455]"
+              >
+                <span>Join Salon</span>
+                <ArrowRight
+                  className="size-3.5 text-[#c18b65]"
+                  aria-hidden="true"
+                />
+              </button>
+              <p aria-live="polite" className="min-h-4 text-[10px] text-[#0f2d39]/60">
+                {newsletterMessage}
+              </p>
+            </form>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-start justify-between gap-4 border-t border-white/20 pt-5 text-[11px] text-[#b7c5ce] sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} ClothesTown. All rights reserved.</p>
-          <button
-            type="button"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="inline-flex items-center gap-2 transition-colors hover:text-white"
-          >
-            Back to top
-            <ArrowUp size={14} aria-hidden="true" />
-          </button>
+        <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-[#eae4d9] pt-5 text-[10px] text-[#0f2d39]/60 sm:flex-row sm:text-[11px]">
+          <p>
+            © {new Date().getFullYear()} CLOTHESTOWN. All rights reserved. Style
+            Lives Here.
+          </p>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/policies#privacy"
+              className="transition-colors hover:text-[#0f2d39]"
+            >
+              Privacy Policy
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link
+              href="/policies#terms"
+              className="transition-colors hover:text-[#0f2d39]"
+            >
+              Terms of Use
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

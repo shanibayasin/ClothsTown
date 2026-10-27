@@ -3,6 +3,7 @@
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LockKeyhole, Mail } from "lucide-react";
+import ClothestownLogo from "@/app/components/layout/ClothestownLogo";
 
 function AdminLoginForm() {
   const router = useRouter();
@@ -51,27 +52,9 @@ function AdminLoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f6f8] px-4 py-10">
       <section className="w-full max-w-[420px] rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_18px_55px_rgba(18,38,53,0.1)] sm:p-9">
-        <div className="flex items-center gap-3">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-white">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 72 56"
-              className="h-7 w-9"
-              fill="none"
-            >
-              <path
-                d="M35 18c0-4.4 3.3-7.5 7.5-7.5 4 0 7 2.9 7 6.8 0 4.3-3.2 6.3-7 8.7L7.2 47c-3.2 2-1.8 6.8 2 6.8h53.6c3.8 0 5.2-4.8 2-6.8L42.5 31"
-                stroke="currentColor"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <div>
-            <p className="text-lg font-bold tracking-tight text-[var(--brand-primary)]">
-              ClothesTown
-            </p>
+        <div>
+          <ClothestownLogo width={190} />
+          <div className="mt-1">
             <p className="text-xs text-slate-500">Store administration</p>
           </div>
         </div>

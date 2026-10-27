@@ -18,7 +18,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
 import ProductSearch from "@/app/components/layout/ProductSearch";
-import BrandLogo from "@/app/components/layout/BrandLogo";
+import ClothestownLogo from "@/app/components/layout/ClothestownLogo";
 import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 type Collection = {
@@ -374,17 +374,16 @@ export default function Navbar() {
       >
         <div className="relative mx-auto grid h-[58px] w-full max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:h-16 sm:px-6 md:h-[68px] md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-4 lg:px-10">
           <div className="flex min-w-0 items-center">
-            <Link
+            <ClothestownLogo
               href="/"
-              aria-label="ClothesTown home"
+              width={170}
+              variant="horizontal"
               onClick={() => {
                 setOpenMegaMenu("");
                 setSearchOpen(false);
               }}
-              className="flex min-w-0 items-center gap-1.5 text-[var(--brand-primary)] sm:gap-2"
-            >
-              <BrandLogo />
-            </Link>
+              className="cursor-pointer"
+            />
           </div>
 
           <nav aria-label="Main navigation" className="hidden min-w-0 items-center justify-center gap-2 md:flex lg:gap-5 xl:gap-7">
@@ -773,9 +772,13 @@ export default function Navbar() {
           >
             <div>
               <div className="flex items-center justify-between border-b px-6 py-5">
-                <Link href="/" onClick={() => setIsOpen(false)} className="text-xl font-bold tracking-wide text-primary">
-                  ClothesTown
-                </Link>
+                <ClothestownLogo
+                  href="/"
+                  width={170}
+                  variant="horizontal"
+                  onClick={() => setIsOpen(false)}
+                  className="cursor-pointer"
+                />
                 <button
                   onClick={() => setIsOpen(false)}
                   aria-label="Close navigation menu"

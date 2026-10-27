@@ -60,6 +60,30 @@
   display: none;
 }
 
+.announcement-marquee-track {
+  animation: announcement-marquee 32s linear infinite;
+}
+
+.announcement-marquee-viewport:hover .announcement-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes announcement-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-marquee-viewport {
+    overflow-x: auto;
+  }
+
+  .announcement-marquee-track {
+    animation: none;
+  }
+}
+
 .admin-theme {
   color: var(--text-primary);
   background-color: var(--page-background);
