@@ -50,7 +50,7 @@ function AdminLoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f4f6f8] px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--page-background)] px-4 py-10">
       <section className="w-full max-w-[420px] rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_18px_55px_rgba(18,38,53,0.1)] sm:p-9">
         <div>
           <ClothestownLogo width={190} />
@@ -59,7 +59,7 @@ function AdminLoginForm() {
           </div>
         </div>
 
-        <h1 className="mt-8 text-2xl font-bold tracking-tight text-[#172b3b]">
+        <h1 className="mt-8 text-2xl font-bold tracking-tight text-primary">
           Admin sign in
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -81,7 +81,7 @@ function AdminLoginForm() {
                 autoComplete="username"
                 required
                 maxLength={254}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-[#2867b2] focus:ring-2 focus:ring-[#2867b2]/10"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
               />
             </span>
           </label>
@@ -100,7 +100,7 @@ function AdminLoginForm() {
                 autoComplete="current-password"
                 required
                 maxLength={1024}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-[#2867b2] focus:ring-2 focus:ring-[#2867b2]/10"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
               />
             </span>
           </label>

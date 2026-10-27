@@ -498,9 +498,9 @@ export default function CategorySectionManager({
       <section className="flex flex-col gap-4 rounded-xl border border-[#e9e5df] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <nav aria-label="Breadcrumb" className="text-xs font-medium text-slate-500">
-            <Link href="/admin" className="transition hover:text-[#2867b2]">Home</Link>
+            <Link href="/admin" className="transition-colors duration-200 hover:text-secondary">Home</Link>
             <span className="mx-2">/</span>
-            <Link href="/admin" className="transition hover:text-[#2867b2]">Store Sections</Link>
+            <Link href="/admin" className="transition-colors duration-200 hover:text-secondary">Store Sections</Link>
             <span className="mx-2">/</span>
             <span className="text-slate-700">{sectionName}</span>
           </nav>
@@ -521,7 +521,7 @@ export default function CategorySectionManager({
               setIsProductFormOpen((open) => !open);
             }}
             disabled={loading || !sectionCategory}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#2867b2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Plus size={16} aria-hidden="true" />
             {isProductFormOpen ? "Close Product Form" : "Add Product"}
@@ -559,7 +559,7 @@ export default function CategorySectionManager({
               setLoading(true);
               setSetupRevision((revision) => revision + 1);
             }}
-            className="rounded-lg bg-[#2867b2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#205796]"
+            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-dark"
           >
             Retry loading {sectionName} setup
           </button>
@@ -606,7 +606,7 @@ export default function CategorySectionManager({
                         {categoryResolutionError}
                       </p>
                       <Link
-                        className="mt-4 inline-block text-sm font-semibold text-[#2867b2] underline"
+                        className="mt-4 inline-block text-sm font-semibold text-primary underline decoration-secondary underline-offset-2"
                         href="/admin/categories"
                       >
                         Review categories
@@ -625,8 +625,8 @@ export default function CategorySectionManager({
                 </p>
               </div>
               <div className="flex flex-col justify-center gap-3">
-                <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-600 transition hover:border-[#2867b2] hover:bg-slate-50">
-                  <UploadCloud size={18} className="shrink-0 text-[#2867b2]" />
+                <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-600 transition-colors duration-200 hover:border-secondary hover:bg-slate-50">
+                  <UploadCloud size={18} className="shrink-0 text-secondary" />
                   <span className="min-w-0 flex-1 truncate">
                     {uploadingBanner
                       ? "Uploading banner..."
@@ -655,7 +655,7 @@ export default function CategorySectionManager({
                       savingBanner ||
                       bannerImage === sectionCategory.image
                     }
-                    className="min-h-11 rounded-lg bg-[#2867b2] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="min-h-11 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {savingBanner ? "Saving..." : "Save Banner"}
                   </button>
@@ -809,7 +809,7 @@ export default function CategorySectionManager({
                         }
                         placeholder="Ready to wear"
                         maxLength={60}
-                        className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-800 outline-none focus:border-[#2867b2]"
+                        className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-800 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
                       />
                     </label>
                     <label className="block">
@@ -829,7 +829,7 @@ export default function CategorySectionManager({
                         }
                         placeholder="Ready to wear"
                         maxLength={60}
-                        className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-800 outline-none focus:border-[#2867b2]"
+                        className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-800 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
                       />
                     </label>
                     <div className="flex items-center justify-center gap-2 sm:flex-col">
@@ -906,7 +906,7 @@ export default function CategorySectionManager({
                 type="button"
                 onClick={saveSectionTiles}
                 disabled={savingTiles || uploadingTile !== null}
-                className="min-h-10 rounded-lg bg-[#2867b2] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-h-10 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {savingTiles ? "Saving tiles..." : "Save category tiles"}
               </button>
@@ -966,7 +966,7 @@ export default function CategorySectionManager({
                               )
                             }
                             placeholder="Jewellery"
-                            className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#2867b2]"
+                            className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
                           />
                         </label>
                         <button
@@ -1014,7 +1014,7 @@ export default function CategorySectionManager({
                                   )
                                 }
                                 placeholder="Bracelet"
-                                className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#2867b2]"
+                                className="min-h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
                               />
                             </label>
                             <div className="flex items-end gap-2">
@@ -1044,7 +1044,7 @@ export default function CategorySectionManager({
                                       )
                                     )
                                   }
-                                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#2867b2]"
+                                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
                                 >
                                   <option value="">Select category</option>
                                   {allCategories
@@ -1099,7 +1099,7 @@ export default function CategorySectionManager({
                             )
                           )
                         }
-                        className="mt-3 text-xs font-semibold text-[#2867b2] hover:underline"
+                        className="mt-3 text-xs font-semibold text-primary transition-colors hover:text-secondary hover:underline"
                       >
                         + Add category
                       </button>
@@ -1112,7 +1112,7 @@ export default function CategorySectionManager({
                   type="button"
                   onClick={saveAccessoriesMenu}
                   disabled={savingTiles}
-                  className="min-h-10 rounded-lg bg-[#2867b2] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="min-h-10 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {savingTiles ? "Saving menu..." : "Save Accessories menu"}
                 </button>
@@ -1126,7 +1126,7 @@ export default function CategorySectionManager({
                 setEditing(null);
                 setIsProductFormOpen((open) => !open);
               }}
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#2867b2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#205796]"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-dark"
             >
               <Plus size={16} aria-hidden="true" />
               {isProductFormOpen ? "Close Product Form" : "New Product"}
@@ -1201,13 +1201,13 @@ export default function CategorySectionManager({
             type="button"
             onClick={createSectionCategory}
             disabled={creatingCategory}
-            className="mt-5 rounded-lg bg-[#2867b2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#205796] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             {creatingCategory ? "Setting up..." : `Set up ${sectionName} category`}
           </button>
           <p className="mt-4 text-xs text-slate-500">
             Or add it from{" "}
-            <Link className="font-semibold text-[#2867b2] underline" href="/admin/categories">
+            <Link className="font-semibold text-primary underline decoration-secondary underline-offset-2" href="/admin/categories">
               Categories
             </Link>
             .

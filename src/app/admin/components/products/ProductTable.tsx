@@ -439,8 +439,8 @@ export default function ProductTable({
               setStatus(statusValue);
               setPage(1);
             }}
-            className={`flex min-h-[68px] items-center gap-3 rounded-lg border bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-[#b7b2ff] ${
-              status === statusValue ? "border-[#7567ff] ring-1 ring-[#7567ff]/20" : "border-slate-100"
+            className={`flex min-h-[68px] items-center gap-3 rounded-lg border bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-secondary ${
+              status === statusValue ? "border-secondary ring-1 ring-secondary/20" : "border-slate-100"
             }`}
           >
             <span
@@ -484,7 +484,7 @@ export default function ProductTable({
             }}
             placeholder="Search products or SKU"
             aria-label="Search products"
-            className="min-h-10 rounded-lg border border-slate-200 px-3 text-xs outline-none focus:border-[#2867b2]"
+            className="min-h-10 rounded-lg border border-slate-200 px-3 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
           />
           <select
             value={collectionFilter}

@@ -292,7 +292,7 @@ export default function CategoryTable({
                         onClick={() => onEdit(item)}
                         title={`Edit ${item.name}`}
                         aria-label={`Edit ${item.name}`}
-                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-[#2867b2] bg-[#2867b2] px-2.5 text-xs font-semibold text-white transition hover:border-[#1e4f88] hover:bg-[#1e4f88] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867b2]"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-primary bg-primary px-2.5 text-xs font-semibold text-white transition-colors duration-200 hover:border-primary-dark hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
                       >
                         <Pencil size={14} aria-hidden="true" />
                         <span>Edit</span>

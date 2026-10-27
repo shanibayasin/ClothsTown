@@ -74,6 +74,24 @@
   }
 }
 
+.admin-backdrop-enter {
+  animation: admin-backdrop-fade 180ms ease-out both;
+}
+
+.admin-drawer-enter {
+  animation: admin-drawer-slide 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes admin-backdrop-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes admin-drawer-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .announcement-marquee-viewport {
     overflow-x: auto;
@@ -82,11 +100,52 @@
   .announcement-marquee-track {
     animation: none;
   }
+
+  .admin-backdrop-enter,
+  .admin-drawer-enter {
+    animation: none;
+  }
 }
 
 .admin-theme {
   color: var(--text-primary);
   background-color: var(--page-background);
+  --border-color: #e7ded2;
+  --text-primary: #30261e;
+  --text-secondary: #756858;
+  --color-slate-50: #fcfaf6;
+  --color-slate-100: #f1ece4;
+  --color-slate-200: #e7ded2;
+  --color-slate-300: #d7c9b8;
+  --color-slate-400: #a99783;
+  --color-slate-500: #756858;
+  --color-slate-600: #5e5144;
+  --color-slate-700: #473b2f;
+  --color-slate-800: #30261e;
+  --color-slate-900: #21180f;
+  --color-slate-950: #130e09;
+  --color-gray-50: var(--color-slate-50);
+  --color-gray-100: var(--color-slate-100);
+  --color-gray-200: var(--color-slate-200);
+  --color-gray-300: var(--color-slate-300);
+  --color-gray-400: var(--color-slate-400);
+  --color-gray-500: var(--color-slate-500);
+  --color-gray-600: var(--color-slate-600);
+  --color-gray-700: var(--color-slate-700);
+  --color-gray-800: var(--color-slate-800);
+  --color-gray-900: var(--color-slate-900);
+  --color-gray-950: var(--color-slate-950);
+  --color-neutral-50: var(--color-slate-50);
+  --color-neutral-100: var(--color-slate-100);
+  --color-neutral-200: var(--color-slate-200);
+  --color-neutral-300: var(--color-slate-300);
+  --color-neutral-400: var(--color-slate-400);
+  --color-neutral-500: var(--color-slate-500);
+  --color-neutral-600: var(--color-slate-600);
+  --color-neutral-700: var(--color-slate-700);
+  --color-neutral-800: var(--color-slate-800);
+  --color-neutral-900: var(--color-slate-900);
+  --color-neutral-950: var(--color-slate-950);
 }
 
 @layer base {

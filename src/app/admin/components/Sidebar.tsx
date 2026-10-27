@@ -60,11 +60,11 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
   };
 
   return (
-    <aside className="flex h-full w-full flex-col bg-primary px-2.5 py-4 font-body text-white">
+    <aside className="flex h-full w-full flex-col bg-primary px-3 py-4 font-body text-white sm:px-2.5">
       <Link
         href="/admin"
         onClick={closeSidebar}
-        className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 px-1 pb-4"
+        className="flex h-12 shrink-0 items-center gap-2 border-b border-white/15 px-1 pb-4"
       >
         <ClothestownLogo inverse />
       </Link>
@@ -86,7 +86,7 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
               href={item.href}
               onClick={closeSidebar}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-10 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium transition-colors ${
+              className={`flex min-h-10 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${
                 active
                   ? "bg-secondary text-primary shadow-sm"
                   : "text-slate-300 hover:bg-white/10 hover:text-white"
@@ -102,7 +102,7 @@ export default function Sidebar({ closeSidebar }: SidebarProps) {
       <button
         type="button"
         onClick={handleLogout}
-        className="mt-2 flex min-h-9 items-center gap-3 rounded-lg px-2.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+        className="mt-2 flex min-h-10 items-center gap-3 rounded-lg px-2.5 text-xs font-medium text-slate-300 transition-colors duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
       >
         <LogOut size={16} aria-hidden="true" />
         <span>Logout</span>

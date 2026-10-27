@@ -43,10 +43,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
   });
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 shadow-soft md:h-20 md:px-8">
+    <header className="flex h-16 items-center justify-between gap-2 border-b border-border bg-card px-3 shadow-soft transition-colors duration-200 sm:px-4 md:h-20 md:px-8">
       
       {/* LEFT SIDE: LOGO/MENU & TITLE WITH BREADCRUMBS */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <button
           type="button"
           onClick={onMenuClick}
@@ -56,8 +56,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <Menu size={20} className="text-muted" />
         </button>
 
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-primary md:text-2xl">
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-bold tracking-tight text-primary sm:text-xl md:text-2xl">
             {pageTitle}
           </h1>
 
