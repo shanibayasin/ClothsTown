@@ -19,8 +19,6 @@ import ProductCard, {
 } from "@/app/components/product/ProductCard";
 import HeroBanner from "@/app/components/shop/HeroBanner";
 import {
-  CATEGORY_CATALOG,
-  getCategoryDefinition,
   getCategoryHref,
   isProductTypeFilterValue,
   sortProductSizes,
@@ -96,14 +94,17 @@ type CategorySectionTile = NonNullable<Category["sectionTiles"]>[number];
 
 const ITEMS_PER_PAGE = 9;
 
-function getCanonicalSectionTile(tile: CategorySectionTile) {
+function getCanonicalSectionTile(
+  tile: CategorySectionTile,
+  categories: Category[]
+) {
   const value = tile.category.trim().toLowerCase();
-  const definition =
-    getCategoryDefinition(value) ??
-    CATEGORY_CATALOG.find(
-      (category) => category.name.toLowerCase() === value
-    );
-  if (!definition || !tile.image) return undefined;
+  const definition = categories.find(
+    (category) =>
+      category.slug?.toLowerCase() === value ||
+      category.name.toLowerCase() === value
+  );
+  if (!definition?.slug || !tile.image) return undefined;
   return {
     ...tile,
     title: definition.name,
@@ -686,17 +687,17 @@ function ShopContent({
               : /\bgirls?\b/.test(activeCategory.name.trim().toLowerCase())))
       ? (departmentLandingCategory?.sectionTiles ?? activeCategory?.sectionTiles)
           ?.flatMap((tile) => {
-            const canonicalTile = getCanonicalSectionTile(tile);
+            const canonicalTile = getCanonicalSectionTile(tile, categories);
             return canonicalTile ? [canonicalTile] : [];
           }) ?? []
       : [];
   const categoryHrefForTile = (tileCategory: string) => {
     const value = tileCategory.trim().toLowerCase();
-    const definition =
-      getCategoryDefinition(value) ??
-      CATEGORY_CATALOG.find(
-        (category) => category.name.toLowerCase() === value
-      );
+    const definition = categories.find(
+      (category) =>
+        category.slug?.toLowerCase() === value ||
+        category.name.toLowerCase() === value
+    );
     return definition ? getCategoryHref(definition) : "/categories";
   };
   const isDepartmentLanding =
@@ -768,7 +769,10 @@ function ShopContent({
     onSale: saleOnly,
   };
   const shopFilterOptions = {
-    category: CATEGORY_CATALOG
+    category: categories
+      .filter((category): category is Category & { slug: string } =>
+        Boolean(category.slug)
+      )
       .filter((category) => {
         const route = categoryQuery.toLowerCase();
         if (["men", "mens", "men's"].includes(route)) return category.routeGroup === "men";

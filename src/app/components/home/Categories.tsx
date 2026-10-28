@@ -6,27 +6,20 @@ import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
 import CategoryImage from "@/app/components/category/CategoryImage";
-import {
-  CATEGORY_CATALOG,
-  getCategoryHref,
-} from "@/lib/category-catalog";
+import { getCategoryHref } from "@/lib/category-catalog";
 
 interface Category {
+  _id: string;
   name: string;
   slug: string;
   image?: string;
   fallbackImage?: string;
-  href?: string;
+  routeGroup?: string;
+  parentCategory?: string | null;
 }
 
 export default function CategoriesSection() {
-  const [categories, setCategories] = useState<Category[]>(
-    CATEGORY_CATALOG.map((category) => ({
-      ...category,
-      image: "",
-      href: getCategoryHref(category),
-    }))
-  );
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   function categoryVisibilityClass(index: number) {
@@ -42,17 +35,8 @@ export default function CategoriesSection() {
         const res = await fetch("/api/categories", {
           cache: "no-store",
         });
-        const data = await readJsonResponse<Category[]>(res, []);
-        const categoriesBySlug = new Map(
-          data.filter((category) => category.image).map((category) => [category.slug, category])
-        );
-        setCategories(
-          CATEGORY_CATALOG.map((definition) => ({
-            ...definition,
-            image: categoriesBySlug.get(definition.slug)?.image ?? "",
-            href: getCategoryHref(definition),
-          }))
-        );
+        if (!res.ok) throw new Error(`Categories request failed (${res.status}).`);
+        setCategories(await readJsonResponse<Category[]>(res, []));
       } catch (error) {
         console.error("Categories fetch error:", error);
       } finally {
@@ -98,7 +82,7 @@ export default function CategoriesSection() {
             <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5 lg:gap-x-3">
               {categories.map((category, index) => (
                 <motion.div
-                  key={category.slug}
+                  key={category._id}
                   initial={{ opacity: 0, y: 8 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -106,7 +90,7 @@ export default function CategoriesSection() {
                   className={`min-w-0 ${categoryVisibilityClass(index)}`}
                 >
                   <Link
-                    href={category.href ?? `/shop/${category.slug}`}
+                    href={getCategoryHref(category)}
                     className="group flex w-full flex-col items-center text-center text-[var(--brand-primary)]"
                   >
                     <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-xl bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">

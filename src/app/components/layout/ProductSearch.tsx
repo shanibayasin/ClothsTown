@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { readJsonResponse } from "@/lib/api";
-import { getCategoryDefinition } from "@/lib/category-catalog";
 import ProductImage from "@/app/components/product/ProductImage";
 
 interface SearchProduct {
@@ -22,7 +21,7 @@ interface SearchProduct {
   productType?: string;
   fabric?: string;
   season?: string;
-  category?: { slug?: string } | string | null;
+  category?: { name?: string; slug?: string } | string | null;
 }
 
 export default function ProductSearch({
@@ -214,7 +213,7 @@ export default function ProductSearch({
                   "";
                 const category =
                   typeof product.category === "object" && product.category
-                    ? getCategoryDefinition(product.category.slug ?? "")?.name
+                    ? product.category.name
                     : undefined;
                 const price =
                   product.discountPrice &&

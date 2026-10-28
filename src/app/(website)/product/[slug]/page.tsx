@@ -23,7 +23,7 @@ import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
 import ProductImage from "@/app/components/product/ProductImage";
-import { getCategoryDefinition } from "@/lib/category-catalog";
+import { getCategoryHref } from "@/lib/category-catalog";
 
 type DatabaseRef = {
   _id: string;
@@ -31,6 +31,7 @@ type DatabaseRef = {
   name?: string;
   slug?: string;
   routeGroup?: string;
+  parentCategory?: string | null;
   status?: boolean;
 };
 
@@ -221,19 +222,16 @@ export default function ProductPage() {
   }
 
   const images = product.images?.filter(Boolean) ?? [];
-  const categoryDefinition = getCategoryDefinition(product.category?.slug ?? "");
   const activeCollections = (product.collections?.length
     ? product.collections
     : product.collection
       ? [product.collection]
       : []
   ).filter((collection) => collection.status !== false);
-  const productCategoryName = categoryDefinition?.name ?? product.category?.name;
-  const productCategoryHref = categoryDefinition
-    ? `/shop/${categoryDefinition.routeGroup}/${categoryDefinition.slug}`
-    : product.category?.routeGroup && product.category.slug
-      ? `/shop/${product.category.routeGroup}/${product.category.slug}`
-      : null;
+  const productCategoryName = product.category?.name;
+  const productCategoryHref = product.category?.slug
+    ? getCategoryHref(product.category)
+    : null;
 
   return (
     <main className="min-h-screen bg-[#f8fafb] text-[#172b3a]">
@@ -564,7 +562,7 @@ export default function ProductPage() {
                     <dt className="text-slate-500">SKU</dt><dd className="text-right font-medium text-slate-700">{product.sku || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
-                    <dt className="text-slate-500">Category</dt><dd className="text-right font-medium text-slate-700">{categoryDefinition?.name || "N/A"}</dd>
+                    <dt className="text-slate-500">Category</dt><dd className="text-right font-medium text-slate-700">{product.category?.name || "N/A"}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-slate-100 py-2">
                     <dt className="text-slate-500">Collections</dt><dd className="text-right font-medium text-slate-700">{activeCollections.map((collection) => collection.title).join(", ") || "N/A"}</dd>

@@ -3,6 +3,10 @@ import {
   ADMIN_SESSION_COOKIE,
   verifyAdminSessionToken,
 } from "@/lib/admin-auth";
+import {
+  CUSTOMER_SESSION_COOKIE,
+  verifyCustomerSessionToken,
+} from "@/lib/customer-auth";
 
 function requiresAdminApiAccess(pathname: string, method: string) {
   const upperMethod = method.toUpperCase();
@@ -51,6 +55,9 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
   const authenticated = verifyAdminSessionToken(token);
+  const customerSession = verifyCustomerSessionToken(
+    request.cookies.get(CUSTOMER_SESSION_COOKIE)?.value
+  );
 
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     if (authenticated) return NextResponse.next();
@@ -58,6 +65,24 @@ export function proxy(request: NextRequest) {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (pathname === "/account" || pathname.startsWith("/account/")) {
+    if (customerSession) return NextResponse.next();
+
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (
+    customerSession &&
+    (pathname === "/login" ||
+      pathname === "/register" ||
+      pathname === "/login/" ||
+      pathname === "/register/")
+  ) {
+    return NextResponse.redirect(new URL("/account", request.url));
   }
 
   if (
@@ -72,5 +97,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/account/:path*",
+    "/api/:path*",
+    "/login",
+    "/register",
+  ],
 };

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
-import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 export type ProductFilterKey =
   | "category"
@@ -263,9 +262,9 @@ export default function ProductFilterDrawer({
                     {(key === "productType"
                       ? (options[key] ?? []).filter((option) =>
                           option.value.toLowerCase() !== "men" &&
-                          !CATEGORY_CATALOG.some(
+                          !(options.category ?? []).some(
                             (category) =>
-                              category.name.toLowerCase() === option.value.toLowerCase()
+                              category.label.toLowerCase() === option.value.toLowerCase()
                           )
                         )
                       : options[key] ?? []

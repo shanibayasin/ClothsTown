@@ -12,24 +12,11 @@ import Category from "@/models/Category";
 import CategoryImage from "@/app/components/category/CategoryImage";
 import HeroBanner from "@/app/components/shop/HeroBanner";
 import {
-  CATEGORY_CATALOG,
+  CATEGORY_GROUPS,
   getCategoryHref,
 } from "@/lib/category-catalog";
 
 export const dynamic = "force-dynamic";
-const categorySections = [
-  { id: "men", title: "Men", routeGroup: "men", Icon: Shirt },
-  { id: "women", title: "Women", routeGroup: "women", Icon: Shirt },
-  { id: "girls", title: "Girls", routeGroup: "girls", Icon: Shirt },
-  { id: "boys", title: "Boys", routeGroup: "boys", Icon: Shirt },
-  {
-    id: "accessories",
-    title: "Accessories & Others",
-    routeGroup: "accessories",
-    Icon: ShoppingBag,
-  },
-] as const;
-
 const browseLinks = [
   { label: "All Categories", href: "#category-list", Icon: Grid2X2 },
   { label: "Women", href: "#group-women", Icon: Shirt },
@@ -44,21 +31,9 @@ const browseLinks = [
 export default async function CategoriesPage() {
   await connectDB();
 
-  const databaseCategories = await Category.find({
-    status: true,
-    slug: { $in: CATEGORY_CATALOG.map((category) => category.slug) },
-  })
+  const categories = await Category.find({ status: true })
     .sort({ sortOrder: 1, name: 1 })
     .lean();
-  const categoriesBySlug = new Map(
-    databaseCategories.map((category) => [category.slug, category])
-  );
-  const categories = CATEGORY_CATALOG.map((definition) => ({
-    ...definition,
-    ...categoriesBySlug.get(definition.slug),
-    name: definition.name,
-    slug: definition.slug,
-  }));
   const heroImage =
     categories.find((category) => category.bannerImage)?.bannerImage ||
     categories.find((category) => category.image)?.image;
@@ -144,7 +119,7 @@ export default async function CategoriesPage() {
           </aside>
 
           <div className="min-w-0 space-y-10 sm:space-y-12">
-            {categorySections.map(({ id, title, routeGroup }) => {
+            {CATEGORY_GROUPS.map(({ slug: id, name: title, routeGroup }) => {
               const groupCategories = categories.filter(
                 (category) => category.routeGroup === routeGroup
               );
@@ -164,7 +139,7 @@ export default async function CategoriesPage() {
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
                     {groupCategories.map((category) => (
                       <Link
-                        key={category.slug}
+                        key={category._id.toString()}
                         href={getCategoryHref(category)}
                         className="group min-w-0 overflow-hidden rounded-md border border-[#e7ded2] bg-white transition duration-300 hover:-translate-y-0.5 hover:border-[#c18b65]/60 hover:shadow-[0_8px_24px_rgba(15,45,57,0.08)]"
                       >

@@ -5,7 +5,6 @@ import Image from "next/image";
 import slugify from "slugify";
 import { adminFetch } from "@/lib/admin-fetch";
 import { prepareImageForUpload } from "@/lib/image-upload";
-import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 interface Category {
   _id: string;
@@ -40,6 +39,7 @@ const initialState = {
   bannerButtonLink: "",
   bannerPosition: "left" as const,
   parentCategory: "",
+  routeGroup: "accessories",
   status: true,
 };
 
@@ -61,6 +61,7 @@ export default function CategoryForm({
           bannerButtonLink: editing.bannerButtonLink || "",
           bannerPosition: editing.bannerPosition || "left",
           parentCategory: editing.parentCategory || "",
+          routeGroup: editing.routeGroup || "accessories",
           status: editing.status,
         }
       : initialState
@@ -137,9 +138,6 @@ export default function CategoryForm({
 
     if (!form.name.trim()) {
       return alert("Category name is required.");
-    }
-    if (!editing && !form.parentCategory) {
-      return alert("Choose a top-level department for this subcategory.");
     }
     if (form.bannerTitle.trim().length > 160) {
       return alert("Banner title must be 160 characters or fewer.");
@@ -222,66 +220,61 @@ export default function CategoryForm({
             Category Name
           </label>
 
-          {editing && !CATEGORY_CATALOG.some((category) => category.slug === editing.slug) ? (
-            <input
-              value={form.name}
-              readOnly
-              className="h-11 w-full rounded-lg border border-gray-300 bg-slate-50 px-4 text-sm text-slate-600"
-            />
-          ) : !editing ? (
-            <input
-              value={form.name}
-              maxLength={120}
-              onChange={(event) => {
-                const name = event.target.value;
-                setForm((current) => ({
-                  ...current,
-                  name,
-                  slug: slugify(name, { lower: true, strict: true }),
-                }));
-              }}
-              placeholder="e.g., Linen Shirts"
-              required
-              className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[var(--brand-primary)]"
-            />
-          ) : (
-            <select
-              value={form.slug}
-              disabled={Boolean(editing)}
-              onChange={(event) => {
-                const category = CATEGORY_CATALOG.find(
-                  (item) => item.slug === event.target.value
-                );
-                if (!category) return;
-                setForm({
-                  ...form,
-                  name: category.name,
-                  slug: category.slug,
-                });
-              }}
-              className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[var(--brand-primary)]"
-            >
-              <option value="">Select a predefined category</option>
-              {CATEGORY_CATALOG.map((category) => (
-                <option key={category.slug} value={category.slug}>
-                  {category.group} / {category.name}
-                </option>
-              ))}
-            </select>
-          )}
+          <input
+            value={form.name}
+            maxLength={120}
+            onChange={(event) => {
+              const name = event.target.value;
+              setForm((current) => ({
+                ...current,
+                name,
+                slug: slugify(name, { lower: true, strict: true }),
+              }));
+            }}
+            placeholder="e.g., Linen Shirts"
+            required
+            className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[var(--brand-primary)]"
+          />
 
         </div>
 
         <div>
+          <label className="mb-2 block text-sm font-semibold" htmlFor="routeGroup">
+            Department
+          </label>
+          <select
+            id="routeGroup"
+            value={form.routeGroup}
+            disabled={Boolean(form.parentCategory)}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, routeGroup: event.target.value }))
+            }
+            className="h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm outline-none transition focus:border-[var(--brand-primary)] disabled:bg-slate-50"
+          >
+            <option value="men">Men</option>
+            <option value="women">Women</option>
+            <option value="girls">Girls</option>
+            <option value="boys">Boys</option>
+            <option value="accessories">Accessories &amp; Others</option>
+          </select>
+        </div>
+
+        <div>
           <label className="mb-2 block text-sm font-semibold" htmlFor="parentCategory">
-            Parent category <span className="font-normal text-slate-400">{editing ? "(optional)" : "(required)"}</span>
+            Parent category <span className="font-normal text-slate-400">(optional)</span>
           </label>
           <select
             id="parentCategory"
             value={form.parentCategory}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, parentCategory: event.target.value }))
-            }
+            onChange={(event) => {
+              const parentCategory = event.target.value;
+              const parent = categories.find((category) => category._id === parentCategory);
+              setForm((current) => ({
+                ...current,
+                parentCategory,
+                routeGroup: parent?.routeGroup ?? current.routeGroup,
+              }));
+            }}
             className="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition focus:border-[var(--brand-primary)]"
           >
             <option value="">Top-level category</option>

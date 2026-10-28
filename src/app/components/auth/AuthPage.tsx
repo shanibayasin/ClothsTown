@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Truck,
 } from "lucide-react";
-import { FaFacebookF, FaGoogle } from "react-icons/fa6";
+import { useRouter } from "next/navigation";
 import ClothestownLogo from "@/app/components/layout/ClothestownLogo";
 
 type AuthMode = "login" | "register";
@@ -137,35 +137,58 @@ function MountainBackdrop() {
 }
 
 export default function AuthPage({ mode }: { mode: AuthMode }) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isLogin = mode === "login";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
-    if (isLogin) {
-      setMessage(
-        "Customer sign-in is not available yet. You can checkout as a guest and track orders with your order details."
-      );
-      return;
-    }
-
-    if (formData.get("password") !== formData.get("confirmPassword")) {
+    if (
+      !isLogin &&
+      formData.get("password") !== formData.get("confirmPassword")
+    ) {
       setMessage("The passwords do not match.");
       return;
     }
 
-    setMessage("Customer accounts are not available yet. Guest checkout and order tracking are available.");
-  }
+    setMessage("");
+    setIsSubmitting(true);
 
-  function handleForgotPassword() {
-    setMessage("Password recovery is not available yet.");
-  }
+    try {
+      const response = await fetch(
+        isLogin ? "/api/auth/login" : "/api/auth/register",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(isLogin ? {} : { name: formData.get("name") }),
+            email: formData.get("email"),
+            password: formData.get("password"),
+            ...(isLogin
+              ? { rememberMe: Boolean(formData.get("rememberMe")) }
+              : {}),
+          }),
+        }
+      );
+      const result = (await response.json()) as { message?: string };
 
-  function handleSocialSignIn(provider: string) {
-    setMessage(`${provider} sign in is not configured yet.`);
+      if (!response.ok) {
+        setMessage(result.message ?? "Could not sign in. Please try again.");
+        return;
+      }
+
+      router.replace("/account");
+      router.refresh();
+    } catch (requestError) {
+      console.error("Customer authentication request failed:", requestError);
+      setMessage("Could not reach the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -182,8 +205,8 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
             </h1>
             <p className="mt-2 max-w-[380px] text-[15px] leading-[1.7] text-[#d4e1e9] sm:text-base">
               {isLogin
-                ? "Shop and place orders as a guest. Customer accounts are not available yet."
-                : "Customer registration is not available yet. You can still shop and checkout as a guest."}
+                ? "Sign in to your ClothesTown account and keep your shopping in one place."
+                : "Create an account to make your ClothesTown shopping experience yours."}
             </p>
             <ul className="mt-6 grid grid-cols-2 gap-x-5 gap-y-3 sm:mt-8 sm:gap-y-4 lg:grid-cols-1 lg:gap-y-4">
               {benefits.map(({ Icon, text }) => (
@@ -235,11 +258,11 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
             </h2>
             <p className="mt-1 text-[13px] text-[#7892a8] sm:text-sm">
               {isLogin
-                ? "Customer account access is not available yet"
+                ? "Welcome back. Enter your account details to continue."
                 : "Join ClothesTown and find your style"}
             </p>
 
-            <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+            <form className="mt-5 space-y-4" onSubmit={handleSubmit} aria-busy={isSubmitting}>
               {!isLogin && (
                 <label className="block text-[13px] font-semibold text-[#20394b]">
                   Full name
@@ -290,7 +313,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                     autoComplete={isLogin ? "current-password" : "new-password"}
                     required
                     minLength={isLogin ? undefined : 8}
-                    maxLength={1024}
+                    maxLength={72}
                     placeholder={isLogin ? "Enter your password" : "Create a password"}
                     className="h-[40px] w-full rounded-md border border-[#d9e5ee] bg-white pl-10 pr-10 text-[12px] font-normal text-[#20394b] outline-none placeholder:text-[#94afc3] focus:border-[#2879cf] focus:ring-2 focus:ring-[#2879cf]/10"
                   />
@@ -330,62 +353,41 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                     />
                     Remember me
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
+                  <Link
+                    href="/contact"
                     className="font-semibold text-[#0874e8] hover:underline"
                   >
-                    Forgot password?
-                  </button>
+                    Need help?
+                  </Link>
                 </div>
               )}
 
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="flex h-[44px] w-full items-center justify-center gap-2 rounded-md bg-[#092b40] text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#124561] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0874f9]"
               >
-                {isLogin ? "Sign In" : "Create Account"}
+                {isSubmitting
+                  ? isLogin
+                    ? "Signing in…"
+                    : "Creating account…"
+                  : isLogin
+                    ? "Sign In"
+                    : "Create Account"}
                 <ArrowRight size={17} aria-hidden="true" />
               </button>
             </form>
 
             {message && (
               <p
-                role="status"
-                className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+                role="alert"
+                className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-800"
               >
                 {message}
               </p>
             )}
 
-            <div className="my-5 flex items-center gap-3 text-[11px] text-[#8aa0b2]">
-              <span className="h-px flex-1 bg-[#e4edf3]" />
-              or
-              <span className="h-px flex-1 bg-[#e4edf3]" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleSocialSignIn("Google")}
-                className="flex h-[38px] items-center justify-center gap-2 rounded-md border border-[#d9e5ee] bg-white text-[11px] font-semibold text-[#294256] transition hover:bg-[#f7fafc]"
-              >
-                <FaGoogle aria-hidden="true" className="text-[16px] text-[#4285f4]" />
-                Google
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSocialSignIn("Facebook")}
-                className="flex h-[38px] items-center justify-center gap-2 rounded-md border border-[#d9e5ee] bg-white text-[11px] font-semibold text-[#294256] transition hover:bg-[#f7fafc]"
-              >
-                <span className="flex size-[18px] items-center justify-center rounded-full bg-[#1877f2] text-white">
-                  <FaFacebookF aria-hidden="true" className="text-[12px]" />
-                </span>
-                Facebook
-              </button>
-            </div>
-
-            <p className="mt-6 text-center text-[11px] text-[#7892a8]">
+            <p className="mt-5 text-center text-[11px] text-[#7892a8]">
               {isLogin ? "Don’t have an account?" : "Already have an account?"}{" "}
               <Link
                 href={isLogin ? "/register" : "/login"}

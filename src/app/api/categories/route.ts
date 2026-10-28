@@ -4,10 +4,6 @@ import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import { requireAdmin } from "@/lib/admin-auth";
 import { revalidateStorefront } from "@/lib/revalidate-storefront";
-import {
-  CATEGORY_CATALOG,
-  getCategoryDefinition,
-} from "@/lib/category-catalog";
 
 const MAX_BANNER_IMAGE_LENGTH = 6_000_000;
 
@@ -34,9 +30,7 @@ export async function GET(request: Request) {
     await connectDB();
 
     const categories = await Category.find(
-      includeAll
-        ? {}
-        : { slug: { $in: CATEGORY_CATALOG.map((category) => category.slug) } }
+      includeAll ? {} : { status: true }
     ).sort({ sortOrder: 1, name: 1 });
 
     return NextResponse.json(categories, {
@@ -79,7 +73,6 @@ export async function POST(request: Request) {
     if (!slug) {
       return NextResponse.json({ message: "Category name must produce a valid slug." }, { status: 400 });
     }
-    const definition = getCategoryDefinition(slug);
     let parentCategory: mongoose.Types.ObjectId | null = null;
     let parentDocument: { _id: mongoose.Types.ObjectId; parentCategory?: mongoose.Types.ObjectId | null; group?: string; routeGroup?: string; gender?: string; slug?: string; status?: boolean } | null = null;
     let parentRouteGroup: string | undefined;
@@ -108,18 +101,36 @@ export async function POST(request: Request) {
       }
       parentCategory = parentDocument._id;
     }
-    if (!definition && !parentCategory) {
+    const routeGroup = parentRouteGroup ?? input.routeGroup;
+    if (
+      typeof routeGroup !== "string" ||
+      !["men", "women", "girls", "boys", "accessories"].includes(routeGroup)
+    ) {
       return NextResponse.json(
-        { message: "New categories must be subcategories of an existing top-level department." },
+        { message: "Choose a supported category department." },
         { status: 400 }
       );
     }
-    if (definition && parentCategory && definition.routeGroup !== parentRouteGroup) {
+    if (
+      parentRouteGroup &&
+      typeof input.routeGroup === "string" &&
+      input.routeGroup !== parentRouteGroup
+    ) {
       return NextResponse.json(
         { message: "The category does not belong to the selected department." },
         { status: 400 }
       );
     }
+    const group =
+      routeGroup === "girls" || routeGroup === "boys"
+        ? "Kids"
+        : routeGroup === "accessories"
+          ? "Accessories & Others"
+          : routeGroup === "men"
+            ? "Men"
+            : "Women";
+    const gender =
+      routeGroup === "accessories" ? "unisex" : routeGroup;
     if (await Category.exists({ slug })) {
       return NextResponse.json({ message: "A category with this name or slug already exists." }, { status: 409 });
     }
@@ -162,29 +173,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Category status must be a boolean." }, { status: 400 });
     }
 
-    const resolvedParentRouteGroup = parentRouteGroup ?? definition?.routeGroup ?? "accessories";
-    const parentGroup = parentDocument?.group ?? {
-      men: "Men",
-      women: "Women",
-      girls: "Kids",
-      boys: "Kids",
-      accessories: "Accessories & Others",
-    }[resolvedParentRouteGroup] ?? "Accessories & Others";
-    const parentGender = parentDocument?.gender ?? (
-      resolvedParentRouteGroup === "men" ||
-      resolvedParentRouteGroup === "women" ||
-      resolvedParentRouteGroup === "girls" ||
-      resolvedParentRouteGroup === "boys"
-        ? resolvedParentRouteGroup
-        : "unisex"
-    );
     const category = await Category.create({
-      name: definition?.name ?? name,
-      slug: definition?.slug ?? slug,
-      group: definition?.group ?? parentGroup,
-      routeGroup: definition?.routeGroup ?? resolvedParentRouteGroup,
-      gender: definition?.gender ?? parentGender,
-      sortOrder: definition?.sortOrder ?? (await Category.countDocuments({ parentCategory })) + 1,
+      name,
+      slug,
+      group: parentDocument?.group ?? group,
+      routeGroup,
+      gender: parentDocument?.gender ?? gender,
+      sortOrder: (await Category.countDocuments({ parentCategory })) + 1,
       image: input.image ?? "",
       bannerImage: input.bannerImage ?? "",
       bannerTitle: input.bannerTitle ?? "",

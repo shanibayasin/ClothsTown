@@ -19,7 +19,6 @@ import { useWishlist } from "@/context/WishlistContext";
 import { readJsonResponse } from "@/lib/api";
 import ProductSearch from "@/app/components/layout/ProductSearch";
 import ClothestownLogo from "@/app/components/layout/ClothestownLogo";
-import { CATEGORY_CATALOG } from "@/lib/category-catalog";
 
 type Collection = {
   _id: string;
@@ -40,7 +39,7 @@ type AccessoriesMenuGroup = {
 type StoreCategory = {
   _id: string;
   name: string;
-  slug?: string;
+  slug: string;
   image?: string;
   status?: boolean;
   parentCategory?: string | null;
@@ -93,8 +92,9 @@ export default function Navbar() {
       (item) => item._id === category.parentCategory
     );
     if (!category.slug) return fallback ?? "/shop";
-    if (category.routeGroup) return `/shop/${category.routeGroup}/${category.slug}`;
-    if (parent?.slug) return `/shop/${parent.slug}/${category.slug}`;
+    if (parent?.slug && category.routeGroup) {
+      return `/shop/${category.routeGroup}/${category.slug}`;
+    }
     return `/shop/${category.slug}`;
   }, [storeCategories]);
   const categoryRouteByName = useCallback((name: string, fallback: string) => {
@@ -129,17 +129,10 @@ export default function Navbar() {
     async function loadDepartmentCategories() {
       try {
         const response = await fetch("/api/categories", { cache: "no-store" });
-        const databaseCategories = await readJsonResponse<StoreCategory[]>(response, []);
-        const databaseCategoriesBySlug = new Map(
-          databaseCategories.map((category) => [category.slug, category])
-        );
-        const categories = CATEGORY_CATALOG.map((definition) => ({
-          ...definition,
-          ...databaseCategoriesBySlug.get(definition.slug),
-          _id: databaseCategoriesBySlug.get(definition.slug)?._id ?? definition.slug,
-          name: definition.name,
-          slug: definition.slug,
-        }));
+        if (!response.ok) {
+          throw new Error(`Category request failed (${response.status}).`);
+        }
+        const categories = await readJsonResponse<StoreCategory[]>(response, []);
         setStoreCategories(categories);
         const sections: Record<string, DepartmentCategory[]> = {};
         for (const [sectionName, routeGroup] of [
@@ -469,8 +462,8 @@ export default function Navbar() {
               {searchOpen ? <X size={16} /> : <Search size={16} strokeWidth={1.7} />}
             </button>
             <Link
-              href="/login"
-              aria-label="Account login and registration"
+              href="/account"
+              aria-label="My account"
               className="flex size-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--section-background)] hover:text-[var(--brand-secondary-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] sm:size-8"
             >
               <User size={16} strokeWidth={1.7} />

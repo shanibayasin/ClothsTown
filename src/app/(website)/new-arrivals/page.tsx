@@ -29,8 +29,6 @@ import ProductFilterDrawer, {
 } from "@/app/components/shop/ProductFilterDrawer";
 import HeroBanner from "@/app/components/shop/HeroBanner";
 import {
-  CATEGORY_CATALOG,
-  getCategoryDefinition,
   getCategoryHref,
   isProductTypeFilterValue,
   sortProductSizes,
@@ -40,6 +38,8 @@ interface ProductCategory {
   _id?: string;
   name?: string;
   slug?: string;
+  routeGroup?: string;
+  parentCategory?: string | null;
 }
 
 interface ArrivalProduct {
@@ -78,6 +78,7 @@ interface StoreCategory {
   bannerPosition?: "left" | "center" | "right";
   status?: boolean;
   parentCategory?: string | null;
+  routeGroup?: string;
   sectionTiles?: {
     title: string;
     image: string;
@@ -95,7 +96,7 @@ const benefits = [
 
 function categoryName(product: ArrivalProduct) {
   return typeof product.category === "object" && product.category
-    ? getCategoryDefinition(product.category.slug ?? "")?.name ?? ""
+    ? product.category.name ?? ""
     : "";
 }
 
@@ -127,10 +128,13 @@ function isCategory(
     typeof product.category === "object" && product.category
       ? product.category.slug?.toLowerCase() ?? ""
       : "";
-  const definition = getCategoryDefinition(slug);
+  const name =
+    typeof product.category === "object" && product.category
+      ? product.category.name?.toLowerCase() ?? ""
+      : "";
   return (
-    definition?.slug === selected.toLowerCase() ||
-    definition?.name.toLowerCase() === selected.toLowerCase()
+    slug === selected.toLowerCase() ||
+    name === selected.toLowerCase()
   );
 }
 
@@ -147,6 +151,7 @@ export default function NewArrivalsPage() {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<ArrivalProduct[]>([]);
+  const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [arrivalCategory, setArrivalCategory] = useState<StoreCategory | null>(null);
   const [sectionTiles, setSectionTiles] = useState<StoreCategory["sectionTiles"]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -197,10 +202,12 @@ export default function NewArrivalsPage() {
         );
 
         let arrivalsCategory: StoreCategory | undefined;
+        let allCategories: StoreCategory[] = [];
         if (categoryResponse.ok) {
           const categoryData: unknown = await categoryResponse.json();
           if (Array.isArray(categoryData)) {
-            const allCategories = categoryData as StoreCategory[];
+            allCategories = categoryData as StoreCategory[];
+            if (active) setStoreCategories(allCategories);
             arrivalsCategory = allCategories.find(
               (category) =>
                 category.name.trim().toLowerCase() === "new arrivals" ||
@@ -218,18 +225,18 @@ export default function NewArrivalsPage() {
           setArrivalCategory(arrivalsCategory ?? null);
           setSectionTiles(
             (arrivalsCategory?.sectionTiles ?? []).filter(
-              (tile) =>
-                tile.title?.trim() &&
-                tile.image &&
-                CATEGORY_CATALOG.some(
-                  (category) =>
-                    category.slug === tile.category?.trim().toLowerCase() ||
-                    category.name.toLowerCase() === tile.category?.trim().toLowerCase()
-                )
+              (tile) => {
+                const category = allCategories.find(
+                  (item) =>
+                    item.slug?.toLowerCase() === tile.category?.trim().toLowerCase() ||
+                    item.name.toLowerCase() === tile.category?.trim().toLowerCase()
+                );
+                return Boolean(tile.title?.trim() && tile.image && category);
+              }
             ).map((tile) => {
-              const definition = CATEGORY_CATALOG.find(
+              const definition = allCategories.find(
                 (category) =>
-                  category.slug === tile.category.trim().toLowerCase() ||
+                  category.slug?.toLowerCase() === tile.category.trim().toLowerCase() ||
                   category.name.toLowerCase() === tile.category.trim().toLowerCase()
               );
               return {
@@ -261,8 +268,8 @@ export default function NewArrivalsPage() {
   }, []);
 
   const categories = useMemo(
-    () => CATEGORY_CATALOG.map((category) => category.name),
-    []
+    () => storeCategories.map((category) => category.name),
+    [storeCategories]
   );
   const sizes = useMemo(
     () =>
@@ -428,9 +435,9 @@ export default function NewArrivalsPage() {
     })),
   };
   const categoryHrefForTile = (tileCategory: string) => {
-    const definition = CATEGORY_CATALOG.find(
+    const definition = storeCategories.find(
       (category) =>
-        category.slug === tileCategory.trim().toLowerCase() ||
+        category.slug?.toLowerCase() === tileCategory.trim().toLowerCase() ||
         category.name.toLowerCase() === tileCategory.trim().toLowerCase()
     );
     return definition ? getCategoryHref(definition) : "/categories";

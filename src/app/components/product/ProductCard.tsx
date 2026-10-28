@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Heart, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { getCategoryDefinition } from "@/lib/category-catalog";
 import ProductImage from "./ProductImage";
 
 export interface StoreProductCardData {
@@ -80,7 +79,7 @@ export default function ProductCard({
   const requiresVariant = Boolean(product.sizes?.length || product.colors?.length);
   const categoryName =
     typeof product.category === "object" && product.category
-      ? getCategoryDefinition(product.category.slug ?? "")?.name ?? ""
+      ? product.category.name ?? ""
       : "";
 
   function handleAddToCart() {

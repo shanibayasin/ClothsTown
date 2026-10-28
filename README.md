@@ -23,6 +23,15 @@ Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` in your local
 with at least 32 characters. Keep `.env` private and out of Git. The example
 variable names are in `.env.example`.
 
+## Customer accounts
+
+Customers can create an account and sign in with an email address and password.
+Customer records are stored in MongoDB (`MONGODB_URI` or `MONGO_URI`), and
+passwords are hashed before they are saved. Customer sessions use
+`CUSTOMER_SESSION_SECRET` when set; otherwise, they use the existing
+`ADMIN_SESSION_SECRET`. The selected secret must be at least 32 characters.
+Password recovery and social sign-in are not currently available.
+
 ### Vercel deployment
 
 Local `.env` values are not copied to Vercel. In the Vercel project, open

@@ -12,9 +12,8 @@ import ProductSortSelect from "@/app/components/shop/ProductSortSelect";
 import { EMPTY_PRODUCT_FILTERS } from "@/app/components/shop/ProductFilterDrawer";
 import HeroBanner from "@/app/components/shop/HeroBanner";
 import {
-  CATEGORY_CATALOG,
   CATEGORY_GROUPS,
-  getCategoryDefinition,
+  getCategoryHref,
   isProductTypeFilterValue,
   sortProductSizes,
 } from "@/lib/category-catalog";
@@ -57,70 +56,41 @@ export default async function StoreCategoryPage({
   const [{ category: categoryParam }, query] = await Promise.all([params, searchParams]);
   const categorySlug = categoryParam.toLowerCase();
   const routeGroup = CATEGORY_GROUPS.find((group) => group.slug === categorySlug);
-  const categoryDefinition = getCategoryDefinition(categorySlug);
-  if (!routeGroup && !categoryDefinition) notFound();
 
   await connectDB();
-  const rootCategory = routeGroup
-    ? await Category.findOne({ slug: routeGroup.slug, status: true }).lean()
-    : null;
-  const storedSubcategories = rootCategory
-    ? await Category.find({ parentCategory: rootCategory._id, status: true })
-        .sort({ sortOrder: 1, name: 1 })
-        .lean()
-    : [];
-  const catalogSubcategories = routeGroup
-    ? CATEGORY_CATALOG.filter((item) => item.routeGroup === routeGroup.routeGroup)
-    : [];
-  const categorySlugs = routeGroup
-    ? (storedSubcategories.length ? storedSubcategories : catalogSubcategories).map((item) => item.slug)
-    : [categoryDefinition!.slug];
-  const databaseCategories = storedSubcategories.length
-    ? storedSubcategories
+  const [databaseCategory, routeGroupCategories] = await Promise.all([
+    routeGroup
+      ? Promise.resolve(null)
+      : Category.findOne({ slug: categorySlug, status: true }).lean(),
+    routeGroup
+      ? Category.find({ routeGroup: routeGroup.routeGroup, status: true })
+          .sort({ sortOrder: 1, name: 1 })
+          .lean()
+      : Promise.resolve([]),
+  ]);
+  if (!routeGroup && !databaseCategory) notFound();
+
+  const rootCategories = routeGroupCategories.filter((item) => !item.parentCategory);
+  const departmentSubcategories = routeGroup
+    ? routeGroupCategories.filter((item) => Boolean(item.parentCategory))
     : await Category.find({
+        parentCategory: databaseCategory!._id,
         status: true,
-        slug: { $in: categorySlugs },
       })
         .sort({ sortOrder: 1, name: 1 })
         .lean();
-  const databaseCategoriesBySlug = new Map(
-    databaseCategories.map((item) => [item.slug, item])
-  );
-  const departmentSubcategories = storedSubcategories.length
-    ? storedSubcategories.map((item) => ({
-        name: item.name,
-        slug: item.slug,
-        _id: item._id,
-      }))
-    : catalogSubcategories
-        .filter((definition) => databaseCategoriesBySlug.has(definition.slug))
-        .map((definition) => ({
-          ...definition,
-          ...databaseCategoriesBySlug.get(definition.slug),
-          name: definition.name,
-          slug: definition.slug,
-          _id: databaseCategoriesBySlug.get(definition.slug)!._id,
-        }));
-  const selectedCategoryDefinition = categoryDefinition ??
-    catalogSubcategories[0];
-  const databaseCategory = routeGroup
-    ? rootCategory ?? (selectedCategoryDefinition
-        ? databaseCategoriesBySlug.get(selectedCategoryDefinition.slug)
-        : undefined)
-    : selectedCategoryDefinition
-      ? databaseCategoriesBySlug.get(selectedCategoryDefinition.slug)
-      : undefined;
-  const category = {
-    ...(selectedCategoryDefinition ?? {}),
-    ...databaseCategory,
-    _id: databaseCategory?._id ?? categorySlug,
-    name: routeGroup?.name ?? categoryDefinition!.name,
-    slug: categorySlug,
-  };
+  const category = routeGroup
+    ? rootCategories[0] ?? routeGroupCategories[0] ?? {
+        _id: categorySlug,
+        name: routeGroup.name,
+        slug: categorySlug,
+      }
+    : databaseCategory!;
   const pageTitle = routeGroup?.name ?? category.name;
   const categoryIds = [
-    ...(rootCategory ? [rootCategory._id] : []),
-    ...databaseCategories.map((item) => item._id),
+    ...(routeGroup
+      ? routeGroupCategories.map((item) => item._id)
+      : [databaseCategory!._id, ...departmentSubcategories.map((item) => item._id)]),
   ];
   const requestedSubcategories = values(query.subcategory);
   const selectedSubcategories = requestedSubcategories.filter((slug) =>
@@ -266,12 +236,21 @@ export default async function StoreCategoryPage({
         imagePosition="center"
         priority
       />
-      {departmentSubcategories.length > 0 && (
+      {(rootCategories.length > 0 || departmentSubcategories.length > 0) && (
         <nav aria-label={`${pageTitle} categories`} className="mb-6 flex flex-wrap gap-2">
+          {rootCategories.map((rootCategory) => (
+            <Link
+              key={rootCategory._id.toString()}
+              href={getCategoryHref(rootCategory)}
+              className="rounded-full border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
+            >
+              {rootCategory.name}
+            </Link>
+          ))}
           {departmentSubcategories.map((subcategory) => (
             <Link
               key={subcategory._id.toString()}
-              href={`/shop/${categorySlug}/${subcategory.slug}`}
+              href={getCategoryHref(subcategory)}
               className="rounded-full border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
             >
               {subcategory.name}

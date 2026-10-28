@@ -1,21 +1,3 @@
-import catalog from "./category-catalog.json";
-
-export type CategoryGroup = "Men" | "Women" | "Kids" | "Accessories & Others";
-export type ProductGender = "men" | "women" | "girls" | "boys" | "unisex";
-export type CategoryRouteGroup = "men" | "women" | "girls" | "boys" | "accessories";
-
-export interface CategoryDefinition {
-  name: string;
-  slug: string;
-  group: CategoryGroup;
-  routeGroup: CategoryRouteGroup;
-  gender: ProductGender;
-  sortOrder: number;
-}
-
-export const CATEGORY_CATALOG = catalog as CategoryDefinition[];
-export const CATEGORY_SLUGS = new Set(CATEGORY_CATALOG.map((category) => category.slug));
-
 export const CATEGORY_GROUPS = [
   { name: "Men", slug: "men", routeGroup: "men" },
   { name: "Women", slug: "women", routeGroup: "women" },
@@ -58,10 +40,6 @@ const PRODUCT_TYPE_FILTER_VALUES = new Set([
   "waistcoat",
 ]);
 
-export function getCategoryDefinition(slug: string) {
-  return CATEGORY_CATALOG.find((category) => category.slug === slug);
-}
-
 export function isProductTypeFilterValue(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -69,20 +47,15 @@ export function isProductTypeFilterValue(value: unknown): value is string {
   );
 }
 
-export function getCategoryRouteGroup(route: string) {
-  const normalized = route.toLowerCase();
-  return CATEGORY_GROUPS.find((group) => group.slug === normalized)?.routeGroup;
-}
-
-export function getCategoriesForRoute(route: string) {
-  const routeGroup = getCategoryRouteGroup(route);
-  return routeGroup
-    ? CATEGORY_CATALOG.filter((category) => category.routeGroup === routeGroup)
-    : [];
-}
-
-export function getCategoryHref(category: CategoryDefinition) {
-  return `/shop/${category.routeGroup}/${category.slug}`;
+export function getCategoryHref(category: {
+  routeGroup?: string;
+  slug?: string;
+  parentCategory?: unknown;
+}) {
+  if (!category.slug) return "/categories";
+  return category.parentCategory && category.routeGroup
+    ? `/shop/${category.routeGroup}/${category.slug}`
+    : `/shop/${category.slug}`;
 }
 
 export function sortProductSizes(values: string[]) {

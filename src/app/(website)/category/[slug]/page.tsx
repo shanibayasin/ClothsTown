@@ -7,7 +7,6 @@ import HeroBanner from "@/app/components/shop/HeroBanner";
 import ProductCard, {
   type StoreProductCardData,
 } from "@/app/components/product/ProductCard";
-import { getCategoryDefinition } from "@/lib/category-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +20,13 @@ export default async function CategoryPage({
   params,
 }: Props) {
   const { slug } = await params;
-  const definition = getCategoryDefinition(slug.toLowerCase());
-  if (!definition) notFound();
-
   await connectDB();
   const databaseCategory = await Category.findOne({
-    slug: definition.slug,
+    slug: slug.toLowerCase(),
     status: true,
   }).lean();
-  const category = {
-    ...definition,
-    ...databaseCategory,
-    name: definition.name,
-    slug: definition.slug,
-  };
+  if (!databaseCategory) notFound();
+  const category = databaseCategory;
   const productDocuments = databaseCategory
     ? await Product.find({
         category: databaseCategory._id,

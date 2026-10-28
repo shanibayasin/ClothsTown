@@ -13,7 +13,6 @@ import { EMPTY_PRODUCT_FILTERS } from "@/app/components/shop/ProductFilterDrawer
 import HeroBanner from "@/app/components/shop/HeroBanner";
 import {
   CATEGORY_GROUPS,
-  getCategoryDefinition,
   isProductTypeFilterValue,
   sortProductSizes,
 } from "@/lib/category-catalog";
@@ -53,41 +52,18 @@ export default async function DepartmentSubcategoryPage({
 
   const routeGroup = CATEGORY_GROUPS.find((group) => group.slug === department);
   if (!routeGroup) notFound();
-  const definition = getCategoryDefinition(slug.toLowerCase());
-  const [databaseParent, storedCategory] = await Promise.all([
-    Category.findOne({ slug: routeGroup.slug, status: true }).select("_id").lean(),
-    Category.findOne({ slug: slug.toLowerCase(), status: true })
-      .select("_id name slug image bannerImage bannerTitle bannerDescription bannerButtonText bannerButtonLink bannerPosition parentCategory")
-      .lean(),
-  ]);
-  const isStoredSubcategory = Boolean(
-    databaseParent &&
-    storedCategory?.parentCategory?.toString() === databaseParent._id.toString()
-  );
-  const isCatalogSubcategory = Boolean(
-    definition && definition.routeGroup === routeGroup.routeGroup
-  );
-  if (!isStoredSubcategory && !isCatalogSubcategory) notFound();
-
-  const databaseCategory = isStoredSubcategory
-    ? storedCategory
-    : await Category.findOne({
-        slug: definition!.slug,
-        status: true,
-      })
-    .select("_id name slug image bannerImage bannerTitle bannerDescription bannerButtonText bannerButtonLink bannerPosition")
-    .lean();
-  if (!databaseCategory) notFound();
-  const category = {
-    ...(definition ?? {}),
-    ...databaseCategory,
-    _id: databaseCategory?._id ?? slug,
-    name: databaseCategory?.name ?? definition?.name ?? slug,
-    slug: databaseCategory?.slug ?? definition?.slug ?? slug,
-  };
-  const categoryFilter = databaseCategory
-    ? { category: databaseCategory._id }
-    : { category: { $in: [] } };
+  const storedCategory = await Category.findOne({
+      slug: slug.toLowerCase(),
+      status: true,
+    })
+      .select("_id name slug image bannerImage bannerTitle bannerDescription bannerButtonText bannerButtonLink bannerPosition parentCategory routeGroup")
+      .lean();
+  if (!storedCategory?.parentCategory ||
+      storedCategory.routeGroup !== routeGroup.routeGroup) {
+    notFound();
+  }
+  const category = storedCategory;
+  const categoryFilter = { category: category._id };
 
   const filter: Record<string, unknown> = { ...categoryFilter };
   const minPriceValue = first(query.minPrice);
