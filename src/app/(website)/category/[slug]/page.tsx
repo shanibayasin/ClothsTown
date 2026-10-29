@@ -40,8 +40,8 @@ export default async function CategoryPage({
   );
 
   return (
-    <main className="mx-auto min-h-[60vh] max-w-7xl bg-white px-6 py-8">
-      <nav aria-label="Breadcrumb" className="mb-3 text-xs text-[#6d5961]">
+    <main className="mx-auto min-h-[60vh] max-w-7xl bg-white px-6 pb-8">
+      <nav aria-label="Breadcrumb" className="relative left-1/2 flex min-h-[58px] w-screen -translate-x-1/2 items-center px-5 text-sm text-[var(--brand-primary)] sm:text-lg">
         <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
         <span className="font-medium text-[var(--brand-primary)]">{category.name}</span>
@@ -62,6 +62,8 @@ export default async function CategoryPage({
           `/shop/${category.routeGroup}/${category.slug}`
         }
         position={category.bannerPosition}
+        imageOnly
+        imageAlt={`${category.name} fashion collection`}
         priority
       />
       <div className="mb-8 text-center text-sm text-[#806d75]">

@@ -63,8 +63,6 @@ export default async function DepartmentSubcategoryPage({
     notFound();
   }
   const category = storedCategory;
-  const isWomenClothingPage =
-    department === "women" && category.slug === "clothing";
   const categoryFilter = { category: category._id };
 
   const filter: Record<string, unknown> = { ...categoryFilter };
@@ -170,11 +168,9 @@ export default async function DepartmentSubcategoryPage({
 
   return (
     <main
-      className={`mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 pb-8 sm:px-6 lg:px-10 ${
-        isWomenClothingPage ? "pt-5" : "py-8"
-      }`}
+      className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 pb-8 sm:px-6 lg:px-10"
     >
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[var(--text-secondary)]">
+      <nav aria-label="Breadcrumb" className="relative left-1/2 flex min-h-[58px] w-screen -translate-x-1/2 items-center px-5 text-sm text-[var(--brand-primary)] sm:text-lg">
         <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
         <Link href={`/shop/${department}`} className="capitalize hover:text-[var(--brand-primary)]">{routeGroup.name}</Link>
@@ -190,6 +186,8 @@ export default async function DepartmentSubcategoryPage({
         buttonText={category.bannerButtonText || `Shop ${category.name}`}
         buttonLink={category.bannerButtonLink || `/shop/${department}/${category.slug}`}
         position={category.bannerPosition}
+        imageOnly
+        imageAlt={`${category.name} fashion collection`}
         priority
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border-color)] pb-4">

@@ -16,7 +16,7 @@ import CategoryTile from "@/app/components/category/CategoryTile";
 const categoryGridClass =
   "grid grid-cols-2 gap-x-2 gap-y-4 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7";
 const categoryCarouselClass =
-  "scrollbar-none grid grid-flow-col grid-rows-2 gap-x-2 gap-y-4 overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory auto-cols-[calc((100%-0.5rem)/2)] min-[480px]:auto-cols-[calc((100%-1rem)/3)] md:auto-cols-[calc((100%-1.5rem)/4)] lg:auto-cols-[calc((100%-2rem)/5)] xl:auto-cols-[calc((100%-3rem)/7)]";
+  "scrollbar-none grid grid-flow-col grid-rows-1 gap-x-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory touch-pan-x auto-cols-[calc((100%-0.5rem)/2)] min-[480px]:auto-cols-[calc((100%-1rem)/3)] md:auto-cols-[calc((100%-1.5rem)/4)] lg:auto-cols-[calc((100%-2rem)/5)] xl:auto-cols-[calc((100%-3rem)/7)]";
 
 interface Category {
   _id: string;
@@ -28,10 +28,13 @@ interface Category {
   parentCategory?: string | null;
 }
 
-export default function CategoriesSection() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
+function CategoryCarouselRow({
+  categories,
+  row,
+}: {
+  categories: Category[];
+  row: number;
+}) {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -45,32 +48,16 @@ export default function CategoriesSection() {
   const didDragRef = useRef(false);
 
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch("/api/categories", {
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`Categories request failed (${res.status}).`);
-        setCategories(await readJsonResponse<Category[]>(res, []));
-      } catch (error) {
-        console.error("Categories fetch error:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
     const carousel = scrollRef.current;
-    if (!carousel || expanded) return;
+    if (!carousel) return;
 
     function updateScrollControls() {
-      if (!carousel) return;
-      setCanScrollLeft(carousel.scrollLeft > 1);
+      const currentCarousel = scrollRef.current;
+      if (!currentCarousel) return;
+      setCanScrollLeft(currentCarousel.scrollLeft > 1);
       setCanScrollRight(
-        carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1
+        currentCarousel.scrollLeft + currentCarousel.clientWidth <
+          currentCarousel.scrollWidth - 1
       );
     }
 
@@ -82,7 +69,7 @@ export default function CategoriesSection() {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateScrollControls);
     };
-  }, [categories, expanded]);
+  }, [categories]);
 
   function scrollCategories(direction: -1 | 1) {
     const carousel = scrollRef.current;
@@ -94,7 +81,7 @@ export default function CategoriesSection() {
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (expanded || event.pointerType !== "mouse" || event.button !== 0) return;
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -143,9 +130,93 @@ export default function CategoriesSection() {
     didDragRef.current = false;
   }
 
+  return (
+    <div className="relative">
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => scrollCategories(-1)}
+          aria-label={`Scroll category row ${row} left`}
+          className="absolute left-1 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7ded2] bg-white/95 text-[var(--brand-primary)] shadow-sm transition-colors hover:bg-[var(--section-background)]"
+        >
+          <ArrowLeft size={15} aria-hidden="true" />
+        </button>
+      )}
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => scrollCategories(1)}
+          aria-label={`Scroll category row ${row} right`}
+          className="absolute right-1 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7ded2] bg-white/95 text-[var(--brand-primary)] shadow-sm transition-colors hover:bg-[var(--section-background)]"
+        >
+          <ArrowRight size={15} aria-hidden="true" />
+        </button>
+      )}
+      <motion.div
+        ref={scrollRef}
+        role="region"
+        aria-label={`Category row ${row}`}
+        tabIndex={0}
+        className={`${categoryCarouselClass} ${
+          isDragging ? "cursor-grabbing select-none" : "cursor-grab"
+        }`}
+        style={{ scrollBehavior: isDragging ? "auto" : "smooth" }}
+        onScroll={() => {
+          const carousel = scrollRef.current;
+          if (!carousel) return;
+          setCanScrollLeft(carousel.scrollLeft > 1);
+          setCanScrollRight(
+            carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1
+          );
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishPointerDrag}
+        onPointerCancel={finishPointerDrag}
+        onClickCapture={preventClickAfterDrag}
+      >
+        {categories.map((category, index) => (
+          <motion.div
+            key={category._id}
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.2, delay: index * 0.04 }}
+            className="min-w-0 snap-start"
+          >
+            <CategoryTile category={category} />
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+export default function CategoriesSection() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch("/api/categories", {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`Categories request failed (${res.status}).`);
+        setCategories(await readJsonResponse<Category[]>(res, []));
+      } catch (error) {
+        console.error("Categories fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCategories();
+  }, []);
+
   function toggleExpanded() {
     if (expanded) {
-      scrollRef.current?.scrollTo({ left: 0 });
       setExpanded(false);
       return;
     }
@@ -160,26 +231,6 @@ export default function CategoriesSection() {
             Shop by Category
           </h2>
           <div className="flex items-center gap-2 sm:gap-4">
-            {!loading && !expanded && canScrollLeft && (
-              <button
-                type="button"
-                onClick={() => scrollCategories(-1)}
-                aria-label="Scroll categories left"
-                className="flex size-8 items-center justify-center rounded-full border border-[#e7ded2] text-[var(--brand-primary)] transition-colors hover:bg-[var(--section-background)]"
-              >
-                <ArrowLeft size={15} aria-hidden="true" />
-              </button>
-            )}
-            {!loading && !expanded && canScrollRight && (
-              <button
-                type="button"
-                onClick={() => scrollCategories(1)}
-                aria-label="Scroll categories right"
-                className="flex size-8 items-center justify-center rounded-full border border-[#e7ded2] text-[var(--brand-primary)] transition-colors hover:bg-[var(--section-background)]"
-              >
-                <ArrowRight size={15} aria-hidden="true" />
-              </button>
-            )}
             {!loading && (
               <button
                 type="button"
@@ -222,36 +273,33 @@ export default function CategoriesSection() {
             id="home-category-grid"
             layout
             transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
-            ref={scrollRef}
-            className={`${expanded ? categoryGridClass : categoryCarouselClass} ${
-              isDragging ? "cursor-grabbing select-none" : expanded ? "" : "cursor-grab"
-            }`}
-            onScroll={() => {
-              const carousel = scrollRef.current;
-              if (!carousel || expanded) return;
-              setCanScrollLeft(carousel.scrollLeft > 1);
-              setCanScrollRight(
-                carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1
-              );
-            }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={finishPointerDrag}
-            onPointerCancel={finishPointerDrag}
-            onClickCapture={preventClickAfterDrag}
+            className={expanded ? categoryGridClass : "flex flex-col gap-y-4"}
           >
-            {categories.map((category, index) => (
-              <motion.div
-                key={category._id}
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.2, delay: index * 0.04 }}
-                className={`min-w-0 ${expanded ? "" : "snap-start"}`}
-              >
-                <CategoryTile category={category} />
-              </motion.div>
-            ))}
+            {expanded ? (
+              categories.map((category, index) => (
+                <motion.div
+                  key={category._id}
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.2, delay: index * 0.04 }}
+                  className="min-w-0"
+                >
+                  <CategoryTile category={category} />
+                </motion.div>
+              ))
+            ) : (
+              <>
+                <CategoryCarouselRow
+                  categories={categories.filter((_, index) => index % 2 === 0)}
+                  row={1}
+                />
+                <CategoryCarouselRow
+                  categories={categories.filter((_, index) => index % 2 === 1)}
+                  row={2}
+                />
+              </>
+            )}
           </motion.div>
         )}
       </div>

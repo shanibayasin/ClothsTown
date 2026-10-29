@@ -215,8 +215,8 @@ export default async function StoreCategoryPage({
     .lean();
 
   return (
-    <main className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 py-8 sm:px-6 lg:px-10">
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[var(--text-secondary)]">
+    <main className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 pb-8 sm:px-6 lg:px-10">
+      <nav aria-label="Breadcrumb" className="relative left-1/2 flex min-h-[58px] w-screen -translate-x-1/2 items-center px-5 text-sm text-[var(--brand-primary)] sm:text-lg">
         <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>
         <span className="font-medium text-[var(--brand-primary)]">{pageTitle}</span>
@@ -234,6 +234,8 @@ export default async function StoreCategoryPage({
         }
         position={category.bannerPosition}
         imagePosition="center"
+        imageOnly
+        imageAlt={`${pageTitle} fashion collection`}
         priority
       />
       {(rootCategories.length > 0 || departmentSubcategories.length > 0) && (

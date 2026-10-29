@@ -898,7 +898,9 @@ function ShopContent({
       <section aria-label={`${heroTitle} introduction`}>
         <nav
           aria-label="Breadcrumb"
-          className="mx-auto flex max-w-[1440px] items-center gap-1.5 px-4 py-3 text-xs text-[var(--text-secondary)] sm:px-6"
+          className={isDepartmentProductListing
+            ? "flex min-h-[58px] items-center gap-1.5 px-3 text-sm text-[var(--brand-primary)] sm:text-lg"
+            : "mx-auto flex max-w-[1440px] items-center gap-1.5 px-4 py-3 text-xs text-[var(--text-secondary)] sm:px-6"}
         >
           <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
           <ChevronRight size={13} aria-hidden="true" />
@@ -929,6 +931,7 @@ function ShopContent({
                   : "#shop-products")
           }
           position={bannerCategory?.bannerPosition}
+          imageOnly={isDepartmentProductListing}
           imageAlt={`${heroTitle} fashion collection`}
           priority
         />
