@@ -49,6 +49,7 @@ export default async function CategoriesPage() {
           {categories.map((category) => (
             <CategoryTile
               key={category._id.toString()}
+              mobileImageLabel
               category={{
                 _id: category._id.toString(),
                 name: category.name,

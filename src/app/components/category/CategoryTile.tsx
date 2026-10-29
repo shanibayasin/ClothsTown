@@ -12,9 +12,10 @@ interface CategoryTileProps {
     routeGroup?: string;
     parentCategory?: unknown;
   };
+  mobileImageLabel?: boolean;
 }
 
-export default function CategoryTile({ category }: CategoryTileProps) {
+export default function CategoryTile({ category, mobileImageLabel = false }: CategoryTileProps) {
   return (
     <Link
       href={getCategoryHref(category)}
@@ -29,8 +30,13 @@ export default function CategoryTile({ category }: CategoryTileProps) {
           className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           fallbackClassName="text-xs text-[var(--text-secondary)]"
         />
+        {mobileImageLabel && (
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2 pb-2.5 pt-8 text-[10px] font-extrabold uppercase leading-tight text-white sm:hidden">
+            {category.name}
+          </span>
+        )}
       </span>
-      <span className="mt-2 line-clamp-2 px-1 text-[11px] font-extrabold uppercase leading-4 text-[#111] min-[480px]:text-xs sm:mt-2.5 sm:text-sm xl:text-base">
+      <span className={`mt-2 line-clamp-2 px-1 text-[11px] font-extrabold uppercase leading-4 text-[#111] min-[480px]:text-xs sm:mt-2.5 sm:text-sm xl:text-base ${mobileImageLabel ? "hidden sm:block" : ""}`}>
         {category.name}
       </span>
     </Link>

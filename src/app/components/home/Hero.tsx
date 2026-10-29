@@ -60,13 +60,7 @@ export default function Hero() {
         aria-busy="true"
         className="w-full bg-[#F8F5EF]"
       >
-        <div className="aspect-[16/9] animate-pulse bg-[#F1ECE4] md:aspect-[2.4/1] lg:aspect-[3/1]" />
-        <div className="space-y-3 px-6 py-8 md:hidden">
-          <div className="mx-auto h-3 w-36 animate-pulse rounded bg-[#E5DED4]" />
-          <div className="mx-auto h-9 w-3/4 animate-pulse rounded bg-[#E5DED4]" />
-          <div className="mx-auto h-4 w-full max-w-md animate-pulse rounded bg-[#E5DED4]" />
-          <div className="mx-auto h-11 w-36 animate-pulse rounded-full bg-[#E5DED4]" />
-        </div>
+        <div className="aspect-[1.2/1] animate-pulse bg-[#F1ECE4] md:aspect-[2.4/1] lg:aspect-[3/1]" />
       </div>
     );
   }
@@ -80,9 +74,9 @@ export default function Hero() {
     <section
       aria-label="Featured collection"
       aria-roledescription="carousel"
-      className="relative isolate flex w-full flex-col overflow-hidden bg-[#F8F5EF] text-[#0F2D39] md:block"
+      className="relative isolate w-full overflow-hidden bg-[#F8F5EF] text-[#0F2D39]"
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#F8F5EF] md:aspect-[2.4/1] lg:aspect-[3/1]">
+      <div className="relative aspect-[1.2/1] w-full overflow-hidden bg-[#F8F5EF] md:aspect-[2.4/1] lg:aspect-[3/1]">
         <AnimatePresence mode="wait">
           <motion.div
             key={slide._id}
@@ -109,11 +103,16 @@ export default function Hero() {
                   console.error("Hero banner image failed to load:", slide.image);
                   setFailedImageId(slide._id);
                 }}
-                className="object-contain md:object-cover md:object-center"
+                className="object-cover object-[66%_center] md:object-center"
               />
             )}
           </motion.div>
         </AnimatePresence>
+
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-[#0F2D39]/80 via-[#0F2D39]/55 to-[#0F2D39]/10 md:hidden"
+        />
 
         {slides.length > 1 && (
           <>
@@ -162,33 +161,33 @@ export default function Hero() {
         )}
       </div>
 
-      <div className="relative z-10 w-full bg-[#F8F5EF] px-6 py-8 text-center md:absolute md:inset-y-0 md:left-0 md:flex md:w-[54%] md:items-center md:bg-transparent md:py-0 md:pl-[6vw] md:pr-4 md:text-left lg:left-[43%] lg:w-[30%] lg:pl-0">
-        <div className="mx-auto w-full max-w-[620px] md:mx-0">
+      <div className="absolute inset-0 z-10 flex items-center px-5 py-5 text-left md:inset-y-0 md:left-0 md:flex md:w-[54%] md:items-center md:bg-transparent md:py-0 md:pl-[6vw] md:pr-4 lg:left-[43%] lg:w-[30%] lg:pl-0">
+        <div className="w-[72%] max-w-[620px] md:mx-0 md:w-full">
           {slide.subtitle.trim() && (
             <>
-              <p className="whitespace-pre-line text-xs font-semibold uppercase leading-tight tracking-[0.22em] text-[#C18B65] sm:text-sm">
+              <p className="whitespace-pre-line text-[10px] font-semibold uppercase leading-tight tracking-[0.18em] text-[#F8F5EF] sm:text-sm md:tracking-[0.22em] md:text-[#C18B65]">
                 {slide.subtitle}
               </p>
               <span
                 aria-hidden="true"
-                className="mx-auto mt-3 block h-[2px] w-12 bg-[#C18B65] md:mx-0"
+                className="mt-2 block h-[2px] w-8 bg-[#C18B65] md:mt-3 md:w-12"
               />
             </>
           )}
           {slide.title.trim() && (
-            <h1 className="whitespace-pre-line font-heading text-[clamp(2.5rem,5.4vw,6.5rem)] font-medium uppercase leading-[0.92] tracking-[-0.04em] text-[#0F2D39] [text-wrap:balance] lg:text-[clamp(2rem,4.2vw,5.25rem)]">
+            <h1 className="mt-2 whitespace-pre-line font-heading text-[clamp(1.65rem,7.5vw,2.4rem)] font-medium uppercase leading-[0.94] tracking-[-0.04em] text-[#F8F5EF] [text-wrap:balance] md:mt-0 md:text-[clamp(2.5rem,5.4vw,6.5rem)] md:text-[#0F2D39] lg:text-[clamp(2rem,4.2vw,5.25rem)]">
               {slide.title}
             </h1>
           )}
           {slide.description.trim() && (
-            <p className="mx-auto mt-4 max-w-[560px] whitespace-pre-line text-sm leading-relaxed md:mx-0 lg:text-base">
+            <p className="mt-2 max-w-[560px] whitespace-pre-line text-[11px] leading-snug text-[#F8F5EF]/95 sm:text-sm md:mt-4 md:leading-relaxed md:text-[#0F2D39] lg:text-base">
               {slide.description}
             </p>
           )}
           {slide.buttonText.trim() && slide.buttonLink.trim() && (
             <Link
               href={slide.buttonLink}
-              className="mt-6 inline-flex min-h-11 items-center justify-center gap-3 rounded-full bg-[#0F2D39] px-7 py-2 text-xs font-semibold uppercase tracking-wide text-[#F8F5EF] transition-colors hover:bg-[#C18B65] hover:text-[#0F2D39] sm:min-h-12 sm:px-8 sm:text-sm"
+              className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded-full bg-[#0F2D39] px-5 py-2 text-[10px] font-semibold uppercase tracking-wide text-[#F8F5EF] transition-colors hover:bg-[#C18B65] hover:text-[#0F2D39] sm:mt-6 sm:min-h-12 sm:gap-3 sm:px-8 sm:text-sm"
             >
               {slide.buttonText}
               <ChevronRight size={16} aria-hidden="true" />
