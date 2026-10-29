@@ -223,8 +223,8 @@ export default function CategoriesSection() {
             href="/categories"
             className="inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:text-xs"
           >
-            All Categories
             <ArrowRight size={13} aria-hidden="true" />
+            All categories
           </Link>
         </div>
         {loading ? (
