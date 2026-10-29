@@ -63,6 +63,8 @@ export default async function DepartmentSubcategoryPage({
     notFound();
   }
   const category = storedCategory;
+  const isWomenClothingPage =
+    department === "women" && category.slug === "clothing";
   const categoryFilter = { category: category._id };
 
   const filter: Record<string, unknown> = { ...categoryFilter };
@@ -167,7 +169,11 @@ export default async function DepartmentSubcategoryPage({
     .lean();
 
   return (
-    <main className="mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 py-8 sm:px-6 lg:px-10">
+    <main
+      className={`mx-auto min-h-[60vh] max-w-[1440px] bg-white px-4 pb-8 sm:px-6 lg:px-10 ${
+        isWomenClothingPage ? "pt-5" : "py-8"
+      }`}
+    >
       <nav aria-label="Breadcrumb" className="mb-4 text-xs text-[var(--text-secondary)]">
         <Link href="/" className="hover:text-[var(--brand-primary)]">Home</Link>
         <span className="mx-2">/</span>

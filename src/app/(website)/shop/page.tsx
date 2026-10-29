@@ -319,25 +319,61 @@ function ShopContent({
 
     if (selectedCategory) {
       data = data.filter((item) => {
+        const categoryId = item.category?._id;
+        const categorySlug = item.category?.slug?.toLowerCase() ?? "";
+        const categoryName = item.category?.name?.toLowerCase() ?? "";
+        const categoryRouteGroup = item.category?.routeGroup?.toLowerCase() ?? "";
+        const normalizedCategory = selectedCategory.trim().toLowerCase();
+
         if (
-          item.category?._id === selectedCategory ||
-          item.category?.slug === selectedCategory
-        ) return true;
-        const categoryName = item.category?.name.toLowerCase() ?? "";
-        if (["men", "mens", "men's"].includes(selectedCategory)) {
-          return /\bmen\b|\bmens\b|\bmenswear\b/.test(categoryName);
+          categoryId === selectedCategory ||
+          categorySlug === normalizedCategory ||
+          categoryName === normalizedCategory
+        ) {
+          return true;
         }
-        if (["women", "womens", "women's"].includes(selectedCategory)) {
-          return /\bwomen\b|womens/.test(categoryName);
+
+        if (["men", "mens", "men's"].includes(normalizedCategory)) {
+          return (
+            categoryRouteGroup === "men" ||
+            categorySlug === "men" ||
+            /\bmen\b|\bmens\b|\bmenswear\b/.test(categoryName)
+          );
         }
-        if (["boy", "boys"].includes(selectedCategory)) {
-          return /\bboys?\b/.test(categoryName);
+
+        if (["women", "womens", "women's"].includes(normalizedCategory)) {
+          return (
+            categoryRouteGroup === "women" ||
+            categorySlug === "women" ||
+            /\bwomen\b|womens/.test(categoryName)
+          );
         }
-        if (selectedCategory === "girls") return /\bgirls?\b/.test(categoryName);
-        if (["accessory", "accessories"].includes(selectedCategory)) {
-          return /\baccessor(y|ies)\b/.test(categoryName);
+
+        if (["boy", "boys"].includes(normalizedCategory)) {
+          return (
+            categoryRouteGroup === "boys" ||
+            categorySlug === "boys" ||
+            /\bboys?\b/.test(categoryName)
+          );
         }
-        return categoryName === selectedCategory;
+
+        if (normalizedCategory === "girls") {
+          return (
+            categoryRouteGroup === "girls" ||
+            categorySlug === "girls" ||
+            /\bgirls?\b/.test(categoryName)
+          );
+        }
+
+        if (["accessory", "accessories"].includes(normalizedCategory)) {
+          return (
+            categoryRouteGroup === "accessories" ||
+            categorySlug === "accessories" ||
+            /\baccessor(y|ies)\b/.test(categoryName)
+          );
+        }
+
+        return false;
       });
     }
 

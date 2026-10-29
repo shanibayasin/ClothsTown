@@ -70,7 +70,7 @@ export default function HeroBanner({
 
   return (
     <header
-      className={`relative isolate mb-7 aspect-[1.2/1] min-h-[280px] max-h-[460px] overflow-hidden bg-gradient-to-r from-[var(--section-background)] via-[var(--page-background)] to-[var(--brand-secondary)] sm:aspect-[2.8/1] sm:min-h-[260px] lg:aspect-[4/1] lg:min-h-[320px] ${
+      className={`relative isolate mb-7 aspect-[1.2/1] min-h-[280px] max-h-[600px] overflow-hidden bg-gradient-to-r from-[var(--section-background)] via-[var(--page-background)] to-[var(--brand-secondary)] md:aspect-[2.4/1] lg:aspect-[3.2/1] ${
         fullBleed ? "relative left-1/2 w-screen -translate-x-1/2" : "w-full"
       } ${className ?? ""}`}
     >

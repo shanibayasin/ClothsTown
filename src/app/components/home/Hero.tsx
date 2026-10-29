@@ -60,7 +60,7 @@ export default function Hero() {
         aria-busy="true"
         className="w-full bg-[#F8F5EF]"
       >
-        <div className="aspect-[1.2/1] animate-pulse bg-[#F1ECE4] md:aspect-[2.4/1] lg:aspect-[3/1]" />
+        <div className="aspect-[1.2/1] animate-pulse bg-[#F1ECE4] md:aspect-[2.4/1] lg:aspect-[3.2/1]" />
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default function Hero() {
       aria-roledescription="carousel"
       className="relative isolate w-full overflow-hidden bg-[#F8F5EF] text-[#0F2D39]"
     >
-      <div className="relative aspect-[1.2/1] w-full overflow-hidden bg-[#F8F5EF] md:aspect-[2.4/1] lg:aspect-[3/1]">
+      <div className="relative aspect-[1.2/1] w-full overflow-hidden bg-[#F8F5EF] md:aspect-[2.4/1] lg:aspect-[3.2/1]">
         <AnimatePresence mode="wait">
           <motion.div
             key={slide._id}
