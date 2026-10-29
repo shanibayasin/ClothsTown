@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
-import CategoryImage from "@/app/components/category/CategoryImage";
-import { getCategoryHref } from "@/lib/category-catalog";
+import CategoryTile from "@/app/components/category/CategoryTile";
+
+const categoryGridClass =
+  "grid grid-cols-2 gap-x-2 gap-y-4 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7";
+const categoryCarouselClass =
+  "scrollbar-none grid grid-flow-col grid-rows-2 gap-x-2 gap-y-4 overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory auto-cols-[calc((100%-0.5rem)/2)] min-[480px]:auto-cols-[calc((100%-1rem)/3)] md:auto-cols-[calc((100%-1.5rem)/4)] lg:auto-cols-[calc((100%-2rem)/5)] xl:auto-cols-[calc((100%-3rem)/7)]";
 
 interface Category {
   _id: string;
@@ -21,13 +31,18 @@ interface Category {
 export default function CategoriesSection() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-
-  function categoryVisibilityClass(index: number) {
-    if (index < 4) return "";
-    if (index < 6) return "hidden sm:block";
-    if (index < 10) return "hidden lg:block";
-    return "hidden";
-  }
+  const [expanded, setExpanded] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    scrollLeft: number;
+    dragging: boolean;
+  } | null>(null);
+  const didDragRef = useRef(false);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -47,77 +62,197 @@ export default function CategoriesSection() {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    const carousel = scrollRef.current;
+    if (!carousel || expanded) return;
+
+    function updateScrollControls() {
+      if (!carousel) return;
+      setCanScrollLeft(carousel.scrollLeft > 1);
+      setCanScrollRight(
+        carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1
+      );
+    }
+
+    updateScrollControls();
+    const resizeObserver = new ResizeObserver(updateScrollControls);
+    resizeObserver.observe(carousel);
+    window.addEventListener("resize", updateScrollControls);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScrollControls);
+    };
+  }, [categories, expanded]);
+
+  function scrollCategories(direction: -1 | 1) {
+    const carousel = scrollRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({
+      left: direction * carousel.clientWidth * 0.85,
+      behavior: "smooth",
+    });
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (expanded || event.pointerType !== "mouse" || event.button !== 0) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      scrollLeft: event.currentTarget.scrollLeft,
+      dragging: false,
+    };
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const distance = event.clientX - drag.startX;
+    if (!drag.dragging && Math.abs(distance) < 6) return;
+
+    if (!drag.dragging) {
+      drag.dragging = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setIsDragging(true);
+    }
+
+    event.currentTarget.scrollLeft = drag.scrollLeft - distance;
+  }
+
+  function finishPointerDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    if (drag.dragging) {
+      didDragRef.current = true;
+      setIsDragging(false);
+      window.setTimeout(() => {
+        didDragRef.current = false;
+      }, 0);
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    dragRef.current = null;
+  }
+
+  function preventClickAfterDrag(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!didDragRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    didDragRef.current = false;
+  }
+
+  function toggleExpanded() {
+    if (expanded) {
+      scrollRef.current?.scrollTo({ left: 0 });
+      setExpanded(false);
+      return;
+    }
+    setExpanded(true);
+  }
+
   return (
     <section className="bg-white py-6 sm:py-8">
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-[1920px] px-4 sm:px-5">
         <div className="mb-5 flex items-center justify-between sm:mb-6">
           <h2 className="text-[17px] font-bold tracking-tight text-[var(--brand-primary)] sm:text-xl">
             Shop by Category
           </h2>
-          <Link
-            href="/categories"
-            className="inline-flex min-h-9 items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--brand-primary)] sm:text-xs"
-          >
-            All categories
-            <ArrowRight size={13} aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-4">
+            {!loading && !expanded && canScrollLeft && (
+              <button
+                type="button"
+                onClick={() => scrollCategories(-1)}
+                aria-label="Scroll categories left"
+                className="flex size-8 items-center justify-center rounded-full border border-[#e7ded2] text-[var(--brand-primary)] transition-colors hover:bg-[var(--section-background)]"
+              >
+                <ArrowLeft size={15} aria-hidden="true" />
+              </button>
+            )}
+            {!loading && !expanded && canScrollRight && (
+              <button
+                type="button"
+                onClick={() => scrollCategories(1)}
+                aria-label="Scroll categories right"
+                className="flex size-8 items-center justify-center rounded-full border border-[#e7ded2] text-[var(--brand-primary)] transition-colors hover:bg-[var(--section-background)]"
+              >
+                <ArrowRight size={15} aria-hidden="true" />
+              </button>
+            )}
+            {!loading && (
+              <button
+                type="button"
+                onClick={toggleExpanded}
+                aria-expanded={expanded}
+                aria-controls="home-category-grid"
+                className="inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:text-xs"
+              >
+                {expanded ? "Show Less" : "View All"}
+                {expanded ? (
+                  <ArrowUp size={13} aria-hidden="true" />
+                ) : (
+                  <ArrowDown size={13} aria-hidden="true" />
+                )}
+              </button>
+            )}
+            <Link
+              href="/categories"
+              className="inline-flex min-h-9 items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--brand-primary)] sm:text-xs"
+            >
+              All categories
+              <ArrowRight size={13} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
         {loading ? (
-          <div className="mx-auto max-w-[1150px]">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5 lg:gap-x-3">
-              {Array.from({ length: 10 }, (_, index) => (
-                <div
-                  key={index}
-                  className={`flex animate-pulse flex-col items-center ${categoryVisibilityClass(index)}`}
-                >
-                  <div className="size-[76px] rounded-xl bg-gray-100 min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]" />
-                  <div className="mt-3 h-3 w-4/5 rounded bg-gray-100" />
-                  <div className="mt-2 h-2.5 w-14 rounded bg-gray-100" />
-                </div>
-              ))}
-            </div>
+          <div className={`${categoryCarouselClass} pointer-events-none`}>
+            {Array.from({ length: 14 }, (_, index) => (
+              <div
+                key={index}
+                className="flex min-w-0 animate-pulse snap-start flex-col items-center"
+              >
+                <div className="aspect-square w-full rounded-xl bg-gray-100" />
+                <div className="mt-3 h-4 w-4/5 rounded bg-gray-100" />
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="mx-auto max-w-[1150px]">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5 lg:gap-x-3">
-              {categories.map((category, index) => (
-                <motion.div
-                  key={category._id}
-                  initial={{ opacity: 0, y: 8 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.2, delay: index * 0.04 }}
-                  className={`min-w-0 ${categoryVisibilityClass(index)}`}
-                >
-                  <Link
-                    href={getCategoryHref(category)}
-                    className="group flex w-full flex-col items-center text-center text-[var(--brand-primary)]"
-                  >
-                    <span className="relative block size-[76px] shrink-0 overflow-hidden rounded-xl bg-[#f2f3f4] min-[380px]:size-[84px] sm:size-[104px] lg:size-[128px]">
-                      <CategoryImage
-                        src={category.image}
-                        fallbackSrc={category.fallbackImage}
-                        alt={category.name}
-                        sizes="(max-width: 379px) 76px, (max-width: 639px) 84px, (max-width: 1023px) 104px, 128px"
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        fallbackClassName="text-[10px] text-gray-500"
-                      />
-                    </span>
-                    <span className="mt-2 max-w-full text-center text-[10px] font-semibold leading-4 sm:text-xs">
-                      {category.name}
-                    </span>
-                    <span className="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-[9px] text-[var(--text-secondary)] transition-colors group-hover:text-[var(--brand-primary)] sm:text-[10px]">
-                      Shop Now
-                      <ArrowRight
-                        size={11}
-                        className="transition-transform group-hover:translate-x-0.5"
-                      />
-                    </span>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+          <motion.div
+            id="home-category-grid"
+            layout
+            transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
+            ref={scrollRef}
+            className={`${expanded ? categoryGridClass : categoryCarouselClass} ${
+              isDragging ? "cursor-grabbing select-none" : expanded ? "" : "cursor-grab"
+            }`}
+            onScroll={() => {
+              const carousel = scrollRef.current;
+              if (!carousel || expanded) return;
+              setCanScrollLeft(carousel.scrollLeft > 1);
+              setCanScrollRight(
+                carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1
+              );
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={finishPointerDrag}
+            onPointerCancel={finishPointerDrag}
+            onClickCapture={preventClickAfterDrag}
+          >
+            {categories.map((category, index) => (
+              <motion.div
+                key={category._id}
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.2, delay: index * 0.04 }}
+                className={`min-w-0 ${expanded ? "" : "snap-start"}`}
+              >
+                <CategoryTile category={category} />
+              </motion.div>
+            ))}
+          </motion.div>
         )}
       </div>
     </section>
