@@ -7,15 +7,14 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
 import CategoryTile from "@/app/components/category/CategoryTile";
 
 const categoryCarouselClass =
   "scrollbar-none grid grid-flow-col grid-rows-1 gap-x-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory touch-pan-x auto-cols-[calc((100%-0.5rem)/2)] min-[480px]:auto-cols-[calc((100%-1rem)/3)] md:auto-cols-[calc((100%-1.5rem)/4)] lg:auto-cols-[calc((100%-2rem)/5)] xl:auto-cols-[calc((100%-3rem)/7)]";
-const categoryGridClass =
-  "grid grid-cols-2 gap-x-2 gap-y-4 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7";
 
 interface Category {
   _id: string;
@@ -194,7 +193,6 @@ function CategoryCarouselRow({
 export default function CategoriesSection() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -214,10 +212,6 @@ export default function CategoriesSection() {
     fetchCategories();
   }, []);
 
-  function toggleExpanded() {
-    setExpanded((current) => !current);
-  }
-
   return (
     <section className="bg-white py-6 sm:py-8">
       <div className="mx-auto max-w-[1920px] px-4 sm:px-5">
@@ -225,22 +219,13 @@ export default function CategoriesSection() {
           <h2 className="text-[17px] font-bold tracking-tight text-[var(--brand-primary)] sm:text-xl">
             Shop by Category
           </h2>
-          {!loading && (
-            <button
-              type="button"
-              onClick={toggleExpanded}
-              aria-expanded={expanded}
-              aria-controls="home-category-grid"
-              className="inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:text-xs"
-            >
-              {expanded ? "Show Less" : "All Categories"}
-              {expanded ? (
-                <ArrowUp size={13} aria-hidden="true" />
-              ) : (
-                <ArrowDown size={13} aria-hidden="true" />
-              )}
-            </button>
-          )}
+          <Link
+            href="/categories"
+            className="inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:text-xs"
+          >
+            All Categories
+            <ArrowRight size={13} aria-hidden="true" />
+          </Link>
         </div>
         {loading ? (
           <div className={`${categoryCarouselClass} pointer-events-none`}>
@@ -255,38 +240,16 @@ export default function CategoriesSection() {
             ))}
           </div>
         ) : (
-          <motion.div
-            id="home-category-grid"
-            layout
-            transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
-            className={expanded ? categoryGridClass : "flex flex-col gap-y-4"}
-          >
-            {expanded ? (
-              categories.map((category, index) => (
-                <motion.div
-                  key={category._id}
-                  initial={{ opacity: 0, y: 8 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.2, delay: index * 0.04 }}
-                  className="min-w-0"
-                >
-                  <CategoryTile category={category} />
-                </motion.div>
-              ))
-            ) : (
-              <>
-                <CategoryCarouselRow
-                  categories={categories.filter((_, index) => index % 2 === 0)}
-                  row={1}
-                />
-                <CategoryCarouselRow
-                  categories={categories.filter((_, index) => index % 2 === 1)}
-                  row={2}
-                />
-              </>
-            )}
-          </motion.div>
+          <div className="flex flex-col gap-y-4">
+            <CategoryCarouselRow
+              categories={categories.filter((_, index) => index % 2 === 0)}
+              row={1}
+            />
+            <CategoryCarouselRow
+              categories={categories.filter((_, index) => index % 2 === 1)}
+              row={2}
+            />
+          </div>
         )}
       </div>
     </section>
