@@ -236,16 +236,9 @@ export default function CategoriesSection() {
                 onClick={toggleExpanded}
                 aria-expanded={expanded}
                 aria-controls="home-category-grid"
-                className="inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:text-xs"
+                className="hidden min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:inline-flex sm:text-xs"
               >
-                {expanded ? (
-                  "Show Less"
-                ) : (
-                  <>
-                    <span className="sm:hidden">All Categories</span>
-                    <span className="hidden sm:inline">View All</span>
-                  </>
-                )}
+                {expanded ? "Show Less" : "View All"}
                 {expanded ? (
                   <ArrowUp size={13} aria-hidden="true" />
                 ) : (
@@ -256,9 +249,7 @@ export default function CategoriesSection() {
           </div>
         </div>
         {loading ? (
-          <div
-            className={`${categoryCarouselClass} pointer-events-none hidden sm:grid`}
-          >
+          <div className={`${categoryCarouselClass} pointer-events-none`}>
             {Array.from({ length: 14 }, (_, index) => (
               <div
                 key={index}
@@ -275,9 +266,7 @@ export default function CategoriesSection() {
             layout
             transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
             className={
-              expanded
-                ? categoryGridClass
-                : "hidden flex-col gap-y-4 sm:flex"
+              expanded ? categoryGridClass : "flex flex-col gap-y-4"
             }
           >
             {expanded ? (
