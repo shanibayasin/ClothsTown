@@ -57,8 +57,17 @@ export default function Hero() {
     return (
       <div
         aria-label="Loading featured collection"
-        className="aspect-[1.45/1] min-h-[270px] max-h-[340px] animate-pulse bg-[#F8F5EF] sm:aspect-[2.4/1] sm:min-h-[300px] sm:max-h-[420px] lg:aspect-[3.3/1] lg:min-h-[380px] lg:max-h-[570px]"
-      />
+        aria-busy="true"
+        className="w-full bg-[#F8F5EF]"
+      >
+        <div className="aspect-[16/9] animate-pulse bg-[#F1ECE4] md:aspect-[2.4/1] lg:aspect-[3/1]" />
+        <div className="space-y-3 px-6 py-8 md:hidden">
+          <div className="mx-auto h-3 w-36 animate-pulse rounded bg-[#E5DED4]" />
+          <div className="mx-auto h-9 w-3/4 animate-pulse rounded bg-[#E5DED4]" />
+          <div className="mx-auto h-4 w-full max-w-md animate-pulse rounded bg-[#E5DED4]" />
+          <div className="mx-auto h-11 w-36 animate-pulse rounded-full bg-[#E5DED4]" />
+        </div>
+      </div>
     );
   }
 
@@ -71,66 +80,115 @@ export default function Hero() {
     <section
       aria-label="Featured collection"
       aria-roledescription="carousel"
-      className="relative isolate aspect-[1.45/1] min-h-[270px] max-h-[340px] overflow-hidden bg-[#F8F5EF] text-[#0F2D39] sm:aspect-[2.4/1] sm:min-h-[300px] sm:max-h-[420px] lg:aspect-[3.3/1] lg:min-h-[380px] lg:max-h-[570px]"
+      className="relative isolate flex w-full flex-col overflow-hidden bg-[#F8F5EF] text-[#0F2D39] md:block"
     >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={slide._id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.55 }}
-          className="absolute inset-0 bg-[#F8F5EF]"
-        >
-          {failedImageId === slide._id ? (
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-[linear-gradient(135deg,#F8F5EF_0%,#E9DFD3_50%,#F8F5EF_100%)]"
-            />
-          ) : (
-            <Image
-              src={slide.image}
-              alt=""
-              fill
-              priority={current === 0}
-              unoptimized
-              sizes="100vw"
-              onError={() => {
-                console.error("Hero banner image failed to load:", slide.image);
-                setFailedImageId(slide._id);
-              }}
-              className="object-cover object-[34%_center] sm:object-center"
-            />
-          )}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-[linear-gradient(90deg,rgba(248,245,239,0)_18%,rgba(248,245,239,.08)_38%,rgba(248,245,239,.68)_62%,rgba(248,245,239,.92)_100%)] max-sm:bg-[linear-gradient(0deg,rgba(248,245,239,.99)_0%,rgba(248,245,239,.96)_52%,rgba(248,245,239,.35)_82%,rgba(248,245,239,0)_100%)]"
-          />
-        </motion.div>
-      </AnimatePresence>
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#F8F5EF] md:aspect-[2.4/1] lg:aspect-[3/1]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={slide._id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.55 }}
+            className="absolute inset-0 bg-[#F8F5EF]"
+          >
+            {failedImageId === slide._id ? (
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-[linear-gradient(135deg,#F8F5EF_0%,#E9DFD3_50%,#F8F5EF_100%)]"
+              />
+            ) : (
+              <Image
+                src={slide.image}
+                alt=""
+                fill
+                preload={current === 0}
+                unoptimized
+                sizes="100vw"
+                onError={() => {
+                  console.error("Hero banner image failed to load:", slide.image);
+                  setFailedImageId(slide._id);
+                }}
+                className="object-contain md:object-cover md:object-center"
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-      <div className="relative z-10 mx-auto grid h-full max-w-[1920px] grid-cols-1 items-end px-6 pb-16 pt-6 sm:grid-cols-[1fr_0.92fr] sm:items-center sm:px-10 sm:pb-14 lg:grid-cols-[1.05fr_0.95fr] lg:px-[5.5%]">
-        <div aria-hidden="true" className="hidden sm:block" />
-        <div className="ml-auto w-full max-w-[680px] text-center text-[#0F2D39] sm:text-center">
+        {slides.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => showSlide(current - 1)}
+              aria-label="Previous featured collection"
+              className="absolute left-3 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0F2D39] shadow-[0_2px_12px_rgba(15,45,57,.16)] transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C18B65] sm:left-7 sm:size-[54px]"
+            >
+              <ChevronLeft size={22} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => showSlide(current + 1)}
+              aria-label="Next featured collection"
+              className="absolute right-3 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0F2D39] shadow-[0_2px_12px_rgba(15,45,57,.16)] transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C18B65] sm:right-7 sm:size-[54px]"
+            >
+              <ChevronRight size={22} aria-hidden="true" />
+            </button>
+            <div
+              role="group"
+              aria-label="Choose a featured collection"
+              className="absolute inset-x-0 bottom-2 z-20 flex items-center justify-center gap-2 sm:bottom-4 sm:gap-3"
+            >
+              {slides.map((item, index) => (
+                <button
+                  key={item._id}
+                  type="button"
+                  onClick={() => showSlide(index)}
+                  aria-label={`Show banner ${index + 1}: ${item.title}`}
+                  aria-current={current === index ? "true" : undefined}
+                  className="group flex h-6 items-center py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C18B65]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      current === index
+                        ? "w-9 bg-[#0F2D39] sm:w-12"
+                        : "w-6 bg-[#D1D5DB] group-hover:bg-[#C18B65] sm:w-7"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="relative z-10 w-full bg-[#F8F5EF] px-6 py-8 text-center md:absolute md:inset-y-0 md:left-0 md:flex md:w-[54%] md:items-center md:bg-transparent md:py-0 md:pl-[6vw] md:pr-4 md:text-left lg:left-[43%] lg:w-[30%] lg:pl-0">
+        <div className="mx-auto w-full max-w-[620px] md:mx-0">
           {slide.subtitle.trim() && (
-            <p className="mb-1 whitespace-pre-line text-[clamp(.65rem,1.35vw,1.35rem)] font-medium uppercase leading-tight tracking-[0.22em] text-[#C18B65] sm:mb-2">
-              {slide.subtitle}
-            </p>
+            <>
+              <p className="whitespace-pre-line text-xs font-semibold uppercase leading-tight tracking-[0.22em] text-[#C18B65] sm:text-sm">
+                {slide.subtitle}
+              </p>
+              <span
+                aria-hidden="true"
+                className="mx-auto mt-3 block h-[2px] w-12 bg-[#C18B65] md:mx-0"
+              />
+            </>
           )}
           {slide.title.trim() && (
-            <h1 className="whitespace-pre-line font-heading text-[clamp(2rem,5.3vw,6.5rem)] font-medium uppercase leading-[0.92] tracking-[-0.04em] text-[#0F2D39] [text-wrap:balance]">
+            <h1 className="whitespace-pre-line font-heading text-[clamp(2.5rem,5.4vw,6.5rem)] font-medium uppercase leading-[0.92] tracking-[-0.04em] text-[#0F2D39] [text-wrap:balance] lg:text-[clamp(2rem,4.2vw,5.25rem)]">
               {slide.title}
             </h1>
           )}
           {slide.description.trim() && (
-            <p className="mx-auto mt-2 max-w-[600px] whitespace-pre-line text-[clamp(.7rem,1.35vw,1.35rem)] leading-[1.35] tracking-[0.07em] sm:mt-4">
+            <p className="mx-auto mt-4 max-w-[560px] whitespace-pre-line text-sm leading-relaxed md:mx-0 lg:text-base">
               {slide.description}
             </p>
           )}
           {slide.buttonText.trim() && slide.buttonLink.trim() && (
             <Link
               href={slide.buttonLink}
-              className="mt-4 inline-flex min-h-10 items-center justify-center gap-3 rounded-full bg-[#0F2D39] px-6 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#F8F5EF] transition-colors hover:bg-[#C18B65] hover:text-[#0F2D39] sm:mt-6 sm:min-h-12 sm:px-8 sm:text-sm"
+              className="mt-6 inline-flex min-h-11 items-center justify-center gap-3 rounded-full bg-[#0F2D39] px-7 py-2 text-xs font-semibold uppercase tracking-wide text-[#F8F5EF] transition-colors hover:bg-[#C18B65] hover:text-[#0F2D39] sm:min-h-12 sm:px-8 sm:text-sm"
             >
               {slide.buttonText}
               <ChevronRight size={16} aria-hidden="true" />
@@ -138,52 +196,6 @@ export default function Hero() {
           )}
         </div>
       </div>
-
-      {slides.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={() => showSlide(current - 1)}
-            aria-label="Previous featured collection"
-            className="absolute left-4 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#0F2D39] shadow-[0_2px_12px_rgba(15,45,57,.16)] transition-colors hover:bg-[#F8F5EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C18B65] sm:left-7 sm:size-[54px]"
-          >
-            <ChevronLeft size={22} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => showSlide(current + 1)}
-            aria-label="Next featured collection"
-            className="absolute right-4 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#0F2D39] shadow-[0_2px_12px_rgba(15,45,57,.16)] transition-colors hover:bg-[#F8F5EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C18B65] sm:right-7 sm:size-[54px]"
-          >
-            <ChevronRight size={22} aria-hidden="true" />
-          </button>
-          <div
-            role="group"
-            aria-label="Choose a featured collection"
-            className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-3 sm:bottom-6"
-          >
-            {slides.map((item, index) => (
-              <button
-                key={item._id}
-                type="button"
-                onClick={() => showSlide(index)}
-                aria-label={`Show banner ${index + 1}: ${item.title}`}
-                aria-current={current === index ? "true" : undefined}
-                className="group flex h-6 items-center py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C18B65]"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`h-1 rounded-full transition-all duration-300 ${
-                    current === index
-                      ? "w-9 bg-[#0F2D39] sm:w-12"
-                      : "w-6 bg-[#D1D5DB] group-hover:bg-[#C18B65] sm:w-7"
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
-        </>
-      )}
     </section>
   );
 }
