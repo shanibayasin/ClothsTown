@@ -12,10 +12,10 @@ import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
 import CategoryTile from "@/app/components/category/CategoryTile";
 
-const categoryGridClass =
-  "grid grid-cols-2 gap-x-2 gap-y-4 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7";
 const categoryCarouselClass =
   "scrollbar-none grid grid-flow-col grid-rows-1 gap-x-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory touch-pan-x auto-cols-[calc((100%-0.5rem)/2)] min-[480px]:auto-cols-[calc((100%-1rem)/3)] md:auto-cols-[calc((100%-1.5rem)/4)] lg:auto-cols-[calc((100%-2rem)/5)] xl:auto-cols-[calc((100%-3rem)/7)]";
+const categoryGridClass =
+  "grid grid-cols-2 gap-x-2 gap-y-4 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7";
 
 interface Category {
   _id: string;
@@ -215,11 +215,7 @@ export default function CategoriesSection() {
   }, []);
 
   function toggleExpanded() {
-    if (expanded) {
-      setExpanded(false);
-      return;
-    }
-    setExpanded(true);
+    setExpanded((current) => !current);
   }
 
   return (
@@ -229,24 +225,22 @@ export default function CategoriesSection() {
           <h2 className="text-[17px] font-bold tracking-tight text-[var(--brand-primary)] sm:text-xl">
             Shop by Category
           </h2>
-          <div className="flex items-center gap-2 sm:gap-4">
-            {!loading && (
-              <button
-                type="button"
-                onClick={toggleExpanded}
-                aria-expanded={expanded}
-                aria-controls="home-category-grid"
-                className="hidden min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:inline-flex sm:text-xs"
-              >
-                {expanded ? "Show Less" : "View All"}
-                {expanded ? (
-                  <ArrowUp size={13} aria-hidden="true" />
-                ) : (
-                  <ArrowDown size={13} aria-hidden="true" />
-                )}
-              </button>
-            )}
-          </div>
+          {!loading && (
+            <button
+              type="button"
+              onClick={toggleExpanded}
+              aria-expanded={expanded}
+              aria-controls="home-category-grid"
+              className="inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:text-xs"
+            >
+              {expanded ? "Show Less" : "All Categories"}
+              {expanded ? (
+                <ArrowUp size={13} aria-hidden="true" />
+              ) : (
+                <ArrowDown size={13} aria-hidden="true" />
+              )}
+            </button>
+          )}
         </div>
         {loading ? (
           <div className={`${categoryCarouselClass} pointer-events-none`}>
@@ -265,9 +259,7 @@ export default function CategoriesSection() {
             id="home-category-grid"
             layout
             transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
-            className={
-              expanded ? categoryGridClass : "flex flex-col gap-y-4"
-            }
+            className={expanded ? categoryGridClass : "flex flex-col gap-y-4"}
           >
             {expanded ? (
               categories.map((category, index) => (
