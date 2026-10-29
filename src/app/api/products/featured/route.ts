@@ -14,9 +14,6 @@ export async function GET() {
     const products = await Product.find(
       getActiveProductFilter(getFeaturedProductFilter())
     )
-      .populate("category")
-      .populate("collection")
-      .populate("collections")
       .sort({ createdAt: -1 })
       .limit(8)
       .lean();

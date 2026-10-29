@@ -7,7 +7,6 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import Link from "next/link";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { readJsonResponse } from "@/lib/api";
@@ -239,7 +238,14 @@ export default function CategoriesSection() {
                 aria-controls="home-category-grid"
                 className="inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-secondary-foreground)] sm:text-xs"
               >
-                {expanded ? "Show Less" : "View All"}
+                {expanded ? (
+                  "Show Less"
+                ) : (
+                  <>
+                    <span className="sm:hidden">All Categories</span>
+                    <span className="hidden sm:inline">View All</span>
+                  </>
+                )}
                 {expanded ? (
                   <ArrowUp size={13} aria-hidden="true" />
                 ) : (
@@ -247,17 +253,12 @@ export default function CategoriesSection() {
                 )}
               </button>
             )}
-            <Link
-              href="/categories"
-              className="inline-flex min-h-9 items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--brand-primary)] sm:text-xs"
-            >
-              All categories
-              <ArrowRight size={13} aria-hidden="true" />
-            </Link>
           </div>
         </div>
         {loading ? (
-          <div className={`${categoryCarouselClass} pointer-events-none`}>
+          <div
+            className={`${categoryCarouselClass} pointer-events-none hidden sm:grid`}
+          >
             {Array.from({ length: 14 }, (_, index) => (
               <div
                 key={index}
@@ -273,7 +274,11 @@ export default function CategoriesSection() {
             id="home-category-grid"
             layout
             transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
-            className={expanded ? categoryGridClass : "flex flex-col gap-y-4"}
+            className={
+              expanded
+                ? categoryGridClass
+                : "hidden flex-col gap-y-4 sm:flex"
+            }
           >
             {expanded ? (
               categories.map((category, index) => (
